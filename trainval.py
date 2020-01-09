@@ -229,10 +229,7 @@ if __name__ == "__main__":
     elif args.create_jupyter:
         # view experiments
         hj.create_jupyter(args.exp_group_list, 
-                        fname=os.path.join(os.path.dirname(__file__), 
-                                          'results', 
-                                          '%s.ipynb' % exp_group_name),
-                       savedir_base=args.savedir_base, 
+                        savedir_base=args.savedir_base, 
                        workdir=os.path.dirname(__file__),
                        legend_list=['lr','batch_size'],
                        score_list=['train_loss', 'val_acc'])

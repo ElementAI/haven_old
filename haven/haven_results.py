@@ -299,8 +299,9 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1, split="row"):
             
 def exp_id_images(exp_id, savedir_base, split, n_images=10):
     savedir = savedir_base + "/%s/" % exp_id 
-    img_list = glob.glob(savedir + "/images/images/*.jpg")[:n_images]
+    img_list = glob.glob(savedir + "/*/*.jpg")[:n_images]
     if len(img_list) == 0:
+        print('no images in %s' % savedir)
         return
     ncols = len(img_list)
     # ncols = len(exp_configs)

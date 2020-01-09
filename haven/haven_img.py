@@ -1,6 +1,7 @@
 import cv2 
 from . import haven_utils as hu
 import numpy as np 
+from PIL import Image
 
 
 def overlay_pil(image, mask):
