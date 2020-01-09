@@ -174,13 +174,15 @@ def get_plot(exp_list,
              avg_runs=0, 
              s_epoch=None,
              e_epoch=None,
-             axs=None):
+             axs=None,
+             width=8,
+             height=6):
     ncols = len(score_list)
     nrows = 1
     
     if axs is None:
         fig, axs = plt.subplots(nrows=nrows, ncols=ncols, 
-                                figsize=(ncols*8, nrows*6))
+                                figsize=(ncols*width, nrows*height))
     if not hasattr(axs, 'size'):
         axs = [axs]
 
@@ -286,7 +288,8 @@ def get_dataframe_score_list(exp_list, col_list=None, savedir_base=None):
     return df
 
 
-def get_images(exp_list, savedir_base, n_exps=3, n_images=1, split="row"):
+def get_images(exp_list, savedir_base, n_exps=3, n_images=1, split="row",
+               height=12, width=12):
     for k, exp_dict in enumerate(exp_list):
         if k >= n_exps:
             return
@@ -294,38 +297,36 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1, split="row"):
 
         exp_id = hu.hash_dict(exp_dict)
         result_dict["exp_id"] = exp_id
-        exp_id_images(exp_id, savedir_base, split, n_images=n_images)
+        
+        savedir = savedir_base + "/%s/" % exp_id 
+        # img_list = glob.glob(savedir + "/*/*.jpg")[:n_images]
+        img_list = glob.glob(savedir + "/images/images/*.jpg")[:n_images]
+        if len(img_list) == 0:
+            print('no images in %s' % savedir)
+            return
+        ncols = len(img_list)
+        # ncols = len(exp_configs)
+        nrows = 1
+        if split == "row":
+            fig, axs = plt.subplots(nrows=ncols, ncols=nrows, 
+                                figsize=(ncols*width, nrows*height))
+        else:
+            fig, axs = plt.subplots(nrows=nrows, ncols=ncols, 
+                                figsize=(ncols*width, nrows*height))
 
-            
-def exp_id_images(exp_id, savedir_base, split, n_images=10):
-    savedir = savedir_base + "/%s/" % exp_id 
-    img_list = glob.glob(savedir + "/*/*.jpg")[:n_images]
-    if len(img_list) == 0:
-        print('no images in %s' % savedir)
-        return
-    ncols = len(img_list)
-    # ncols = len(exp_configs)
-    nrows = 1
-    if split == "row":
-        fig, axs = plt.subplots(nrows=ncols, ncols=nrows, 
-                            figsize=(ncols*12, nrows*12))
-    else:
-        fig, axs = plt.subplots(nrows=nrows, ncols=ncols, 
-                            figsize=(ncols*12, nrows*12))
+        if not hasattr(axs, 'size'):
+            axs = [[axs]]
 
-    if not hasattr(axs, 'size'):
-        axs = [[axs]]
-
-    for i in range(ncols):
-        img = plt.imread(img_list[i])
-        axs[0][i].imshow(img)
-        axs[0][i].set_axis_off()
-        axs[0][i].set_title('%s:' % exp_id + hu.extract_fname(img_list[i]))
-#         fig.suptitle(exp_id)
-    plt.axis('off')
-    plt.tight_layout()
-    
-    plt.show()
+        for i in range(ncols):
+            img = plt.imread(img_list[i])
+            axs[0][i].imshow(img)
+            axs[0][i].set_axis_off()
+            axs[0][i].set_title('%s:' % exp_id + hu.extract_fname(img_list[i]))
+    #         fig.suptitle(exp_id)
+        plt.axis('off')
+        plt.tight_layout()
+        
+        plt.show()
 
 
 def upload_score_list_to_dropbox(exp_id_list, savedir_base, outdir_base, access_token):

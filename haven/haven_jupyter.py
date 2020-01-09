@@ -116,12 +116,16 @@ for i, exp_subset in enumerate(exp_subsets):
     title_list=%s,
     avg_runs=0,
     legend_list=%s,
+    height=8,
+    width=8
     )
     # plt.savefig('%%s/results/%%s_%%d.jpg' %% (workdir, exp_group_name, i))
     plt.show()
 
     # qualitative
-    hr.get_images(exp_subset, savedir_base, n_exps=3, split="row")
+    hr.get_images(exp_subset, savedir_base, n_exps=3, split="row",
+                  height=12,
+                  width=12)
           """% (score_list, groupby_list, legend_list))
     return script
 
