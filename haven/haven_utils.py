@@ -858,53 +858,110 @@ def save_json(fname, data):
 
 
 import copy
+
+def is_equal(d1, d2):
+    flag = True
+    for k in d1:
+        # not present
+        if isinstance(d2, dict) and k not in d2:
+            flag = False 
+
+        # if both are values
+        elif not isinstance(d2[k], dict) and not isinstance(d1[k], dict):
+            if d1[k] != d2[k]:
+                flag = False
+            
+        # if both are dicts
+        elif isinstance(d2[k], dict) and isinstance(d1[k], dict):
+            flag = is_equal(d1[k], d2[k])
+
+        # if d1 is dict and not d2
+        elif isinstance(d1[k], dict) and not isinstance(d2[k], dict):
+            flag = False
+
+        # if d1 is not and d2 is dict
+        elif not isinstance(d1[k], dict) and isinstance(d2[k], dict):
+            flag = False
+
+        if flag is False:
+            break
+    
+    return flag
+
+                    
 def filter_exp_list(exp_list, 
                     regard_dict=None, 
                     disregard_dict=None):
     exp_list_new = []
-    for ep in exp_list:
-        exp_dict = flatten_dict(copy.deepcopy(ep))
-        select_flag = True
-        # regard dict
-        for k in exp_dict:
-            if isinstance(exp_dict.get(k), dict):
-                v = exp_dict.get(k)['name']
-            else:
-                v = exp_dict.get(k)
 
-            
-            # list regard dict
-            if (regard_dict and k in regard_dict and
-                isinstance(regard_dict[k], list) and
-                v not in regard_dict[k]):
-                select_flag = False
-                break
+    if regard_dict:
+        if not isinstance(regard_dict, list):
+            regard_list = [regard_dict]
+        else:
+            regard_list = regard_dict
+
+        for exp_dict in exp_list:
+            select_flag = False
+            for regard in regard_list:
+                if is_equal(regard, exp_dict):
+                    select_flag = True
+
+            if select_flag:
+                exp_list_new += [exp_dict]
                 
-            # scalar regard dict
-            elif (regard_dict and k in regard_dict and
-                not isinstance(regard_dict[k], list) and
-                v != regard_dict[k]):
-                select_flag = False
-                break
-            
-            # list disregard dict
-            if (disregard_dict and k in disregard_dict and
-                isinstance(disregard_dict[k], list) and
-                v in disregard_dict[k]):
-                select_flag = False 
-                break
-            
-            # scalar disregard dict
-            if (disregard_dict and k in disregard_dict and
-                not isinstance(disregard_dict[k], list) and
-                v == disregard_dict[k]):
-                select_flag = False 
-                break
-
-        if select_flag:
-            exp_list_new += [ep]
-
     return exp_list_new
+                
+                
+                
+            
+
+    # for exp_dict in exp_list:
+    #     select_flag = True
+
+    #     if regard_dict:
+
+    #     # regard dict
+    #     for k in exp_dict:
+    #         # get exp value
+    #         value_exp = exp_dict.get(k)
+
+    #         # regard these values
+    #         if regard_dict and k in regard_dict:
+    #             val = regard_dict[k]
+
+    #             # make list
+    #             if not isinstance(val, list):
+    #                 val_list = [val]
+
+    #             for v in val_list:
+    #                 if isinstance(v, dict):
+    #                     pass
+    #                 else:
+    #                     if v = value_exp:
+    #                         select_flag = False
+                        
+                    
+                    
+            
+    #         # disregard these values
+    #         if disregard_dict and k in disregard_dict:
+    #             val = disregard_dict[k]
+
+    #             # make list
+    #             if not isinstance(val, list):
+    #                 val = [val]
+
+    #             if value_exp not in val:
+    #                 select_flag = False
+    #                 break
+            
+    #         if not select_flag:
+    #             break
+            
+    #     if select_flag:
+    #         exp_list_new += [exp_dict]
+
+    # return exp_list_new
 
 def flatten_dict(exp_dict):
     result_dict = {}

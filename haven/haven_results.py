@@ -11,8 +11,31 @@ import glob
 from itertools import groupby 
 
 
-def get_best_exp_dict(exp_list, savedir_base, score_key):
-    best_score = np.inf 
+def get_exp_list_with_regard_dict(savedir_base, regard_dict):
+    exp_list = []
+    dir_list = os.listdir(savedir_base)
+
+    for exp_id in dir_list:
+        savedir = os.path.join(savedir_base, exp_id)
+        fname = savedir + "/exp_dict.json"
+        if not os.path.exists(fname):
+            continue
+        exp_dict = hu.load_json(fname)
+        exp_list += [exp_dict]
+
+    exp_list_new = hu.filter_exp_list(exp_list, 
+                                      regard_dict=regard_dict, 
+                                      disregard_dict=None)
+    return exp_list_new
+
+
+
+def get_best_exp_dict(exp_list, savedir_base, score_key, lower_is_better=True, return_scores=False):
+    scores_dict = []
+    if lower_is_better:
+        best_score = np.inf 
+    else:
+        best_score = 0.
     exp_dict_best = None
     
     for exp_dict in exp_list:
@@ -26,20 +49,36 @@ def get_best_exp_dict(exp_list, savedir_base, score_key):
         if os.path.exists(score_list_fname):
             score_list = hu.load_pkl(score_list_fname)
             
-        score = pd.DataFrame(score_list)[score_key].min()
+        
 #         print(len(score_list), score)
         # lower is better
-        if best_score > score:
-            best_score = score
-            exp_dict_best = exp_dict
+        if lower_is_better:
+            score = pd.DataFrame(score_list)[score_key].min()
+            if best_score >= score:
+                best_score = score
+                exp_dict_best = exp_dict
+        else:
+            score = pd.DataFrame(score_list)[score_key].max()
+            if best_score <= score:
+                best_score = score
+                exp_dict_best = exp_dict
+        scores_dict += [{'score':score, 'epochs':len(score_list), 'exp_id':exp_id}]
 #     print(best_score)
+    scores_dict += [{'exp_id':hu.hash_dict(exp_dict_best), 'best_score':best_score}]
+    if return_scores:
+        return exp_dict_best, scores_dict
     return exp_dict_best
 
-def filter_best_results(exp_list, savedir_base, groupby_key_list, score_key):
+def filter_best_results(exp_list, savedir_base, groupby_key_list, score_key,
+                        lower_is_better=True):
     exp_subsets = group_exp_list(exp_list, groupby_key_list)
-    exp_list_new = []
+    exp_list_new = [] 
     for exp_subset in exp_subsets:
-        exp_list_new += [get_best_exp_dict(exp_subset, savedir_base, score_key=score_key)]
+        exp_dict_best = get_best_exp_dict(exp_subset, savedir_base, 
+                    score_key=score_key, lower_is_better=lower_is_better)
+        if exp_dict_best is None:
+            continue
+        exp_list_new += [exp_dict_best]
     return exp_list_new
 
 def view_experiments(exp_list, savedir_base):

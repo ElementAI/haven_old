@@ -19,3 +19,8 @@ def delete_and_backup_experiment(savedir):
 
     if os.path.exists(savedir):
         shutil.move(savedir, dst)
+
+def get_savedir(exp_dict, savedir_base):
+    exp_id = hu.hash_dict(exp_dict)
+    savedir = "%s/%s" % (savedir_base, exp_id)
+    return savedir
