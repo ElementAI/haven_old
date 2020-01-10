@@ -892,9 +892,11 @@ def is_equal(d1, d2):
 def filter_exp_list(exp_list, 
                     regard_dict=None, 
                     disregard_dict=None):
-    exp_list_new = []
+    
 
     if regard_dict:
+        exp_list_new = []
+
         if not isinstance(regard_dict, list):
             regard_list = [regard_dict]
         else:
@@ -909,7 +911,9 @@ def filter_exp_list(exp_list,
             if select_flag:
                 exp_list_new += [exp_dict]
                 
-    return exp_list_new
+        return exp_list_new
+
+    return exp_list
                 
                 
                 
