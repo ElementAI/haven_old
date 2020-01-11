@@ -1015,7 +1015,8 @@ def shrink2roi(img, roi):
 def hash_dict(dictionary):
     """Create a hash for a dictionary."""
     dict2hash = ""
-
+    if not isinstance(dictionary, dict):
+        raise ValueError('dictionary is not a dict')
     for k in sorted(dictionary.keys()):
         if isinstance(dictionary[k], dict):
             v = hash_dict(dictionary[k])
