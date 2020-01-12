@@ -64,6 +64,8 @@ def get_best_exp_dict(exp_list, savedir_base, score_key, lower_is_better=True, r
                 exp_dict_best = exp_dict
         scores_dict += [{'score':score, 'epochs':len(score_list), 'exp_id':exp_id}]
 #     print(best_score)
+    if exp_dict_best is None:
+        raise ValueError('exp_dict_best is None')
     scores_dict += [{'exp_id':hu.hash_dict(exp_dict_best), 'best_score':best_score}]
     if return_scores:
         return exp_dict_best, scores_dict

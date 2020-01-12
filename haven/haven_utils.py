@@ -33,6 +33,26 @@ from importlib import reload
 from skimage.segmentation import mark_boundaries
 
 
+def get_longest_list(listOfLists):
+    LL = listOfLists
+    longest_list = []
+
+    if LL is None:
+        return longest_list
+
+    for L in LL:
+        if not isinstance(L, list):
+            continue
+
+        if not isinstance(L[0], list):
+            L = [L]
+        
+        if len(L) > len(longest_list):
+            longest_list = L
+
+    #print(longest_list)
+    return longest_list
+    
 def get_padding(kernel_size=1):
     return int((kernel_size - 1) / 2)
 
