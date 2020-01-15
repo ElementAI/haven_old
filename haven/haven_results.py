@@ -268,9 +268,13 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1, split="row",
         
         savedir = savedir_base + "/%s/" % exp_id 
         # img_list = glob.glob(savedir + "/*/*.jpg")[:n_images]
+<<<<<<< HEAD
         img_list = glob.glob(savedir + "/images/images/*.jpg")[:n_images]
         img_list += glob.glob(savedir + "/images/*.jpg")[:n_images]
         
+=======
+        img_list = glob.glob(savedir + "/images/*.jpg")[:n_images]
+>>>>>>> d0f7a58414581688a6e1cb8a41e9f3f1c027782d
         if len(img_list) == 0:
             print('no images in %s' % savedir)
             continue

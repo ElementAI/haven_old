@@ -54,7 +54,7 @@ def gray2cmap(gray, cmap="jet", thresh=0):
     gray = gray.astype(int)
     #print(gray)
 
-    from pylab import get_cmap
+    from matplotlib.cm import get_cmap
     cmap = get_cmap(cmap)
 
     output = np.zeros(gray.shape + (3, ), dtype=np.float64)
