@@ -125,8 +125,8 @@ for i, exp_subset in enumerate(exp_subsets):
     # qualitative
     hr.get_images(exp_subset, savedir_base, n_exps=3, split="row",
                   height=12,
-                  width=12)
-          """% (score_list, groupby_list, legend_list))
+                  width=12, legend_list=%s)
+          """% (score_list, groupby_list, legend_list, legend_list))
     return script
 
 def generate_zip_script():

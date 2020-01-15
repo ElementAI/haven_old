@@ -88,82 +88,6 @@ def view_experiments(exp_list, savedir_base):
                                      savedir_base=savedir_base)
     print(df)
 
-def get_plot_across_runs(exp_list, score_list, savedir_base, 
-                    title_list=None,
-                     legend_list=None, avg_runs=0, 
-                     s_epoch=None,e_epoch=None):
-    nrows = 1
-    # ncols = len(exp_configs)
-    ncols = len(score_list)
-    fig, axs = plt.subplots(nrows=nrows, ncols=ncols, 
-                            figsize=(ncols*8, nrows*6))
-    if nrows == 1 and ncols == 1:
-        axs = [axs]
-    
-    for i, row in enumerate(score_list):
-        # exp_list = cartesian_exp_config(EXP_GROUPS[exp_config_name])
-    
-        for exp_dict in exp_list:
-            savedir = "%s/%s/" % (savedir_base,
-                                  hu.hash_dict(exp_dict))
-            path = savedir + "/score_list.pkl"
-            if os.path.exists(path) and os.path.exists(savedir + "/exp_dict.json"):
-                if exp_dict.get("runs") is None or not avg_runs:
-                    mean_list = hu.load_pkl(path)
-                    mean_df = pd.DataFrame(mean_list)
-                    std_df = None
-
-                elif exp_dict.get("runs") == 0:
-                    # score_list = load_pkl(path)
-                    mean_df, std_df = get_score_list_across_runs(exp_dict, savedir_base=savedir_base)
-
-                else:
-                    continue
-                
-                label_str = []
-                for k in legend_list:
-                    val = hu.flatten_dict(exp_dict).get(k)
-                    label_str += [str(val)]
-                label_str = "_".join(label_str)
-
-                if s_epoch:
-                    axs[i].plot(mean_df["epoch"][s_epoch:], 
-                        mean_df[row][s_epoch:],
-                                label=label_str, marker="*")
-
-                elif e_epoch:
-                    axs[i].plot(mean_df["epoch"][:e_epoch], mean_df[row][:e_epoch],
-                                label=label_str, marker="*")
-                else:
-                    axs[i].plot(mean_df["epoch"], mean_df[row],
-                                label=label_str, marker="*")
-                if std_df is not None:
-                    # do shading
-                    offset = 0
-                    # print(mean_df[row][offset:] - std_df[row][offset:])
-                    # adsd
-                    axs[i].fill_between(mean_df["epoch"][offset:], 
-                            mean_df[row][offset:] - std_df[row][offset:],
-                            mean_df[row][offset:] + std_df[row][offset:], 
-                            # color = label2color[labels[i]],  
-                            alpha=0.5)
-                axs[i].grid(True)
-
-        # prepare figure
-        if "loss" in row:   
-            axs[i].set_yscale("log")
-            axs[i].set_ylabel(row + " (log)")
-        else:
-            axs[i].set_ylabel(row)
-        axs[i].set_xlabel("epochs")
-        axs[i].set_title("_".join([str(exp_dict.get(k)) for k in title_list]))
-                            
-        axs[i].legend( loc='best')  
-        # axs[i].legend( loc='upper right', bbox_to_anchor=(0.5, -0.05))  
-        # axs[i].set_ylim(.90, .94)  
-    plt.grid(True)  
-               
-    return fig
 
 def get_score_list_across_runs(exp_dict, savedir_base):    
     savedir = "%s/%s/" % (savedir_base,
@@ -330,11 +254,14 @@ def get_dataframe_score_list(exp_list, col_list=None, savedir_base=None):
 
 
 def get_images(exp_list, savedir_base, n_exps=3, n_images=1, split="row",
-               height=12, width=12):
+               height=12, width=12, legend_list=None):
     for k, exp_dict in enumerate(exp_list):
         if k >= n_exps:
             return
         result_dict = {}
+
+        label = "_".join([str(exp_dict.get(k)) for 
+                                k in legend_list])
 
         exp_id = hu.hash_dict(exp_dict)
         result_dict["exp_id"] = exp_id
@@ -342,9 +269,12 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1, split="row",
         savedir = savedir_base + "/%s/" % exp_id 
         # img_list = glob.glob(savedir + "/*/*.jpg")[:n_images]
         img_list = glob.glob(savedir + "/images/images/*.jpg")[:n_images]
+        img_list += glob.glob(savedir + "/images/*.jpg")[:n_images]
+        
         if len(img_list) == 0:
             print('no images in %s' % savedir)
-            return
+            continue
+
         ncols = len(img_list)
         # ncols = len(exp_configs)
         nrows = 1
@@ -362,8 +292,8 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1, split="row",
             img = plt.imread(img_list[i])
             axs[0][i].imshow(img)
             axs[0][i].set_axis_off()
-            axs[0][i].set_title('%s:' % exp_id + hu.extract_fname(img_list[i]))
-    #         fig.suptitle(exp_id)
+            axs[0][i].set_title('%s:%s' % (label, hu.extract_fname(img_list[i])))
+
         plt.axis('off')
         plt.tight_layout()
         
