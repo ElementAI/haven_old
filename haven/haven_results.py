@@ -175,6 +175,8 @@ def get_plot(exp_list,
                                 k in legend_list])
                 
                 x_list = mean_df["epoch"]
+                if row not in mean_df:
+                    continue
                 y_list = mean_df[row]
                 if s_epoch:
                     x_list = x_list[s_epoch:]
