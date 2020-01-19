@@ -259,9 +259,12 @@ def get_plot(exp_list,
                 elif e_epoch:
                     x_list = x_list[:e_epoch]
                     y_list = y_list[:e_epoch]
-
+                
+                if y_list.dtype == 'object':
+                    continue
                 axs[i].plot(x_list, y_list,
-                                label=label, marker="*")
+                            label=str(label), marker="*")
+              
 
                 if std_df is not None:
                     offset = 0
