@@ -174,10 +174,15 @@ def get_plot(exp_list,
                 label = "_".join([str(exp_dict.get(k)) for 
                                 k in legend_list])
                 
-                x_list = mean_df["epoch"]
+                x_list = np.array(mean_df["epoch"])
                 if row not in mean_df:
                     continue
-                y_list = mean_df[row]
+                y_list = np.array(mean_df[row])
+                y_ind = ~np.isnan(y_list)
+                
+                y_list = y_list[y_ind]
+                x_list = x_list[y_ind]
+
                 if s_epoch:
                     x_list = x_list[s_epoch:]
                     y_list = y_list[s_epoch:]
@@ -241,11 +246,18 @@ def get_dataframe_score_list(exp_list, col_list=None, savedir_base=None):
             score_df = pd.DataFrame(score_list)
             if len(score_list):
                 score_dict_last = score_list[-1]
-                for k, v in score_dict_last.items():
-                    if "float" not  in str(score_df[k].dtype):
-                        result_dict["*"+k] = v
+                for k in score_df.columns:
+                    v = np.array(score_df[k])
+                    v = v[~np.isnan(v)]
+
+                    if "float"  in str(v.dtype):
+                        result_dict[k] = ("%.3f (%.3f-%.3f)" % 
+                            (v[-1], v.min(), v.max()))
                     else:
-                        result_dict["*"+k] = "%.3f (%.3f-%.3f)" % (v, score_df[k].min(), score_df[k].max())
+                        result_dict[k] = v[~np.isnan(v)][-1]
+                #     else:
+                #         result_dict["*"+k] = ("%.3f (%.3f-%.3f)" % 
+                #             (score_df[k], score_df[k].min(), score_df[k].max()))
 
         score_list_list += [result_dict]
 
@@ -264,9 +276,11 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1, split="row",
         if k >= n_exps:
             return
         result_dict = {}
-
-        label = "_".join([str(exp_dict.get(k)) for 
-                                k in legend_list])
+        if legend_list is None:
+            label = ''
+        else:
+            label = "_".join([str(exp_dict.get(k)) for 
+                                    k in legend_list])
 
         exp_id = hu.hash_dict(exp_dict)
         result_dict["exp_id"] = exp_id
