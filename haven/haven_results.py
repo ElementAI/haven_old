@@ -137,7 +137,7 @@ def get_plot(exp_list,
              title_list=None,
              legend_list=None, 
              avg_runs=0, 
-             s_epoch=None,
+             s_epoch=0,
              e_epoch=None,
              axs=None,
              x_name='epoch',
@@ -175,29 +175,50 @@ def get_plot(exp_list,
                 label = "_".join([str(exp_dict.get(k)) for 
                                 k in legend_list])
                 
-                x_list = mean_df[x_name]
+
+                x_list = np.array(mean_df[x_name])
+
                 if row not in mean_df:
                     continue
-                y_list = mean_df[row]
+                y_list = np.array(mean_df[row])
+                
+                if 'float' in str(y_list.dtype):
+                    y_ind = ~np.isnan(y_list)
+                
+                    y_list = y_list[y_ind]
+                    x_list = x_list[y_ind]
+
+                
+
                 if s_epoch:
                     x_list = x_list[s_epoch:]
                     y_list = y_list[s_epoch:]
+                    
 
                 elif e_epoch:
                     x_list = x_list[:e_epoch]
                     y_list = y_list[:e_epoch]
-
+                
+                if y_list.dtype == 'object':
+                    continue
                 axs[i].plot(x_list, y_list,
-                                label=label, marker="*")
+                            label=str(label), marker="*")
+              
 
                 if std_df is not None:
+                    s_list = np.array(std_df[row])
+                    s_list = s_list[y_ind]
+                    s_list = s_list[s_epoch:]
                     offset = 0
                     axs[i].fill_between(x_list[offset:], 
-                            y_list[offset:] - std_df[row][offset:],
-                            y_list[offset:] + std_df[row][offset:], 
+                            y_list[offset:] - s_list[offset:],
+                            y_list[offset:] + s_list[offset:], 
                             # color = label2color[labels[i]],  
                             alpha=0.5)
         if "loss" in row:   
+            axs[i].set_yscale("log")
+            axs[i].set_ylabel(row + " (log)")
+        if "step_size" in row:   
             axs[i].set_yscale("log")
             axs[i].set_ylabel(row + " (log)")
         else:
@@ -239,11 +260,18 @@ def get_dataframe_score_list(exp_list, col_list=None, savedir_base=None):
             score_df = pd.DataFrame(score_list)
             if len(score_list):
                 score_dict_last = score_list[-1]
-                for k, v in score_dict_last.items():
-                    if "float" not  in str(score_df[k].dtype):
-                        result_dict["*"+k] = v
+                for k in score_df.columns:
+                    v = np.array(score_df[k])
+                    v = v[~np.isnan(v)]
+
+                    if "float"  in str(v.dtype):
+                        result_dict[k] = ("%.3f (%.3f-%.3f)" % 
+                            (v[-1], v.min(), v.max()))
                     else:
-                        result_dict["*"+k] = "%.3f (%.3f-%.3f)" % (v, score_df[k].min(), score_df[k].max())
+                        result_dict[k] = v[~np.isnan(v)][-1]
+                #     else:
+                #         result_dict["*"+k] = ("%.3f (%.3f-%.3f)" % 
+                #             (score_df[k], score_df[k].min(), score_df[k].max()))
 
         score_list_list += [result_dict]
 
@@ -258,13 +286,16 @@ def get_dataframe_score_list(exp_list, col_list=None, savedir_base=None):
 
 def get_images(exp_list, savedir_base, n_exps=3, n_images=1, split="row",
                height=12, width=12, legend_list=None):
+    assert(legend_list is not None)
     for k, exp_dict in enumerate(exp_list):
         if k >= n_exps:
             return
         result_dict = {}
-
-        label = "_".join([str(exp_dict.get(k)) for 
-                                k in legend_list])
+        if legend_list is None:
+            label = ''
+        else:
+            label = "_".join([str(exp_dict.get(k)) for 
+                                    k in legend_list])
 
         exp_id = hu.hash_dict(exp_dict)
         result_dict["exp_id"] = exp_id
@@ -301,61 +332,6 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1, split="row",
         
         plt.show()
 
-
-def upload_score_list_to_dropbox(exp_id_list, savedir_base, outdir_base, access_token):
-    import dropbox
-    dbx = dropbox.Dropbox(access_token)
-      
-    try:
-        dbx.files_create_folder(outdir_base)
-    except:
-        pass
-    # API v2
-    for exp_id in exp_id_list:
-        savedir = savedir_base + "/%s" % exp_id
-        outdir = outdir_base + "/%s" % exp_id
-
-        try:
-            dbx.files_create_folder(outdir)
-        except:
-            pass
-
-        with open(savedir+"/exp_dict.json", 'rb') as f:
-            dbx.files_upload(f.read(), outdir+"/exp_dict.json")
-
-        with open(savedir+"/score_list.pkl", 'rb') as f:
-            dbx.files_upload(f.read(), outdir+"/score_list.pkl")
-
-        print('saved: https://www.dropbox.com/home/%s' % outdir)
-
-    
-def upload_file_to_dropbox(src_fname, out_fname, access_token):
-    import dropbox
-    dbx = dropbox.Dropbox(access_token)
-    try:
-        dbx.files_delete_v2(out_fname)
-    except:
-        pass
-    with open(src_fname, 'rb') as f:
-        dbx.files_upload(f.read(), out_fname)
-
-def zipdir(exp_id_list, savedir_base, src_fname):
-    import zipfile
-    zipf = zipfile.ZipFile(src_fname, 'w', zipfile.ZIP_DEFLATED)
-
-    # ziph is zipfile handle
-    for exp_id in exp_id_list:
-        if not os.path.isdir(os.path.join(savedir_base, exp_id)):
-            continue
-        abs_path = "%s/%s/exp_dict.json" % (savedir_base, exp_id)
-        rel_path = "%s/exp_dict.json" % exp_id
-        zipf.write(abs_path, rel_path)
-
-        abs_path = "%s/%s/score_list.pkl" % (savedir_base, exp_id)
-        rel_path = "%s/score_list.pkl" % exp_id
-        zipf.write(abs_path, rel_path)
-
-    zipf.close()
 
 
 def group_exp_list(exp_list, groupby_key_list):

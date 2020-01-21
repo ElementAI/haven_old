@@ -29,11 +29,43 @@ def overlay_pil(image, mask):
     # Image.fromarray(image).save('/mnt/datasets/public/issam/prototypes/dais/overlay.png')                                                 
     return Image.fromarray(image)
 
+
 def n2p(image):
     image = hu.f2l(image.squeeze())
     if image.max() <= 1:
         image = image * 255
     return Image.fromarray(image.astype('uint8'))
+
+    
+
+def mask_on_image(image, mask):
+    image = hu.f2l(np.array(image).squeeze())
+    if image.max() <= 1:
+        image = 255*image 
+    image = image.astype('uint8')
+    mask = np.array(mask).squeeze()
+    obj_ids = np.unique(mask)
+    obj_ids = obj_ids[1:]
+
+    # polygons = cv2.findContours(im,cv2.RETR_TREE,cv2.CHAIN_APPROX_NONE)[1][0]
+    red = np.zeros(image.shape, dtype='uint8')
+    red[:,:,2] = 255
+    alpha = 0.5
+    result = image.copy()
+    for o in obj_ids:
+        ind = mask==o
+        result[ind] = result[ind] * alpha + red[ind] * (1-alpha)
+        pos = np.where(ind)
+        xmin = np.min(pos[1])
+        xmax = np.max(pos[1])
+        ymin = np.min(pos[0])
+        ymax = np.max(pos[0])
+        result = cv2.rectangle(result, (xmin, ymin), 
+                                                 (xmax, ymax), 
+                                                 color=(0,255,0), 
+                                                 thickness=2) 
+        
+    return result
 
 def resize_points(points, h, w):
     points = points.squeeze()

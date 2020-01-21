@@ -725,10 +725,15 @@ def pretty_vis(image, annList, show_class=False, alpha=0.0, dpi=100, **options):
     return fig_image
 
 import os
+from PIL import Image
 def save_image(fname, img):
-    os.makedirs(os.path.dirname(fname), exist_ok=True)
-    images = f2l(t2n(img))
-    imsave(fname , img)
+    if img.dtype == 'uint8':
+        img_pil = Image.fromarray(img)
+        img_pil.save(fname)
+    else:
+        os.makedirs(os.path.dirname(fname), exist_ok=True)
+        images = f2l(t2n(img))
+        imsave(fname , img)
 
 def f2l(X):
     if X.ndim == 3 and (X.shape[2] == 3 or X.shape[2] == 1):
