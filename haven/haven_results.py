@@ -137,7 +137,7 @@ def get_plot(exp_list,
              title_list=None,
              legend_list=None, 
              avg_runs=0, 
-             s_epoch=None,
+             s_epoch=0,
              e_epoch=None,
              axs=None,
              width=8,
@@ -178,17 +178,19 @@ def get_plot(exp_list,
                 if row not in mean_df:
                     continue
                 y_list = np.array(mean_df[row])
-                s_list = np.array(std_df[row])
-                y_ind = ~np.isnan(y_list)
                 
-                y_list = y_list[y_ind]
-                x_list = x_list[y_ind]
-                s_list = s_list[y_ind]
+                if 'float' in str(y_list.dtype):
+                    y_ind = ~np.isnan(y_list)
+                
+                    y_list = y_list[y_ind]
+                    x_list = x_list[y_ind]
+
+                
 
                 if s_epoch:
                     x_list = x_list[s_epoch:]
                     y_list = y_list[s_epoch:]
-                    s_list = s_list[s_epoch:]
+                    
 
                 elif e_epoch:
                     x_list = x_list[:e_epoch]
@@ -201,6 +203,9 @@ def get_plot(exp_list,
               
 
                 if std_df is not None:
+                    s_list = np.array(std_df[row])
+                    s_list = s_list[y_ind]
+                    s_list = s_list[s_epoch:]
                     offset = 0
                     axs[i].fill_between(x_list[offset:], 
                             y_list[offset:] - s_list[offset:],
@@ -208,6 +213,9 @@ def get_plot(exp_list,
                             # color = label2color[labels[i]],  
                             alpha=0.5)
         if "loss" in row:   
+            axs[i].set_yscale("log")
+            axs[i].set_ylabel(row + " (log)")
+        if "step_size" in row:   
             axs[i].set_yscale("log")
             axs[i].set_ylabel(row + " (log)")
         else:
