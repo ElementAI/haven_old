@@ -28,7 +28,13 @@ def overlay_pil(image, mask):
                                                  thickness=2) 
     # Image.fromarray(image).save('/mnt/datasets/public/issam/prototypes/dais/overlay.png')                                                 
     return Image.fromarray(image)
-    
+
+def n2p(image):
+    image = hu.f2l(image.squeeze())
+    if image.max() <= 1:
+        image = image * 255
+    return Image.fromarray(image.astype('uint8'))
+
 def resize_points(points, h, w):
     points = points.squeeze()
     h_old, w_old = points.shape

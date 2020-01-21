@@ -140,6 +140,7 @@ def get_plot(exp_list,
              s_epoch=None,
              e_epoch=None,
              axs=None,
+             x_name='epoch',
              width=8,
              height=6):
     ncols = len(score_list)
@@ -174,7 +175,7 @@ def get_plot(exp_list,
                 label = "_".join([str(exp_dict.get(k)) for 
                                 k in legend_list])
                 
-                x_list = mean_df["epoch"]
+                x_list = mean_df[x_name]
                 if row not in mean_df:
                     continue
                 y_list = mean_df[row]
@@ -201,7 +202,7 @@ def get_plot(exp_list,
             axs[i].set_ylabel(row + " (log)")
         else:
             axs[i].set_ylabel(row)
-        axs[i].set_xlabel("epochs")
+        axs[i].set_xlabel(x_name)
 
         if title_list is not None:
             title = "_".join([str(exp_dict.get(k)) for k in title_list])
@@ -267,7 +268,7 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1, split="row",
 
         exp_id = hu.hash_dict(exp_dict)
         result_dict["exp_id"] = exp_id
-        
+        print('Exp:', exp_id)
         savedir = savedir_base + "/%s/" % exp_id 
         # img_list = glob.glob(savedir + "/*/*.jpg")[:n_images]
         img_list = glob.glob(savedir + "/images/*.jpg")[:n_images]
