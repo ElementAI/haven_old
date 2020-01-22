@@ -260,13 +260,14 @@ def get_dataframe_score_list(exp_list, col_list=None, savedir_base=None):
                 score_dict_last = score_list[-1]
                 for k in score_df.columns:
                     v = np.array(score_df[k])
-                    v = v[~np.isnan(v)]
+                    if 'float' in str(v.dtype):
+                        v = v[~np.isnan(v)]
 
                     if "float"  in str(v.dtype):
                         result_dict[k] = ("%.3f (%.3f-%.3f)" % 
                             (v[-1], v.min(), v.max()))
                     else:
-                        result_dict[k] = v[~np.isnan(v)][-1]
+                        result_dict[k] = v[-1]
                 #     else:
                 #         result_dict["*"+k] = ("%.3f (%.3f-%.3f)" % 
                 #             (score_df[k], score_df[k].min(), score_df[k].max()))

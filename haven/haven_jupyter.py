@@ -85,6 +85,8 @@ for exp_group_name in %s:
     exp_list += exp_configs.EXP_GROUPS[exp_group_name]
 
 # filter 
+# For regard_dict, specify what key values you like, 
+# for example, regard_dict={'dataset':'mnist'} only shows mnist experiments
 exp_list = hu.filter_exp_list(exp_list, 
                             regard_dict=%s,
                             disregard_dict=%s) 
