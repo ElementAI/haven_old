@@ -142,7 +142,8 @@ def get_plot(exp_list,
              axs=None,
              x_name='epoch',
              width=8,
-             height=6):
+             height=6,
+             log_list=('train_loss',)):
     ncols = len(score_list)
     nrows = 1
     
@@ -215,10 +216,7 @@ def get_plot(exp_list,
                             y_list[offset:] + s_list[offset:], 
                             # color = label2color[labels[i]],  
                             alpha=0.5)
-        if "loss" in row:   
-            axs[i].set_yscale("log")
-            axs[i].set_ylabel(row + " (log)")
-        if "step_size" in row:   
+        if row in log_list:   
             axs[i].set_yscale("log")
             axs[i].set_ylabel(row + " (log)")
         else:
