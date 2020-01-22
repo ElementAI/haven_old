@@ -1,3 +1,6 @@
+import os 
+import tqdm
+
 def generate_dropbox_script(dropbox_outdir_base, access_token):
     script = ("""
 #import sys
@@ -6,7 +9,7 @@ def generate_dropbox_script(dropbox_outdir_base, access_token):
 dropbox_outdir_base = '%s'
 access_token = '%s'
 out_fname = os.path.join(dropbox_outdir_base,results_fname)
-hr.upload_file_to_dropbox(src_fname, out_fname, access_token)
+hd.upload_file_to_dropbox(src_fname, out_fname, access_token)
 print('saved: https://www.dropbox.com/home/%%s' %% out_fname)
           """ % (dropbox_outdir_base, access_token))
     return script
@@ -53,15 +56,24 @@ def zipdir(exp_id_list, savedir_base, src_fname):
     zipf = zipfile.ZipFile(src_fname, 'w', zipfile.ZIP_DEFLATED)
 
     # ziph is zipfile handle
-    for exp_id in exp_id_list:
+    n_zipped = 0
+    for exp_id in tqdm.tqdm(exp_id_list):
         if not os.path.isdir(os.path.join(savedir_base, exp_id)):
             continue
-        abs_path = "%s/%s/exp_dict.json" % (savedir_base, exp_id)
-        rel_path = "%s/exp_dict.json" % exp_id
-        zipf.write(abs_path, rel_path)
 
         abs_path = "%s/%s/score_list.pkl" % (savedir_base, exp_id)
         rel_path = "%s/score_list.pkl" % exp_id
+        if not os.path.exists(abs_path):
+            continue
+
         zipf.write(abs_path, rel_path)
 
+        abs_path = "%s/%s/exp_dict.json" % (savedir_base, exp_id)
+        rel_path = "%s/exp_dict.json" % exp_id
+        zipf.write(abs_path, rel_path)
+        
+        n_zipped += 1
+
+    
     zipf.close()
+    print('zipped: %d/%d exps in %s' % (n_zipped, len(exp_id_list), src_fname))

@@ -64,6 +64,7 @@ sys.path.append(workdir)
 
 from haven import haven_jupyter as hj
 from haven import haven_results as hr
+from haven import haven_dropbox as hd
 
 hj.init_datatable_mode()
 from IPython.core.display import display, HTML
@@ -131,17 +132,17 @@ for i, exp_subset in enumerate(exp_subsets):
           """% (score_list, groupby_list, legend_list, legend_list))
     return script
 
-def generate_zip_script():
+def generate_zip_script(outdir):
     script = ("""
 exp_id_list = [hu.hash_dict(exp_dict) for exp_dict in exp_list]
+results_fname = '%%s_%%s.zip'%% (exp_group_name, len(exp_list))
+src_fname = os.path.join('%s', results_fname)
+print('save in:', src_fname)
+stop
+hd.zipdir(exp_id_list, savedir_base, src_fname)
 
-results_fname = 'results.zip'
-src_fname = savedir_base + '/%s' % results_fname
-hr.zipdir(exp_id_list, savedir_base, src_fname)
-print('Zipped %d experiments in %s' % (len(exp_id_list), src_fname))
 
-
-          """)
+          """ % outdir)
     return script
 
 def save_ipynb(fname, script_list):
