@@ -1,5 +1,5 @@
 
-install by `pip install --upgrade git+ssh://git@github.com/ElementAI/haven_borgy`
+install by `pip install --upgrade git+ssh://git@github.com/ElementAI/haven`
 
 ### 1. Train and validate experiments
 
