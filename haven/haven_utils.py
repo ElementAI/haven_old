@@ -882,63 +882,6 @@ def save_json(fname, data):
         json.dump(data, json_file, indent=4, sort_keys=True)
 
 
-import copy
-
-def is_equal(d1, d2):
-    flag = True
-    for k in d1:
-        # not present
-        if isinstance(d2, dict) and k not in d2:
-            flag = False 
-
-        # if both are values
-        elif not isinstance(d2[k], dict) and not isinstance(d1[k], dict):
-            if d1[k] != d2[k]:
-                flag = False
-            
-        # if both are dicts
-        elif isinstance(d2[k], dict) and isinstance(d1[k], dict):
-            flag = is_equal(d1[k], d2[k])
-
-        # if d1 is dict and not d2
-        elif isinstance(d1[k], dict) and not isinstance(d2[k], dict):
-            flag = False
-
-        # if d1 is not and d2 is dict
-        elif not isinstance(d1[k], dict) and isinstance(d2[k], dict):
-            flag = False
-
-        if flag is False:
-            break
-    
-    return flag
-
-                    
-def filter_exp_list(exp_list, 
-                    regard_dict=None, 
-                    disregard_dict=None):
-    
-
-    if regard_dict:
-        exp_list_new = []
-
-        if not isinstance(regard_dict, list):
-            regard_list = [regard_dict]
-        else:
-            regard_list = regard_dict
-
-        for exp_dict in exp_list:
-            select_flag = False
-            for regard in regard_list:
-                if is_equal(regard, exp_dict):
-                    select_flag = True
-
-            if select_flag:
-                exp_list_new += [exp_dict]
-                
-        return exp_list_new
-
-    return exp_list
                 
                 
                 

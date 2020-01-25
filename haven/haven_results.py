@@ -10,6 +10,65 @@ import copy
 import glob 
 from itertools import groupby 
 
+# =================================
+# filtering
+# =================================
+
+import copy
+
+def is_equal(d1, d2):
+    flag = True
+    for k in d1:
+        v1, v2 = d1.get(k), d2.get(k)
+
+        # if both are values
+        if not isinstance(v2, dict) and not isinstance(v1, dict):
+            if v1 != v2:
+                flag = False
+            
+        # if both are dicts
+        elif isinstance(v2, dict) and isinstance(v1, dict):
+            flag = is_equal(v1, v2)
+
+        # if d1 is dict and not d2
+        elif isinstance(v1, dict) and not isinstance(v2, dict):
+            flag = False
+
+        # if d1 is not and d2 is dict
+        elif not isinstance(v1, dict) and isinstance(v2, dict):
+            flag = False
+
+        if flag is False:
+            break
+    
+    return flag
+
+                    
+def filter_exp_list(exp_list, 
+                    regard_dict=None, 
+                    disregard_dict=None):
+    
+
+    if regard_dict:
+        exp_list_new = []
+
+        if not isinstance(regard_dict, list):
+            regard_list = [regard_dict]
+        else:
+            regard_list = regard_dict
+
+        for exp_dict in exp_list:
+            select_flag = False
+            for regard in regard_list:
+                if is_equal(regard, exp_dict):
+                    select_flag = True
+
+            if select_flag:
+                exp_list_new += [exp_dict]
+                
+        return exp_list_new
+
+    return exp_list
 
 def get_exp_list_with_regard_dict(savedir_base, regard_dict):
     exp_list = []
@@ -23,7 +82,7 @@ def get_exp_list_with_regard_dict(savedir_base, regard_dict):
         exp_dict = hu.load_json(fname)
         exp_list += [exp_dict]
 
-    exp_list_new = hu.filter_exp_list(exp_list, 
+    exp_list_new = filter_exp_list(exp_list, 
                                       regard_dict=regard_dict, 
                                       disregard_dict=None)
     return exp_list_new
@@ -71,12 +130,18 @@ def get_best_exp_dict(exp_list, savedir_base, score_key, lower_is_better=True, r
         return exp_dict_best, scores_dict
     return exp_dict_best
 
-def filter_best_results(exp_list, savedir_base, groupby_key_list, score_key,
+def filter_best_results(exp_list, savedir_base, regard_dict_list, score_key,
                         lower_is_better=True):
-    exp_subsets = group_exp_list(exp_list, groupby_key_list)
+    exp_subsets = []
+    
+    for regard_dict in regard_dict_list:
+        exp_subsets += [filter_exp_list(exp_list, regard_dict=regard_dict)]
+        
+    print('# exp subsets:', [len(es) for es in exp_subsets])
+#     stop
     exp_list_new = [] 
     for exp_subset in exp_subsets:
-        exp_dict_best = get_best_exp_dict(exp_subset, savedir_base, 
+        exp_dict_best = hr.get_best_exp_dict(exp_subset, savedir_base, 
                     score_key=score_key, lower_is_better=lower_is_better)
         if exp_dict_best is None:
             continue
@@ -339,7 +404,7 @@ def group_exp_list(exp_list, groupby_key_list):
         for groupby_key in groupby_key_list:
             val = x[groupby_key]
             if isinstance(val, dict):
-                val = hu.hash_dict(val)
+                val = val['name']
             x_list += [val]
 
         return x_list
