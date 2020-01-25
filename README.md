@@ -1,5 +1,5 @@
 
-install by `pip install --upgrade git+ssh://git@github.com/ElementAI/haven`
+install by `pip install --upgrade git+https://github.com/ElementAI/haven`
 
 ### 1. Train and validate experiments
 
