@@ -9,12 +9,583 @@ import numpy as np
 import copy 
 import glob 
 from itertools import groupby 
+import os
+import pylab as plt 
+import pandas as pd 
+import numpy as np
+import copy 
+import glob 
+from itertools import groupby 
 
 # =================================
 # filtering
 # =================================
 
 import copy
+
+class ResultManager:
+    def __init__(self, exp_list, savedir_base, 
+                        regard_dict_list=None,
+                        groupby_list=None,
+                        order_groups=None):
+
+        self.exp_list = exp_list
+        self.savedir_base = savedir_base
+        if regard_dict_list or groupby_list:
+            self.exp_sublists = self.get_exp_sublists(regard_dict_list, 
+                                                      groupby_list,
+                                                      order_groups)
+        else:
+            self.exp_sublists = [self.exp_list]
+
+    def get_scores(self, col_list=None):
+        savedir_base = self.savedir_base
+        df_list = []
+        for exp_list in self.exp_sublists:
+            score_list_list = []
+
+            # aggregate results
+            for exp_dict in exp_list:
+                result_dict = {}
+
+                exp_id = hu.hash_dict(exp_dict)
+                result_dict["exp_id"] = exp_id
+                savedir = savedir_base + "/%s/" % exp_id 
+                if not os.path.exists(savedir + "/score_list.pkl"):
+                    score_list_list += [result_dict]
+                    continue
+
+                for k in exp_dict:
+                    result_dict[k] = exp_dict[k]
+                    
+                score_list_fname = os.path.join(savedir, "score_list.pkl")
+
+                if os.path.exists(score_list_fname):
+                    score_list = hu.load_pkl(score_list_fname)
+                    score_df = pd.DataFrame(score_list)
+                    if len(score_list):
+                        score_dict_last = score_list[-1]
+                        for k in score_df.columns:
+                            v = np.array(score_df[k])
+                            if 'float' in str(v.dtype):
+                                v = v[~np.isnan(v)]
+
+                            if "float"  in str(v.dtype):
+                                result_dict[k] = ("%.3f (%.3f-%.3f)" % 
+                                    (v[-1], v.min(), v.max()))
+                            else:
+                                result_dict[k] = v[-1]
+                        #     else:
+                        #         result_dict["*"+k] = ("%.3f (%.3f-%.3f)" % 
+                        #             (score_df[k], score_df[k].min(), score_df[k].max()))
+
+                score_list_list += [result_dict]
+
+            df = pd.DataFrame(score_list_list).set_index("exp_id")
+            
+            # filter columns
+            if col_list:
+                df = df[[c for c in col_list if c in df.columns]]
+
+            df_list += [df]
+
+        return df_list
+
+    def get_borgy(self, print_stats=True, print_errors=False):
+        from haven_borgy import haven_borgy as hb
+
+        df_list = []
+        for exp_list in self.exp_sublists:
+            if print_stats:
+                df = hb.print_borgy_stats(exp_list, 
+                                    savedir_base=self.savedir_base)
+
+            if "job_state" in df.columns:
+                stats = np.unique(df["job_state"])
+                df_dict = {s:df[df["job_state"]==s] for s in stats}
+                
+                df_list += [df_dict]
+
+            if print_errors:
+                hb.print_error_list(exp_list, savedir_base)
+
+        return df_list
+
+    def to_zip(self, fname):
+        from haven import haven_dropbox as hd
+
+        exp_id_list = [hu.hash_dict(exp_dict) for exp_dict in self.exp_list]
+        hd.zipdir(exp_id_list, self.savedir_base, fname)
+        print('Zipped %d experiments in %s' % (len(exp_id_list), fname))
+
+    def to_dropbox(self, fname, dropbox_path=None, access_token=None):
+        from haven import haven_dropbox as hd
+
+        dropbox_path = '/SLS_results/'
+        access_token = 'Z61CnS89EjIAAAAAAABJ19VZt6nlqaw5PtWEBZYBhdLbW7zDyHOYP8GDU2vA2HAI'
+        out_fname = os.path.join(dropbox_path, fname)
+        src_fname = os.path.join(self.savedir_base, fname)
+        self.to_zip(src_fname)
+        hd.upload_file_to_dropbox(src_fname, out_fname, access_token)
+        print('saved: https://www.dropbox.com/home/%s' % out_fname)
+
+    def get_plots(self,
+            transpose=False,
+            y_list=None,
+            title_list=None,
+            legend_list=None, 
+            avg_runs=0, 
+            s_epoch=0,
+            e_epoch=None,
+            x_name='epoch',
+            width=8,
+            height=6,
+            y_log_list=(None,),
+            ylim_list=None,
+            xlim_list=None,
+            color_regard_dict=None,
+            label_regard_dict=None,
+                    legend_fontsize=None,
+            y_fontsize=None, x_fontsize=None,
+                        xtick_fontsize=None, ytick_fontsize=None,
+                    title_fontsize=None,
+                        linewidth=None,
+                        markersize=None,
+                    title_dict=None, y_only_first_flag=False, legend_kwargs=None,
+                    markevery=1, bar_flag=None):
+
+        exp_sublists = self.exp_sublists
+
+        if transpose:
+            ncols = len(y_list)
+            n_plots = len(exp_sublists)
+        else:
+            ncols = len(exp_sublists)
+            n_plots = len(y_list)
+        
+        for j in range(n_plots):
+            fig, axs = plt.subplots(nrows=1, ncols=ncols, 
+                                    figsize=(ncols*width, 1*height))
+            if not hasattr(axs, 'size'):
+                axs = [axs]
+            
+            for i in range(ncols):
+                if ylim_list is not None:
+                    ylim = ylim_list[i]
+                else:
+                    ylim = None
+                if xlim_list is not None:
+                    xlim = xlim_list[i]
+                else:
+                    xlim = None
+                if y_only_first_flag and i > 0:
+                    ylabel_flag = False
+                else:
+                    ylabel_flag = True
+                
+                if transpose:
+                    y_name = y_list[i]
+                    exp_list = exp_sublists[j]
+                else:
+                    y_name = y_list[j]
+                    exp_list = exp_sublists[i]
+                    
+                plot_exp_list(axs[i], exp_list, y_name=y_name, x_name=x_name, 
+                            avg_runs=avg_runs, legend_list=legend_list, s_epoch=s_epoch, 
+                            e_epoch=e_epoch, y_log_list=y_log_list, title_list=title_list, ylim=ylim,
+                            xlim=xlim, color_regard_dict=color_regard_dict, label_regard_dict=label_regard_dict, legend_fontsize=legend_fontsize,
+                            y_fontsize=y_fontsize, x_fontsize=x_fontsize, 
+                            xtick_fontsize=xtick_fontsize, ytick_fontsize=ytick_fontsize,
+                            title_fontsize=title_fontsize, linewidth=linewidth, markersize=markersize,
+                            title_dict=title_dict, ylabel_flag=ylabel_flag,legend_kwargs=legend_kwargs,markevery=markevery,
+                            savedir_base=self.savedir_base, bar_flag=bar_flag)
+                
+                plt.grid(True) 
+                plt.tight_layout() 
+                    
+            plt.show()
+            plt.close()
+
+    def get_images(self, n_exps=3, n_images=1, 
+               height=12, width=12, legend_list=None):
+        exp_list, savedir_base = self.exp_list, self.savedir_base
+        assert(legend_list is not None)
+        for k, exp_dict in enumerate(exp_list):
+            if k >= n_exps:
+                return
+            result_dict = {}
+            if legend_list is None:
+                label = ''
+            else:
+                label = "_".join([str(exp_dict.get(k)) for 
+                                        k in legend_list])
+
+            exp_id = hu.hash_dict(exp_dict)
+            result_dict["exp_id"] = exp_id
+            print('Exp:', exp_id)
+            savedir = savedir_base + "/%s/" % exp_id 
+            # img_list = glob.glob(savedir + "/*/*.jpg")[:n_images]
+            img_list = glob.glob(savedir + "/images/*.jpg")[:n_images]
+            img_list += glob.glob(savedir + "/images/images/*.jpg")[:n_images]
+            if len(img_list) == 0:
+                print('no images in %s' % savedir)
+                continue
+
+            ncols = len(img_list)
+            # ncols = len(exp_configs)
+            nrows = 1
+            fig, axs = plt.subplots(nrows=ncols, ncols=nrows, 
+                                    figsize=(ncols*width, nrows*height))
+            
+
+            if not hasattr(axs, 'size'):
+                axs = [[axs]]
+
+            for i in range(ncols):
+                img = plt.imread(img_list[i])
+                axs[0][i].imshow(img)
+                axs[0][i].set_axis_off()
+                axs[0][i].set_title('%s:%s' % (label, hu.extract_fname(img_list[i])))
+
+            plt.axis('off')
+            plt.tight_layout()
+            
+            plt.show()
+
+    def get_exp_sublists(self, 
+                        regard_dict_list=None, 
+                        groupby_list=None,
+                        order_groups=None):
+        exp_list = self.exp_list
+        # 1. group experiments
+        if groupby_list is not None:
+            exp_sublists, exp_group_dict = group_exp_list(exp_list, groupby_list)
+
+            if order_groups:
+                exp_sublists = [exp_group_dict[d] for d in order_groups]
+        else:
+            exp_sublists = [exp_list]
+
+        # 2. filter each experiment group
+        if regard_dict_list:
+            regard_dict_list = as_double_list(regard_dict_list)
+
+            exp_sublists_new = []
+            for sublist in exp_sublists:
+                # apply filtration to sublist
+                for i in range(len(regard_dict_list)):
+                    sublist = filter_exp_list(sublist, regard_dict_list[i], 
+                                            self.savedir_base)
+                exp_sublists_new += [sublist]
+
+            exp_sublists = exp_sublists_new
+
+            print('%d sublists. Grouping by %s\n' % (len(exp_sublists), groupby_list))
+
+            for i, exp_sublist in enumerate(exp_sublists):
+                if groupby_list:
+                    group_name = '-'.join([str(exp_sublist[0][k]) for k in groupby_list])
+                else:
+                    group_name = 'all'
+                print('Sublist %d: %d experiments - (%s)' % (i, len(exp_sublist), group_name ))
+
+        return exp_sublists
+
+
+# def get_exp_list_with_regard_dict(savedir_base, regard_dict):
+#     exp_list = []
+#     dir_list = os.listdir(savedir_base)
+
+#     for exp_id in dir_list:
+#         savedir = os.path.join(savedir_base, exp_id)
+#         fname = savedir + "/exp_dict.json"
+#         if not os.path.exists(fname):
+#             continue
+#         exp_dict = hu.load_json(fname)
+#         exp_list += [exp_dict]
+
+#     exp_list_new = filter_exp_list(exp_list, 
+#                                       regard_dict=regard_dict, 
+#                                       disregard_dict=None)
+#     return exp_list_new
+
+
+def get_best_exp_dict(exp_list, savedir_base, reduce_score, reduce_mode, return_scores=False):
+
+
+    scores_dict = []
+    if reduce_mode == 'min':
+        best_score = np.inf 
+    else:
+        best_score = 0.
+    exp_dict_best = None
+    
+    for exp_dict in exp_list:
+        exp_id = hu.hash_dict(exp_dict)
+        
+        savedir = savedir_base + "/%s/" % exp_id 
+        if not os.path.exists(savedir + "/score_list.pkl"):
+            continue
+            
+        score_list_fname = os.path.join(savedir, "score_list.pkl")
+        if os.path.exists(score_list_fname):
+            score_list = hu.load_pkl(score_list_fname)
+            
+        
+#         print(len(score_list), score)
+        # lower is better
+ 
+        if reduce_mode == 'min':
+            score = pd.DataFrame(score_list)[reduce_score].min()
+            if best_score >= score:
+                best_score = score
+                exp_dict_best = exp_dict
+        else:
+            score = pd.DataFrame(score_list)[reduce_score].max()
+            if best_score <= score:
+                best_score = score
+                exp_dict_best = exp_dict
+        scores_dict += [{'score':score, 'epochs':len(score_list), 'exp_id':exp_id}]
+#     print(best_score)
+    if exp_dict_best is None:
+        return {}
+    scores_dict += [{'exp_id':hu.hash_dict(exp_dict_best), 'best_score':best_score}]
+    if return_scores:
+        return exp_dict_best, scores_dict
+    # print(reduce_score, scores_dict)
+    return exp_dict_best
+
+
+# def filter_best_results(exp_list, savedir_base, regard_dict_list, y_name,
+#                         bar_flag):
+#     exp_sublists = []
+
+#     if bar_flag == 'min':
+#         lower_is_better = True
+#     elif bar_flag == 'max':
+#         lower_is_better = False
+    
+#     for regard_dict in regard_dict_list:
+#         exp_sublists += [filter_exp_list(exp_list, regard_dict=regard_dict)]
+        
+#     print('# exp subsets:', [len(es) for es in exp_sublists])
+# #     stop
+#     exp_list_new = [] 
+#     for exp_subset in exp_sublists:
+#         exp_dict_best = get_best_exp_dict(exp_subset, savedir_base, 
+#                     score_key=y_name, lower_is_better=lower_is_better)
+#         if exp_dict_best is None:
+#             continue
+#         exp_list_new += [exp_dict_best]
+#     return exp_list_new
+
+def view_experiments(exp_list, savedir_base):
+    df = get_dataframe_score_list(exp_list=exp_list,
+                                     savedir_base=savedir_base)
+    print(df)
+
+
+
+
+def get_score_list_across_runs(exp_dict, savedir_base, y_name, x_name):    
+    savedir = "%s/%s/" % (savedir_base,
+                                 hu.hash_dict(exp_dict))
+    score_list = hu.load_pkl(savedir + "/score_list.pkl")
+    keys = score_list[0].keys()
+    result_dict = {}
+    result_dict[y_name] = np.ones((exp_dict["max_epoch"], 5))*-1
+    result_dict[x_name] = np.ones((exp_dict["max_epoch"], 5))*-1
+
+    for r in [0,1,2,3,4]:
+        exp_dict_new = copy.deepcopy(exp_dict)
+        exp_dict_new["runs"]  = r
+        savedir_new = "%s/%s/" % (savedir_base,
+                                  hu.hash_dict(exp_dict_new))
+        
+        
+        if not os.path.exists(savedir_new + "/score_list.pkl"):
+            continue
+        score_list_new = hu.load_pkl(savedir_new + "/score_list.pkl")
+        df = pd.DataFrame(score_list_new)
+        # print(df)
+        values =  np.array(df[y_name])
+        result_dict[y_name][:values.shape[0], r] = values
+
+        values =  np.array(df[x_name])
+        result_dict[x_name][:values.shape[0], r] = values
+
+
+    if -1 in result_dict[y_name]:
+        return None, None
+
+    mean_df = pd.DataFrame()
+    std_df = pd.DataFrame()
+
+    mean_df[y_name] = result_dict[y_name].mean(axis=1)
+    std_df[y_name] = result_dict[y_name].std(axis=1)
+
+    mean_df[x_name] = result_dict[x_name].mean(axis=1)
+    std_df[x_name] = result_dict[x_name].std(axis=1)
+
+    return mean_df, std_df
+
+
+def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch, e_epoch, 
+                  y_log_list, title_list, ylim=None, xlim=None, color_regard_dict=None, label_regard_dict=None, 
+                  legend_fontsize=None, y_fontsize=None, x_fontsize=None, xtick_fontsize=None, ytick_fontsize=None,
+                 title_fontsize=None, linewidth=None, markersize=None, title_dict=None, ylabel_flag=True, legend_kwargs=None, markevery=1,
+                 savedir_base=None, bar_flag=None):
+    bar_count = 0
+    for exp_dict in exp_list:
+        
+        exp_id = hu.hash_dict(exp_dict)
+        savedir = savedir_base + "/%s/" % exp_id 
+
+        path = savedir + "/score_list.pkl"
+        if os.path.exists(path) and os.path.exists(savedir + "/exp_dict.json"):
+            if exp_dict.get("runs") is None or not avg_runs:
+                mean_list = hu.load_pkl(path)
+                mean_df = pd.DataFrame(mean_list)
+                std_df = None
+
+            elif exp_dict.get("runs") == 0:
+                mean_df, std_df = get_score_list_across_runs(exp_dict, savedir_base=savedir_base, y_name=y_name, x_name=x_name)
+                if mean_df is None:
+                    mean_list = hu.load_pkl(path)
+                    mean_df = pd.DataFrame(mean_list)
+            else:
+                continue
+            
+            # get label
+            label = "_".join([str(exp_dict.get(k)) for 
+                            k in legend_list])
+
+            if label_regard_dict is not None:
+                for k in label_regard_dict:
+                    if is_equal(label_regard_dict[k], exp_dict):
+                        label = k
+                        break
+            
+            # get color
+            color = None
+            if color_regard_dict is not None:
+                for k in color_regard_dict:
+                    if is_equal(color_regard_dict[k], exp_dict):
+                        color = k
+                        break
+                
+            x_list = np.array(mean_df[x_name])
+
+            if y_name not in mean_df:
+                continue
+            y_list = np.array(mean_df[y_name])
+
+            if 'float' in str(y_list.dtype):
+                y_ind = ~np.isnan(y_list)
+
+                y_list = y_list[y_ind]
+                x_list = x_list[y_ind]
+
+            if s_epoch:
+                x_list = x_list[s_epoch:]
+                y_list = y_list[s_epoch:]
+
+            elif e_epoch:
+                x_list = x_list[:e_epoch]
+                y_list = y_list[:e_epoch]
+
+            if y_list.dtype == 'object':
+                continue
+                
+            if bar_flag:
+                if bar_flag == 'max':
+                    ix = np.argmax(y_list)    
+                else:
+                    ix = np.argmin(y_list)
+
+                axis.bar([bar_count], [y_list[ix]],
+                        color=color,
+                        label='%s - %s: %d' % (label, x_name, x_list[-1]))
+                bar_count += 1
+            else:
+                axis.plot(x_list, y_list,color=color, linewidth=linewidth, markersize=markersize,
+                        label=str(label), marker="*", markevery=markevery)
+
+            if std_df is not None and not bar_flag:
+#                 print(exp_dict)
+                s_list = np.array(std_df[y_name])
+                s_list = s_list[y_ind]
+                s_list = s_list[s_epoch:]
+                offset = 0
+                axis.fill_between(x_list[offset:], 
+                        y_list[offset:] - s_list[offset:],
+                        y_list[offset:] + s_list[offset:], 
+                        color = color,  
+                        alpha=0.1)
+                
+    if ylim is not None:
+        axis.set_ylim(ylim)
+    if xlim is not None:
+        axis.set_xlim(xlim)
+        
+    if y_name in y_log_list:   
+        axis.set_yscale("log")    
+        y_name = y_name + " (log)"
+    
+    if ylabel_flag:
+        axis.set_ylabel(y_name, fontsize=y_fontsize)
+        
+    if not bar_flag:
+        axis.set_xlabel(x_name, fontsize=x_fontsize)
+
+    axis.tick_params(axis='x', labelsize=xtick_fontsize)
+    axis.tick_params(axis='y', labelsize=ytick_fontsize)
+    if title_list is not None:
+        title = "_".join([str(exp_dict.get(k)) for k in title_list])
+        if title_dict is not None and title in title_dict:
+            title = title_dict[title]
+        axis.set_title(title, fontsize=title_fontsize)
+
+    axis.grid(True)
+    if legend_kwargs is None:
+        legend_kwargs = {'loc': 'best'}
+    axis.legend(fontsize=legend_fontsize, **legend_kwargs)  
+
+
+
+
+
+
+
+
+
+
+def group_exp_list(exp_list, groupby_key_list):
+    def key_func(x):
+        x_list = []
+        for groupby_key in groupby_key_list:
+            val = x.get(groupby_key)
+            if isinstance(val, dict):
+                val = val['name']
+            x_list += [val]
+
+        return x_list
+    
+    exp_list.sort(key=key_func)
+
+    exp_sublists = []
+    group_dict = groupby(exp_list, key=key_func)
+    
+
+    exp_group_dict = {}
+    for k,v in group_dict:
+        v_list = list(v)
+        exp_sublists += [v_list]
+        # print(k)
+        exp_group_dict['_'.join(list(map(str, k)))] = v_list
+
+    return exp_sublists, exp_group_dict
+
 
 def is_equal(d1, d2):
     flag = True
@@ -44,378 +615,42 @@ def is_equal(d1, d2):
     return flag
 
                     
-def filter_exp_list(exp_list, 
-                    regard_dict=None, 
-                    disregard_dict=None):
-    
-
-    if regard_dict:
-        exp_list_new = []
-
-        if not isinstance(regard_dict, list):
-            regard_list = [regard_dict]
+def filter_exp_list(exp_list, regard_list, savedir_base, reduce_mode=None, reduce_score=None):
+    exp_list_new = []
+    for regard_dict in regard_list:
+        if isinstance(regard_dict, tuple):
+            regard_dict, reduce_score, reduce_mode = regard_dict
         else:
-            regard_list = regard_dict
+            reduce_score = None
 
+        tmp_list = []
         for exp_dict in exp_list:
             select_flag = False
-            for regard in regard_list:
-                if is_equal(regard, exp_dict):
-                    select_flag = True
+            
+            if is_equal(regard_dict, exp_dict):
+                select_flag = True
 
             if select_flag:
-                exp_list_new += [exp_dict]
-                
-        return exp_list_new
+                tmp_list += [exp_dict]
+        if reduce_score is not None:
+            tmp_list = [get_best_exp_dict(tmp_list, savedir_base, 
+                                          reduce_score=reduce_score, reduce_mode=reduce_mode)]
+        exp_list_new += tmp_list
+
+    exp_list = exp_list_new
+
 
     return exp_list
 
-def get_exp_list_with_regard_dict(savedir_base, regard_dict):
-    exp_list = []
-    dir_list = os.listdir(savedir_base)
+def as_double_list(v):
+    if not isinstance(v, list):
+        v = [v]
 
-    for exp_id in dir_list:
-        savedir = os.path.join(savedir_base, exp_id)
-        fname = savedir + "/exp_dict.json"
-        if not os.path.exists(fname):
-            continue
-        exp_dict = hu.load_json(fname)
-        exp_list += [exp_dict]
-
-    exp_list_new = filter_exp_list(exp_list, 
-                                      regard_dict=regard_dict, 
-                                      disregard_dict=None)
-    return exp_list_new
-
-
-
-def get_best_exp_dict(exp_list, savedir_base, score_key, lower_is_better=True, return_scores=False):
-    scores_dict = []
-    if lower_is_better:
-        best_score = np.inf 
-    else:
-        best_score = 0.
-    exp_dict_best = None
+    # double list for intersection
+    if not isinstance(v[0], list):
+        v = [v] 
     
-    for exp_dict in exp_list:
-        exp_id = hu.hash_dict(exp_dict)
-        
-        savedir = savedir_base + "/%s/" % exp_id 
-        if not os.path.exists(savedir + "/score_list.pkl"):
-            continue
-            
-        score_list_fname = os.path.join(savedir, "score_list.pkl")
-        if os.path.exists(score_list_fname):
-            score_list = hu.load_pkl(score_list_fname)
-            
-        
-#         print(len(score_list), score)
-        # lower is better
-        if lower_is_better:
-            score = pd.DataFrame(score_list)[score_key].min()
-            if best_score >= score:
-                best_score = score
-                exp_dict_best = exp_dict
-        else:
-            score = pd.DataFrame(score_list)[score_key].max()
-            if best_score <= score:
-                best_score = score
-                exp_dict_best = exp_dict
-        scores_dict += [{'score':score, 'epochs':len(score_list), 'exp_id':exp_id}]
-#     print(best_score)
-    if exp_dict_best is None:
-        raise ValueError('exp_dict_best is None')
-    scores_dict += [{'exp_id':hu.hash_dict(exp_dict_best), 'best_score':best_score}]
-    if return_scores:
-        return exp_dict_best, scores_dict
-    return exp_dict_best
-
-def filter_best_results(exp_list, savedir_base, regard_dict_list, score_key,
-                        lower_is_better=True):
-    exp_subsets = []
-    
-    for regard_dict in regard_dict_list:
-        exp_subsets += [filter_exp_list(exp_list, regard_dict=regard_dict)]
-        
-    print('# exp subsets:', [len(es) for es in exp_subsets])
-#     stop
-    exp_list_new = [] 
-    for exp_subset in exp_subsets:
-        exp_dict_best = hr.get_best_exp_dict(exp_subset, savedir_base, 
-                    score_key=score_key, lower_is_better=lower_is_better)
-        if exp_dict_best is None:
-            continue
-        exp_list_new += [exp_dict_best]
-    return exp_list_new
-
-def view_experiments(exp_list, savedir_base):
-    df = get_dataframe_score_list(exp_list=exp_list,
-                                     savedir_base=savedir_base)
-    print(df)
-
-
-def get_score_list_across_runs(exp_dict, savedir_base):    
-    savedir = "%s/%s/" % (savedir_base,
-                                 hu.hash_dict(exp_dict))
-    score_list = hu.load_pkl(savedir + "/score_list.pkl")
-    keys = score_list[0].keys()
-    result_dict = {}
-    for k in keys:
-        result_dict[k] = np.ones((exp_dict["max_epoch"], 5))*-1
-    
-
-    bad_keys = set()
-    for r in [0,1,2,3,4]:
-        exp_dict_new = copy.deepcopy(exp_dict)
-        exp_dict_new["runs"]  = r
-        savedir_new = "%s/%s/" % (savedir_base,
-                                  hu.hash_dict(exp_dict_new))
-        
-        
-        if not os.path.exists(savedir_new + "/score_list.pkl"):
-            continue
-        score_list_new = hu.load_pkl(savedir_new + "/score_list.pkl")
-        df = pd.DataFrame(score_list_new)
-        for k in keys:
-            values =  np.array(df[k])
-            if values.dtype == "O":
-                bad_keys.add(k)
-                continue
-            result_dict[k][:values.shape[0], r] = values
-
-    for k in keys:
-        if k in bad_keys:
-                continue
-        if -1 in result_dict[k]:
-            return None, None
-
-    mean_df = pd.DataFrame()
-    std_df = pd.DataFrame()
-    for k in keys:
-        mean_df[k] = result_dict[k].mean(axis=1)
-        std_df[k] = result_dict[k].std(axis=1)
-    return mean_df, std_df
-
-def get_plot(exp_list, 
-             score_list, 
-             savedir_base, 
-             title_list=None,
-             legend_list=None, 
-             avg_runs=0, 
-             s_epoch=0,
-             e_epoch=None,
-             axs=None,
-             x_name='epoch',
-             width=8,
-             height=6,
-             log_list=('train_loss',)):
-    ncols = len(score_list)
-    nrows = 1
-    
-    if axs is None:
-        fig, axs = plt.subplots(nrows=nrows, ncols=ncols, 
-                                figsize=(ncols*width, nrows*height))
-    if not hasattr(axs, 'size'):
-        axs = [axs]
-
-    for i, row in enumerate(score_list):
-        for exp_dict in exp_list:
-            exp_id = hu.hash_dict(exp_dict)
-            savedir = savedir_base + "/%s/" % exp_id 
-
-            path = savedir + "/score_list.pkl"
-            if os.path.exists(path) and os.path.exists(savedir + "/exp_dict.json"):
-                if exp_dict.get("runs") is None or not avg_runs:
-                    mean_list = hu.load_pkl(path)
-                    mean_df = pd.DataFrame(mean_list)
-                    std_df = None
-
-                elif exp_dict.get("runs") == 0:
-                    mean_df, std_df = get_score_list_across_runs(exp_dict, savedir_base=savedir_base)
-                    if mean_df is None:
-                        mean_list = hu.load_pkl(path)
-                        mean_df = pd.DataFrame(mean_list)
-                else:
-                    continue
-                
-                label = "_".join([str(exp_dict.get(k)) for 
-                                k in legend_list])
-                
-
-                x_list = np.array(mean_df[x_name])
-
-                if row not in mean_df:
-                    continue
-                y_list = np.array(mean_df[row])
-                
-                if 'float' in str(y_list.dtype):
-                    y_ind = ~np.isnan(y_list)
-                
-                    y_list = y_list[y_ind]
-                    x_list = x_list[y_ind]
-
-                
-
-                if s_epoch:
-                    x_list = x_list[s_epoch:]
-                    y_list = y_list[s_epoch:]
-                    
-
-                elif e_epoch:
-                    x_list = x_list[:e_epoch]
-                    y_list = y_list[:e_epoch]
-                
-                if y_list.dtype == 'object':
-                    continue
-                axs[i].plot(x_list, y_list,
-                            label=str(label), marker="*")
-              
-
-                if std_df is not None:
-                    s_list = np.array(std_df[row])
-                    s_list = s_list[y_ind]
-                    s_list = s_list[s_epoch:]
-                    offset = 0
-                    axs[i].fill_between(x_list[offset:], 
-                            y_list[offset:] - s_list[offset:],
-                            y_list[offset:] + s_list[offset:], 
-                            # color = label2color[labels[i]],  
-                            alpha=0.5)
-        if row in log_list:   
-            axs[i].set_yscale("log")
-            axs[i].set_ylabel(row + " (log)")
-        else:
-            axs[i].set_ylabel(row)
-        axs[i].set_xlabel(x_name)
-
-        if title_list is not None:
-            title = "_".join([str(exp_dict.get(k)) for k in title_list])
-            axs[i].set_title(title)
-                            
-        axs[i].legend(loc="best")  
-
-    plt.grid(True) 
-    plt.tight_layout() 
-               
-    return fig
-
-def get_dataframe_score_list(exp_list, col_list=None, savedir_base=None):
-    score_list_list = []
-
-    # aggregate results
-    for exp_dict in exp_list:
-        result_dict = {}
-
-        exp_id = hu.hash_dict(exp_dict)
-        result_dict["exp_id"] = exp_id
-        savedir = savedir_base + "/%s/" % exp_id 
-        if not os.path.exists(savedir + "/score_list.pkl"):
-            score_list_list += [result_dict]
-            continue
-
-        for k in exp_dict:
-            result_dict[k] = exp_dict[k]
-            
-        score_list_fname = os.path.join(savedir, "score_list.pkl")
-
-        if os.path.exists(score_list_fname):
-            score_list = hu.load_pkl(score_list_fname)
-            score_df = pd.DataFrame(score_list)
-            if len(score_list):
-                score_dict_last = score_list[-1]
-                for k in score_df.columns:
-                    v = np.array(score_df[k])
-                    if 'float' in str(v.dtype):
-                        v = v[~np.isnan(v)]
-
-                    if "float"  in str(v.dtype):
-                        result_dict[k] = ("%.3f (%.3f-%.3f)" % 
-                            (v[-1], v.min(), v.max()))
-                    else:
-                        result_dict[k] = v[-1]
-                #     else:
-                #         result_dict["*"+k] = ("%.3f (%.3f-%.3f)" % 
-                #             (score_df[k], score_df[k].min(), score_df[k].max()))
-
-        score_list_list += [result_dict]
-
-    df = pd.DataFrame(score_list_list).set_index("exp_id")
-    
-    # filter columns
-    if col_list:
-        df = df[[c for c in col_list if c in df.columns]]
-
-    return df
-
-
-def get_images(exp_list, savedir_base, n_exps=3, n_images=1, split="row",
-               height=12, width=12, legend_list=None):
-    assert(legend_list is not None)
-    for k, exp_dict in enumerate(exp_list):
-        if k >= n_exps:
-            return
-        result_dict = {}
-        if legend_list is None:
-            label = ''
-        else:
-            label = "_".join([str(exp_dict.get(k)) for 
-                                    k in legend_list])
-
-        exp_id = hu.hash_dict(exp_dict)
-        result_dict["exp_id"] = exp_id
-        print('Exp:', exp_id)
-        savedir = savedir_base + "/%s/" % exp_id 
-        # img_list = glob.glob(savedir + "/*/*.jpg")[:n_images]
-        img_list = glob.glob(savedir + "/images/*.jpg")[:n_images]
-        img_list += glob.glob(savedir + "/images/images/*.jpg")[:n_images]
-        if len(img_list) == 0:
-            print('no images in %s' % savedir)
-            continue
-
-        ncols = len(img_list)
-        # ncols = len(exp_configs)
-        nrows = 1
-        if split == "row":
-            fig, axs = plt.subplots(nrows=ncols, ncols=nrows, 
-                                figsize=(ncols*width, nrows*height))
-        else:
-            fig, axs = plt.subplots(nrows=nrows, ncols=ncols, 
-                                figsize=(ncols*width, nrows*height))
-
-        if not hasattr(axs, 'size'):
-            axs = [[axs]]
-
-        for i in range(ncols):
-            img = plt.imread(img_list[i])
-            axs[0][i].imshow(img)
-            axs[0][i].set_axis_off()
-            axs[0][i].set_title('%s:%s' % (label, hu.extract_fname(img_list[i])))
-
-        plt.axis('off')
-        plt.tight_layout()
-        
-        plt.show()
-
-
-
-def group_exp_list(exp_list, groupby_key_list):
-    def key_func(x):
-        x_list = []
-        for groupby_key in groupby_key_list:
-            val = x[groupby_key]
-            if isinstance(val, dict):
-                val = val['name']
-            x_list += [val]
-
-        return x_list
-    
-    exp_list.sort(key=key_func)
-
-    exp_subsets = []
-    for k,v in groupby(exp_list, key=key_func):
-        v_list = list(v)
-        exp_subsets += [v_list]
-    return exp_subsets
+    return v 
 
 def get_best_exp_list(exp_list, 
                       groupby_key=None):
@@ -451,3 +686,10 @@ def get_best_exp_list(exp_list,
 
 
     return exp_list_new
+
+
+
+
+    
+
+

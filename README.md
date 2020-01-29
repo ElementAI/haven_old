@@ -1,5 +1,6 @@
 
 install by `pip install --upgrade git+https://github.com/ElementAI/haven`
+install in jupyter by `!{sys.executable} -m pip install git+https://github.com/ElementAI/haven --user`
 
 ### 1. Train and validate experiments
 
