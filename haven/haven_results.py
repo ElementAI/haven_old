@@ -24,13 +24,17 @@ from itertools import groupby
 import copy
 
 class ResultManager:
-    def __init__(self, exp_list, savedir_base, 
-                        regard_dict_list=None,
-                        groupby_list=None,
-                        order_groups=None):
+    def __init__(self, savedir_base, exp_list=None):
+        if exp_list is None:
+            self.exp_list = get_exp_list_from_savedir_base(savedir_base)
+        else:
+            self.exp_list = exp_list
 
-        self.exp_list = exp_list
         self.savedir_base = savedir_base
+        
+    def set_exp_sublists(self, regard_dict_list=None,
+                          groupby_list=None,
+                          order_groups=None):
         if regard_dict_list or groupby_list:
             self.exp_sublists = self.get_exp_sublists(regard_dict_list, 
                                                       groupby_list,
@@ -91,7 +95,7 @@ class ResultManager:
 
         return df_list
 
-    def get_borgy(self, print_stats=True, print_errors=False):
+    def get_borgy(self, print_stats=True, print_errors=False, print_logs=False, n_lines=500):
         from haven_borgy import haven_borgy as hb
 
         df_list = []
@@ -106,8 +110,8 @@ class ResultManager:
                 
                 df_list += [df_dict]
 
-            if print_errors:
-                hb.print_error_list(exp_list, savedir_base)
+            if print_errors or print_logs:
+                hb.print_error_list(exp_list, self.savedir_base, logs_flag=print_logs, n_lines=n_lines)
 
         return df_list
 
@@ -152,7 +156,8 @@ class ResultManager:
                         linewidth=None,
                         markersize=None,
                     title_dict=None, y_only_first_flag=False, legend_kwargs=None,
-                    markevery=1, bar_flag=None):
+                    markevery=1, bar_flag=None,
+                    savedir=None, dropbox_dir=None):
 
         exp_sublists = self.exp_sublists
 
@@ -163,6 +168,18 @@ class ResultManager:
             ncols = len(exp_sublists)
             n_plots = len(y_list)
         
+        if ylim_list is not None:
+            if isinstance(ylim_list[0], list):
+                ylim_list_list = ylim_list 
+            else:
+                ylim_list_list = as_double_list(ylim_list) * n_plots
+
+        if xlim_list is not None:
+            if isinstance(xlim_list[0], list):
+                xlim_list_list = xlim_list 
+            else:
+                xlim_list_list = as_double_list(xlim_list) * n_plots
+
         for j in range(n_plots):
             fig, axs = plt.subplots(nrows=1, ncols=ncols, 
                                     figsize=(ncols*width, 1*height))
@@ -171,11 +188,12 @@ class ResultManager:
             
             for i in range(ncols):
                 if ylim_list is not None:
-                    ylim = ylim_list[i]
+                    ylim = ylim_list_list[j][i]
                 else:
                     ylim = None
+                    
                 if xlim_list is not None:
-                    xlim = xlim_list[i]
+                    xlim = xlim_list[j][i]
                 else:
                     xlim = None
                 if y_only_first_flag and i > 0:
@@ -190,7 +208,7 @@ class ResultManager:
                     y_name = y_list[j]
                     exp_list = exp_sublists[i]
                     
-                plot_exp_list(axs[i], exp_list, y_name=y_name, x_name=x_name, 
+                title = plot_exp_list(axs[i], exp_list, y_name=y_name, x_name=x_name, 
                             avg_runs=avg_runs, legend_list=legend_list, s_epoch=s_epoch, 
                             e_epoch=e_epoch, y_log_list=y_log_list, title_list=title_list, ylim=ylim,
                             xlim=xlim, color_regard_dict=color_regard_dict, label_regard_dict=label_regard_dict, legend_fontsize=legend_fontsize,
@@ -202,9 +220,43 @@ class ResultManager:
                 
                 plt.grid(True) 
                 plt.tight_layout() 
+            if savedir:
+                plot_fname = os.path.join(savedir, '%d.png' % j)
+                plt.savefig(plot_fname)
+                print('saved: %s' % plot_fname)
+            if dropbox_dir:
+                from haven import haven_dropbox as hd
+                plot_fname = os.path.join(self.savedir_base, 'tmp.png')
+                plt.savefig(plot_fname)
+                # dropbox_dir = '/SLS_results/'
+                access_token = 'Z61CnS89EjIAAAAAAABJ19VZt6nlqaw5PtWEBZYBhdLbW7zDyHOYP8GDU2vA2HAI'
+                out_fname = os.path.join(dropbox_dir, '%s.png' % title.replace(' ', ''))
+                hd.upload_file_to_dropbox(plot_fname, out_fname, access_token)
+                print('saved: https://www.dropbox.com/home/%s' % out_fname)
                     
             plt.show()
             plt.close()
+
+    def show_image(self, fname):
+        ncols = 1
+        nrows = 1
+        height=12 
+        width=12
+        fig, axs = plt.subplots(nrows=nrows, ncols=ncols, 
+                                    figsize=(ncols*width, nrows*height))
+        if not hasattr(axs, 'size'):
+            axs = [[axs]]
+
+        for i in range(ncols):
+            img = plt.imread(os.path.join(self.savedir_base, fname))
+            axs[0][i].imshow(img)
+            axs[0][i].set_axis_off()
+            axs[0][i].set_title('%s' % (fname))
+
+        plt.axis('off')
+        plt.tight_layout()
+        
+        plt.show()
 
     def get_images(self, n_exps=3, n_images=1, 
                height=12, width=12, legend_list=None):
@@ -276,6 +328,8 @@ class ResultManager:
                 for i in range(len(regard_dict_list)):
                     sublist = filter_exp_list(sublist, regard_dict_list[i], 
                                             self.savedir_base)
+                if len(sublist) == 0:
+                    continue
                 exp_sublists_new += [sublist]
 
             exp_sublists = exp_sublists_new
@@ -284,6 +338,7 @@ class ResultManager:
 
             for i, exp_sublist in enumerate(exp_sublists):
                 if groupby_list:
+                    # print(exp_sublist)
                     group_name = '-'.join([str(exp_sublist[0][k]) for k in groupby_list])
                 else:
                     group_name = 'all'
@@ -292,23 +347,47 @@ class ResultManager:
         return exp_sublists
 
 
-# def get_exp_list_with_regard_dict(savedir_base, regard_dict):
-#     exp_list = []
-#     dir_list = os.listdir(savedir_base)
+def get_exp_list_from_savedir_base(savedir_base):
+    import tqdm
+    exp_list = []
 
-#     for exp_id in dir_list:
-#         savedir = os.path.join(savedir_base, exp_id)
-#         fname = savedir + "/exp_dict.json"
-#         if not os.path.exists(fname):
-#             continue
-#         exp_dict = hu.load_json(fname)
-#         exp_list += [exp_dict]
+    if '.zip' in savedir_base:
+        import zipfile, json
+        
+        with zipfile.ZipFile(savedir_base) as z:
+            for filename in tqdm.tqdm(z.namelist()):
+                if not os.path.isdir(filename):
+                    # read the file
+                    with z.open(filename) as f:
+                        if 'exp_dict.json' in filename:
+                            data = f.read()
+                            exp_list += [json.loads(data.decode("utf-8"))]
+    else:
+        
+        dir_list = os.listdir(savedir_base)
 
-#     exp_list_new = filter_exp_list(exp_list, 
-#                                       regard_dict=regard_dict, 
-#                                       disregard_dict=None)
-#     return exp_list_new
+        for exp_id in tqdm.tqdm(dir_list):
+            savedir = os.path.join(savedir_base, exp_id)
+            fname = savedir + "/exp_dict.json"
+            if not os.path.exists(fname):
+                continue
+            exp_dict = hu.load_json(fname)
+            exp_list += [exp_dict]
 
+    return exp_list
+
+
+def get_exp_list_zip(savedir_base):
+    import os
+    import zipfile
+
+    with zipfile.ZipFile(savedir_base) as z:
+        for filename in z.namelist():
+            if not os.path.isdir(filename):
+                # read the file
+                with z.open(filename) as f:
+                    for line in f:
+                        print(line)
 
 def get_best_exp_dict(exp_list, savedir_base, reduce_score, reduce_mode, return_scores=False):
 
@@ -408,7 +487,15 @@ def get_score_list_across_runs(exp_dict, savedir_base, y_name, x_name):
         score_list_new = hu.load_pkl(savedir_new + "/score_list.pkl")
         df = pd.DataFrame(score_list_new)
         # print(df)
+        
         values =  np.array(df[y_name])
+        # print(values[0])
+
+        try:
+            float(values[0])
+        except:
+            continue
+
         result_dict[y_name][:values.shape[0], r] = values
 
         values =  np.array(df[x_name])
@@ -545,12 +632,14 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
         if title_dict is not None and title in title_dict:
             title = title_dict[title]
         axis.set_title(title, fontsize=title_fontsize)
-
+    
     axis.grid(True)
     if legend_kwargs is None:
         legend_kwargs = {'loc': 'best'}
     axis.legend(fontsize=legend_fontsize, **legend_kwargs)  
-
+    return title
+    # axis.relim()
+    # axis.autoscale_view()
 
 
 
