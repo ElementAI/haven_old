@@ -31,6 +31,7 @@ class ResultManager:
             self.exp_list = exp_list
 
         self.savedir_base = savedir_base
+        self.exp_sublists = [self.exp_list]
         
     def set_exp_sublists(self, regard_dict_list=None,
                           groupby_list=None,
@@ -42,8 +43,10 @@ class ResultManager:
         else:
             self.exp_sublists = [self.exp_list]
 
-    def get_scores(self, col_list=None):
-        savedir_base = self.savedir_base
+    def get_scores(self, col_list=None, savedir_base=None):
+        if not savedir_base:
+            savedir_base = self.savedir_base
+
         df_list = []
         for exp_list in self.exp_sublists:
             score_list_list = []
@@ -95,23 +98,25 @@ class ResultManager:
 
         return df_list
 
-    def get_borgy(self, print_stats=True, print_errors=False, print_logs=False, n_lines=500):
+    def get_jobs(self, print_stats=True, print_errors=False, print_logs=False, n_lines=500, savedir_base=None):
         from haven_borgy import haven_borgy as hb
-
+        if not savedir_base:
+            savedir_base = self.savedir_base
         df_list = []
         for exp_list in self.exp_sublists:
             if print_stats:
-                df = hb.print_borgy_stats(exp_list, 
-                                    savedir_base=self.savedir_base)
+                df = hb.print_job_stats(exp_list, 
+                                    savedir_base=savedir_base)
 
             if "job_state" in df.columns:
+                df["job_state"] = df["job_state"].fillna("NaN")
                 stats = np.unique(df["job_state"])
                 df_dict = {s:df[df["job_state"]==s] for s in stats}
                 
                 df_list += [df_dict]
 
             if print_errors or print_logs:
-                hb.print_error_list(exp_list, self.savedir_base, logs_flag=print_logs, n_lines=n_lines)
+                hb.print_error_list(exp_list, savedir_base, logs_flag=print_logs, n_lines=n_lines)
 
         return df_list
 
@@ -157,8 +162,9 @@ class ResultManager:
                         markersize=None,
                     title_dict=None, y_only_first_flag=False, legend_kwargs=None,
                     markevery=1, bar_flag=None,
-                    savedir=None, dropbox_dir=None):
-
+                    savedir=None, dropbox_dir=None, savedir_base=None, legend_only_first_flag=False):
+        if not savedir_base:
+            savedir_base = self.savedir_base
         exp_sublists = self.exp_sublists
 
         if transpose:
@@ -186,6 +192,7 @@ class ResultManager:
             if not hasattr(axs, 'size'):
                 axs = [axs]
             
+            n_results_total = 0
             for i in range(ncols):
                 if ylim_list is not None:
                     ylim = ylim_list_list[j][i]
@@ -200,6 +207,11 @@ class ResultManager:
                     ylabel_flag = False
                 else:
                     ylabel_flag = True
+
+                if legend_only_first_flag:
+                    legend_flag = False
+                else:
+                    legend_flag = True
                 
                 if transpose:
                     y_name = y_list[i]
@@ -208,7 +220,7 @@ class ResultManager:
                     y_name = y_list[j]
                     exp_list = exp_sublists[i]
                     
-                title = plot_exp_list(axs[i], exp_list, y_name=y_name, x_name=x_name, 
+                title, n_results = plot_exp_list(axs[i], exp_list, y_name=y_name, x_name=x_name, 
                             avg_runs=avg_runs, legend_list=legend_list, s_epoch=s_epoch, 
                             e_epoch=e_epoch, y_log_list=y_log_list, title_list=title_list, ylim=ylim,
                             xlim=xlim, color_regard_dict=color_regard_dict, label_regard_dict=label_regard_dict, legend_fontsize=legend_fontsize,
@@ -216,26 +228,42 @@ class ResultManager:
                             xtick_fontsize=xtick_fontsize, ytick_fontsize=ytick_fontsize,
                             title_fontsize=title_fontsize, linewidth=linewidth, markersize=markersize,
                             title_dict=title_dict, ylabel_flag=ylabel_flag,legend_kwargs=legend_kwargs,markevery=markevery,
-                            savedir_base=self.savedir_base, bar_flag=bar_flag)
-                
-                plt.grid(True) 
-                plt.tight_layout() 
-            if savedir:
-                plot_fname = os.path.join(savedir, '%d.png' % j)
-                plt.savefig(plot_fname)
-                print('saved: %s' % plot_fname)
-            if dropbox_dir:
-                from haven import haven_dropbox as hd
-                plot_fname = os.path.join(self.savedir_base, 'tmp.png')
-                plt.savefig(plot_fname)
-                # dropbox_dir = '/SLS_results/'
-                access_token = 'Z61CnS89EjIAAAAAAABJ19VZt6nlqaw5PtWEBZYBhdLbW7zDyHOYP8GDU2vA2HAI'
-                out_fname = os.path.join(dropbox_dir, '%s.png' % title.replace(' ', ''))
-                hd.upload_file_to_dropbox(plot_fname, out_fname, access_token)
-                print('saved: https://www.dropbox.com/home/%s' % out_fname)
+                            savedir_base=savedir_base, bar_flag=bar_flag, legend_flag=legend_flag)
+                n_results_total += n_results
+                if n_results == 0:
+                    print('no results for plot with title %s' % title)
+                    continue
+                else: 
+                    if savedir:
+                        plot_fname = os.path.join(savedir, '%s.png' % title.replace(' ', '')) 
+                        plt.savefig(plot_fname)
+                        print('saved: %s' % plot_fname)
+                    if dropbox_dir:
+                        from haven import haven_dropbox as hd
+                        plot_fname = os.path.join(self.savedir_base, 'tmp.png')
+                        plt.savefig(plot_fname)
+                        # dropbox_dir = '/SLS_results/'
+                        access_token = 'Z61CnS89EjIAAAAAAABJ19VZt6nlqaw5PtWEBZYBhdLbW7zDyHOYP8GDU2vA2HAI'
+                        out_fname = os.path.join(dropbox_dir, '%s.png' % title.replace(' ', ''))
+                        hd.upload_file_to_dropbox(plot_fname, out_fname, access_token)
+                        print('saved: https://www.dropbox.com/home/%s' % out_fname)
+            
+            if n_results_total == 0:
+                plt.close()
+            else:
+                if legend_only_first_flag:
+                    if legend_kwargs is None:
+                        legend_kwargs = {'loc': 'best'}
+                    # plt.legend(fontsize=legend_fontsize, **legend_kwargs)  
+                    # fig.subplots_adjust(top=0.9, left=0.1, right=0.9, bottom=0.12)  # create some space below the plots by increasing the bottom-value
+                    # axs.flatten()[-2].legend(fontsize=legend_fontsize, **legend_kwargs)
+                    plt.legend(fontsize=legend_fontsize, **legend_kwargs)  
                     
-            plt.show()
-            plt.close()
+                  
+                # plt.grid(True) 
+                # plt.tight_layout()         
+                plt.show()
+                plt.close()
 
     def show_image(self, fname):
         ncols = 1
@@ -260,49 +288,50 @@ class ResultManager:
 
     def get_images(self, n_exps=3, n_images=1, 
                height=12, width=12, legend_list=None):
-        exp_list, savedir_base = self.exp_list, self.savedir_base
-        assert(legend_list is not None)
-        for k, exp_dict in enumerate(exp_list):
-            if k >= n_exps:
-                return
-            result_dict = {}
-            if legend_list is None:
-                label = ''
-            else:
-                label = "_".join([str(exp_dict.get(k)) for 
-                                        k in legend_list])
+        savedir_base = self.savedir_base
+        for exp_list in self.exp_sublists:
+            assert(legend_list is not None)
+            for k, exp_dict in enumerate(exp_list):
+                if k >= n_exps:
+                    break
+                result_dict = {}
+                if legend_list is None:
+                    label = ''
+                else:
+                    label = "_".join([str(exp_dict.get(k)) for 
+                                            k in legend_list])
 
-            exp_id = hu.hash_dict(exp_dict)
-            result_dict["exp_id"] = exp_id
-            print('Exp:', exp_id)
-            savedir = savedir_base + "/%s/" % exp_id 
-            # img_list = glob.glob(savedir + "/*/*.jpg")[:n_images]
-            img_list = glob.glob(savedir + "/images/*.jpg")[:n_images]
-            img_list += glob.glob(savedir + "/images/images/*.jpg")[:n_images]
-            if len(img_list) == 0:
-                print('no images in %s' % savedir)
-                continue
+                exp_id = hu.hash_dict(exp_dict)
+                result_dict["exp_id"] = exp_id
+                print('Exp:', exp_id)
+                savedir = savedir_base + "/%s/" % exp_id 
+                # img_list = glob.glob(savedir + "/*/*.jpg")[:n_images]
+                img_list = glob.glob(savedir + "/images/*.jpg")[:n_images]
+                img_list += glob.glob(savedir + "/images/images/*.jpg")[:n_images]
+                if len(img_list) == 0:
+                    print('no images in %s' % savedir)
+                    continue
 
-            ncols = len(img_list)
-            # ncols = len(exp_configs)
-            nrows = 1
-            fig, axs = plt.subplots(nrows=ncols, ncols=nrows, 
-                                    figsize=(ncols*width, nrows*height))
-            
+                ncols = len(img_list)
+                # ncols = len(exp_configs)
+                nrows = 1
+                fig, axs = plt.subplots(nrows=ncols, ncols=nrows, 
+                                        figsize=(ncols*width, nrows*height))
+                
 
-            if not hasattr(axs, 'size'):
-                axs = [[axs]]
+                if not hasattr(axs, 'size'):
+                    axs = [axs]
 
-            for i in range(ncols):
-                img = plt.imread(img_list[i])
-                axs[0][i].imshow(img)
-                axs[0][i].set_axis_off()
-                axs[0][i].set_title('%s:%s' % (label, hu.extract_fname(img_list[i])))
+                for i in range(ncols):
+                    img = plt.imread(img_list[i])
+                    axs[i].imshow(img)
+                    axs[i].set_axis_off()
+                    axs[i].set_title('%s:%s' % (label, hu.extract_fname(img_list[i])))
 
-            plt.axis('off')
-            plt.tight_layout()
-            
-            plt.show()
+                plt.axis('off')
+                plt.tight_layout()
+                
+                plt.show()
 
     def get_exp_sublists(self, 
                         regard_dict_list=None, 
@@ -323,7 +352,8 @@ class ResultManager:
             regard_dict_list = as_double_list(regard_dict_list)
 
             exp_sublists_new = []
-            for sublist in exp_sublists:
+            for _sublist in exp_sublists:
+                sublist = copy.deepcopy(_sublist)
                 # apply filtration to sublist
                 for i in range(len(regard_dict_list)):
                     sublist = filter_exp_list(sublist, regard_dict_list[i], 
@@ -333,13 +363,13 @@ class ResultManager:
                 exp_sublists_new += [sublist]
 
             exp_sublists = exp_sublists_new
-
+            
             print('%d sublists. Grouping by %s\n' % (len(exp_sublists), groupby_list))
 
             for i, exp_sublist in enumerate(exp_sublists):
                 if groupby_list:
                     # print(exp_sublist)
-                    group_name = '-'.join([str(exp_sublist[0][k]) for k in groupby_list])
+                    group_name = '-'.join([str(exp_sublist[0].get(k)) for k in groupby_list])
                 else:
                     group_name = 'all'
                 print('Sublist %d: %d experiments - (%s)' % (i, len(exp_sublist), group_name ))
@@ -521,15 +551,19 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
                   y_log_list, title_list, ylim=None, xlim=None, color_regard_dict=None, label_regard_dict=None, 
                   legend_fontsize=None, y_fontsize=None, x_fontsize=None, xtick_fontsize=None, ytick_fontsize=None,
                  title_fontsize=None, linewidth=None, markersize=None, title_dict=None, ylabel_flag=True, legend_kwargs=None, markevery=1,
-                 savedir_base=None, bar_flag=None):
+                 savedir_base=None, bar_flag=None, legend_flag=True):
     bar_count = 0
+    n_results = 0
     for exp_dict in exp_list:
         
         exp_id = hu.hash_dict(exp_dict)
         savedir = savedir_base + "/%s/" % exp_id 
 
         path = savedir + "/score_list.pkl"
-        if os.path.exists(path) and os.path.exists(savedir + "/exp_dict.json"):
+        if not os.path.exists(savedir + "/exp_dict.json") or not os.path.exists(path):
+            continue
+        else:
+            # average runs
             if exp_dict.get("runs") is None or not avg_runs:
                 mean_list = hu.load_pkl(path)
                 mean_df = pd.DataFrame(mean_list)
@@ -542,7 +576,9 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
                     mean_df = pd.DataFrame(mean_list)
             else:
                 continue
-            
+
+            n_results += 1
+
             # get label
             label = "_".join([str(exp_dict.get(k)) for 
                             k in legend_list])
@@ -592,7 +628,7 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
 
                 axis.bar([bar_count], [y_list[ix]],
                         color=color,
-                        label='%s - %s: %d' % (label, x_name, x_list[-1]))
+                        label='%s - (%s: %d, %s: %.3f)' % (label, x_name, x_list[-1], y_name, y_list[ix]))
                 bar_count += 1
             else:
                 axis.plot(x_list, y_list,color=color, linewidth=linewidth, markersize=markersize,
@@ -609,35 +645,42 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
                         y_list[offset:] + s_list[offset:], 
                         color = color,  
                         alpha=0.1)
-                
-    if ylim is not None:
-        axis.set_ylim(ylim)
-    if xlim is not None:
-        axis.set_xlim(xlim)
-        
-    if y_name in y_log_list:   
-        axis.set_yscale("log")    
-        y_name = y_name + " (log)"
-    
-    if ylabel_flag:
-        axis.set_ylabel(y_name, fontsize=y_fontsize)
-        
-    if not bar_flag:
-        axis.set_xlabel(x_name, fontsize=x_fontsize)
 
-    axis.tick_params(axis='x', labelsize=xtick_fontsize)
-    axis.tick_params(axis='y', labelsize=ytick_fontsize)
+    # get title
     if title_list is not None:
-        title = "_".join([str(exp_dict.get(k)) for k in title_list])
-        if title_dict is not None and title in title_dict:
-            title = title_dict[title]
-        axis.set_title(title, fontsize=title_fontsize)
-    
-    axis.grid(True)
-    if legend_kwargs is None:
-        legend_kwargs = {'loc': 'best'}
-    axis.legend(fontsize=legend_fontsize, **legend_kwargs)  
-    return title
+            title = "_".join([str(exp_dict.get(k)) for k in title_list])
+            if title_dict is not None and title in title_dict:
+                title = title_dict[title]
+            axis.set_title(title, fontsize=title_fontsize)
+    else:
+        title = ''
+
+    if n_results > 0:      
+        if ylim is not None:
+            axis.set_ylim(ylim)
+        if xlim is not None:
+            axis.set_xlim(xlim)
+            
+        if y_name in y_log_list:   
+            axis.set_yscale("log")    
+            y_name = y_name + " (log)"
+        
+        if ylabel_flag:
+            axis.set_ylabel(y_name, fontsize=y_fontsize)
+            
+        if not bar_flag:
+            axis.set_xlabel(x_name, fontsize=x_fontsize)
+
+        axis.tick_params(axis='x', labelsize=xtick_fontsize)
+        axis.tick_params(axis='y', labelsize=ytick_fontsize)
+        
+        axis.grid(True)
+        if legend_flag:
+            if legend_kwargs is None:
+                legend_kwargs = {'loc': 'best'}
+            axis.legend(fontsize=legend_fontsize, **legend_kwargs)  
+            
+    return title, n_results
     # axis.relim()
     # axis.autoscale_view()
 
@@ -650,6 +693,17 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
 
 
 def group_exp_list(exp_list, groupby_key_list):
+    # # filter out nones 
+    # exp_list_new = []
+    # for exp_dict in exp_list:
+    #     flag = True
+    #     for k in groupby_key_list:
+    #         if exp_dict.get(k) is None:
+    #             flag = False
+    #     if flag:
+    #         exp_list_new += [exp_dict]
+    # exp_list = exp_list_new
+
     def key_func(x):
         x_list = []
         for groupby_key in groupby_key_list:
@@ -703,27 +757,33 @@ def is_equal(d1, d2):
     
     return flag
 
-                    
-def filter_exp_list(exp_list, regard_list, savedir_base, reduce_mode=None, reduce_score=None):
+def filter_regard_dict(exp_list, regard_dict, savedir_base):
+    if isinstance(regard_dict, tuple):
+        regard_dict, reduce_score, reduce_mode = regard_dict
+    else:
+        reduce_score = None
+
+    tmp_list = []
+    for exp_dict in exp_list:
+        select_flag = False
+        
+        if is_equal(regard_dict, exp_dict):
+            select_flag = True
+
+        if select_flag:
+            tmp_list += [exp_dict]
+
+    if reduce_score is not None:
+        tmp_list = [get_best_exp_dict(tmp_list, savedir_base, 
+                                        reduce_score=reduce_score, reduce_mode=reduce_mode)]
+    return tmp_list
+
+def filter_exp_list(exp_list, regard_list, savedir_base):
     exp_list_new = []
     for regard_dict in regard_list:
-        if isinstance(regard_dict, tuple):
-            regard_dict, reduce_score, reduce_mode = regard_dict
-        else:
-            reduce_score = None
-
-        tmp_list = []
-        for exp_dict in exp_list:
-            select_flag = False
-            
-            if is_equal(regard_dict, exp_dict):
-                select_flag = True
-
-            if select_flag:
-                tmp_list += [exp_dict]
-        if reduce_score is not None:
-            tmp_list = [get_best_exp_dict(tmp_list, savedir_base, 
-                                          reduce_score=reduce_score, reduce_mode=reduce_mode)]
+        tmp_list = filter_regard_dict(exp_list, regard_dict, savedir_base)
+        if len(tmp_list)==0 or len(tmp_list[0]) == 0:
+            continue
         exp_list_new += tmp_list
 
     exp_list = exp_list_new
