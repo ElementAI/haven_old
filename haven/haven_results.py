@@ -162,7 +162,8 @@ class ResultManager:
                         markersize=None,
                     title_dict=None, y_only_first_flag=False, legend_kwargs=None,
                     markevery=1, bar_flag=None,
-                    savedir=None, dropbox_dir=None, savedir_base=None, legend_only_first_flag=False):
+                    savedir=None, dropbox_dir=None, savedir_base=None, legend_only_first_flag=False,
+                    legend_flag=True):
         if not savedir_base:
             savedir_base = self.savedir_base
         exp_sublists = self.exp_sublists
@@ -211,7 +212,7 @@ class ResultManager:
                 if legend_only_first_flag:
                     legend_flag = False
                 else:
-                    legend_flag = True
+                    legend_flag = legend_flag
                 
                 if transpose:
                     y_name = y_list[i]
