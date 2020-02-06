@@ -233,32 +233,36 @@ class ResultManager:
                 n_results_total += n_results
                 if n_results == 0:
                     print('no results for plot with title %s' % title)
-                    continue
-                else: 
-                    if savedir:
-                        plot_fname = os.path.join(savedir, '%s.png' % title.replace(' ', '')) 
-                        plt.savefig(plot_fname)
-                        print('saved: %s' % plot_fname)
-                    if dropbox_dir:
-                        from haven import haven_dropbox as hd
-                        plot_fname = os.path.join(self.savedir_base, 'tmp.png')
-                        plt.savefig(plot_fname)
-                        # dropbox_dir = '/SLS_results/'
-                        access_token = 'Z61CnS89EjIAAAAAAABJ19VZt6nlqaw5PtWEBZYBhdLbW7zDyHOYP8GDU2vA2HAI'
-                        out_fname = os.path.join(dropbox_dir, '%s.png' % title.replace(' ', ''))
-                        hd.upload_file_to_dropbox(plot_fname, out_fname, access_token)
-                        print('saved: https://www.dropbox.com/home/%s' % out_fname)
+               
+               
+                    
             
             if n_results_total == 0:
                 plt.close()
             else:
                 if legend_only_first_flag:
                     if legend_kwargs is None:
-                        legend_kwargs = {'loc': 'best'}
+                        legend_kwargs = {'bbox_to_anchor':(0, -0.25), 'ncol':7, 'loc':'lower center'}
                     # plt.legend(fontsize=legend_fontsize, **legend_kwargs)  
                     # fig.subplots_adjust(top=0.9, left=0.1, right=0.9, bottom=0.12)  # create some space below the plots by increasing the bottom-value
                     # axs.flatten()[-2].legend(fontsize=legend_fontsize, **legend_kwargs)
                     plt.legend(fontsize=legend_fontsize, **legend_kwargs)  
+
+                if savedir:
+                        plot_fname = os.path.join(savedir, '%s.pdf' % title.replace(' ', '')) 
+                        plt.savefig(plot_fname, dpi=300, bbox_inches='tight')
+                        print('saved: %s' % plot_fname)
+                if dropbox_dir:
+                    from haven import haven_dropbox as hd
+                    plot_fname = os.path.join(self.savedir_base, 'tmp.png')
+                    plt.savefig(plot_fname, dpi=300, bbox_inches='tight')
+                    # dropbox_dir = '/SLS_results/'
+                    access_token = 'Z61CnS89EjIAAAAAAABJ19VZt6nlqaw5PtWEBZYBhdLbW7zDyHOYP8GDU2vA2HAI'
+                    out_fname = os.path.join(dropbox_dir, '%s.png' % title.replace(' ', ''))
+                    hd.upload_file_to_dropbox(plot_fname, out_fname, access_token)
+                    print('saved: https://www.dropbox.com/home/%s' % out_fname)
+
+
                     
                   
                 # plt.grid(True) 
