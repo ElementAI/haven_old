@@ -623,6 +623,8 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
                 y_list = y_list[:e_epoch]
 
             if y_list.dtype == 'object':
+                axis.plot(np.NaN, np.NaN, color=color, linewidth=linewidth, markersize=markersize,
+                        label=str(label), marker="*", markevery=markevery)
                 continue
                 
             if bar_flag:
