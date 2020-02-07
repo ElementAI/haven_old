@@ -163,7 +163,7 @@ class ResultManager:
                     title_dict=None, y_only_first_flag=False, legend_kwargs=None,
                     markevery=1, bar_flag=None,
                     savedir=None, dropbox_dir=None, savedir_base=None, legend_only_first_flag=False,
-                    legend_flag=True, y_list_dict=None, marker='*'):
+                    legend_flag=True, y_list_dict=None, marker_regard_dict=None):
         if not savedir_base:
             savedir_base = self.savedir_base
         exp_sublists = self.exp_sublists
@@ -230,7 +230,7 @@ class ResultManager:
                             title_fontsize=title_fontsize, linewidth=linewidth, markersize=markersize,
                             title_dict=title_dict, ylabel_flag=ylabel_flag,legend_kwargs=legend_kwargs,markevery=markevery,
                             savedir_base=savedir_base, bar_flag=bar_flag, legend_flag=legend_flag, y_list_dict=y_list_dict,
-                            marker=marker)
+                            marker_regard_dict=marker_regard_dict)
                 n_results_total += n_results
                 if n_results == 0:
                     print('no results for plot with title %s' % title)
@@ -565,17 +565,11 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
                   y_log_list, title_list, ylim=None, xlim=None, color_regard_dict=None, label_regard_dict=None, 
                   legend_fontsize=None, y_fontsize=None, x_fontsize=None, xtick_fontsize=None, ytick_fontsize=None,
                  title_fontsize=None, linewidth=None, markersize=None, title_dict=None, ylabel_flag=True, legend_kwargs=None, markevery=1,
-                 savedir_base=None, bar_flag=None, legend_flag=True, y_list_dict=None, marker='*'):
+                 savedir_base=None, bar_flag=None, legend_flag=True, y_list_dict=None, marker_regard_dict=None):
     bar_count = 0
     n_results = 0
 
-    if marker is not None:
-        if isinstance(marker, list):
-            marker_list = marker 
-        else:
-            marker_list = [marker] * len(exp_list)
-
-    for ei, exp_dict in enumerate(exp_list):
+    for exp_dict in exp_list:
         
         exp_id = hu.hash_dict(exp_dict)
         savedir = savedir_base + "/%s/" % exp_id 
@@ -617,6 +611,14 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
                     if is_equal(color_regard_dict[k], exp_dict):
                         color = k
                         break
+
+            # get marker
+            marker = "*"
+            if marker_regard_dict is not None:
+                for k in marker_regard_dict:
+                    if is_equal(marker_regard_dict[k], exp_dict):
+                        marker = k
+                        break
                 
             x_list = np.array(mean_df[x_name])
 
@@ -640,7 +642,7 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
 
             if y_list.dtype == 'object':
                 axis.plot(np.NaN, np.NaN, color=color, linewidth=linewidth, markersize=markersize,
-                        label=str(label), marker=marker_list[ei], markevery=markevery)
+                        label=str(label), marker=marker, markevery=markevery)
                 continue
                 
             if bar_flag:
@@ -655,7 +657,7 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
                 bar_count += 1
             else:
                 axis.plot(x_list, y_list, color=color, linewidth=linewidth, markersize=markersize,
-                        label=str(label), marker=marker_list[ei], markevery=markevery)
+                        label=str(label), marker=marker, markevery=markevery)
 
             if std_df is not None and not bar_flag:
 #                 print(exp_dict)
