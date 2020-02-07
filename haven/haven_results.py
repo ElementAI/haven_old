@@ -163,7 +163,7 @@ class ResultManager:
                     title_dict=None, y_only_first_flag=False, legend_kwargs=None,
                     markevery=1, bar_flag=None,
                     savedir=None, dropbox_dir=None, savedir_base=None, legend_only_first_flag=False,
-                    legend_flag=True):
+                    legend_flag=True, y_list_dict=None):
         if not savedir_base:
             savedir_base = self.savedir_base
         exp_sublists = self.exp_sublists
@@ -229,7 +229,7 @@ class ResultManager:
                             xtick_fontsize=xtick_fontsize, ytick_fontsize=ytick_fontsize,
                             title_fontsize=title_fontsize, linewidth=linewidth, markersize=markersize,
                             title_dict=title_dict, ylabel_flag=ylabel_flag,legend_kwargs=legend_kwargs,markevery=markevery,
-                            savedir_base=savedir_base, bar_flag=bar_flag, legend_flag=legend_flag)
+                            savedir_base=savedir_base, bar_flag=bar_flag, legend_flag=legend_flag, y_list_dict=y_list_dict)
                 n_results_total += n_results
                 if n_results == 0:
                     print('no results for plot with title %s' % title)
@@ -269,6 +269,14 @@ class ResultManager:
                 # plt.tight_layout()         
                 plt.show()
                 plt.close()
+
+    def show_images(self, dname, n_images=10):
+        fnames = glob.glob(os.path.join(self.savedir_base, dname, "*.jpg"))[:n_images]
+        for fname in fnames:
+            self.show_image(fname)
+
+    def show_json(self, fname):
+        return hu.load_json(os.path.join(self.savedir_base, fname))
 
     def show_image(self, fname):
         ncols = 1
@@ -556,7 +564,7 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
                   y_log_list, title_list, ylim=None, xlim=None, color_regard_dict=None, label_regard_dict=None, 
                   legend_fontsize=None, y_fontsize=None, x_fontsize=None, xtick_fontsize=None, ytick_fontsize=None,
                  title_fontsize=None, linewidth=None, markersize=None, title_dict=None, ylabel_flag=True, legend_kwargs=None, markevery=1,
-                 savedir_base=None, bar_flag=None, legend_flag=True):
+                 savedir_base=None, bar_flag=None, legend_flag=True, y_list_dict=None):
     bar_count = 0
     n_results = 0
     for exp_dict in exp_list:
@@ -638,7 +646,7 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
                         label='%s - (%s: %d, %s: %.3f)' % (label, x_name, x_list[-1], y_name, y_list[ix]))
                 bar_count += 1
             else:
-                axis.plot(x_list, y_list,color=color, linewidth=linewidth, markersize=markersize,
+                axis.plot(x_list, y_list, color=color, linewidth=linewidth, markersize=markersize,
                         label=str(label), marker="*", markevery=markevery)
 
             if std_df is not None and not bar_flag:
@@ -667,13 +675,18 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
             axis.set_ylim(ylim)
         if xlim is not None:
             axis.set_xlim(xlim)
-            
+        
+        if y_list_dict and y_name in y_list_dict:
+            y_name_new = y_list_dict[y_name]
+        else:
+            y_name_new = y_name
+
         if y_name in y_log_list:   
             axis.set_yscale("log")    
-            y_name = y_name + " (log)"
+            y_name_new = y_name_new + " (log)"
         
         if ylabel_flag:
-            axis.set_ylabel(y_name, fontsize=y_fontsize)
+            axis.set_ylabel(y_name_new, fontsize=y_fontsize)
             
         if not bar_flag:
             axis.set_xlabel(x_name, fontsize=x_fontsize)
