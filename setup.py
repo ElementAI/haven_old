@@ -18,6 +18,5 @@ setup(name='haven',
         'tqdm>=4.0.0',
         'opencv-python',
         'scopy',
-        'pandas',
-        'pylab'
+        'pandas'
       ]),
