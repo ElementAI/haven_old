@@ -10,7 +10,7 @@ setup(name='haven',
       packages=['haven'],
       zip_safe=False,
       install_requires=[
-        'skimage',
+        'scikit-image',
         'numpy',
         'gdown',
         'Pillow>=5.0.0,<7.0.0',
