@@ -27,7 +27,7 @@ import contextlib
 import json
 import sys
 import scipy
-from skimage.segmentation import mark_boundaries
+
 
 
 def get_longest_list(listOfLists):
@@ -492,6 +492,7 @@ def scatter_plot(X, color, fig=None, title=""):
     return fig 
 
 def maskOnImage(imgs, mask, enlarge=0):
+    from skimage.segmentation import mark_boundaries
     imgs = l2f(t2n(imgs)).copy()
     mask = l2f(label2Image(mask))
 
