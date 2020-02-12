@@ -38,5 +38,6 @@ setup(name='haven',
         'tqdm>=4.40.2',
         'urllib3>=1.25.7',
         'notebook >= 4.0',
-        'PyYAML>=5.2'
+        'PyYAML>=5.2',
+        'Cython>=0.29.15'
       ]),
