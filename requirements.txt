@@ -11,7 +11,6 @@ numpy>=1.17.4
 opencv-python >= 4.1.2.30
 pandas >= 0.25.3
 Pillow>=6.2.1
-pylab>=0.0.2
 pyparsing>=2.4.5
 python-dateutil>=2.8.1
 pytz>=2019.3
