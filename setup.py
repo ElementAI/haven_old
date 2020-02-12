@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(name='haven',
-      version='0.3',
+      version='0.4',
       description='Manage large-scale experiments',
       url='https://github.com/ElementAI/haven_borgy',
       author='Issam Laradji',
@@ -39,5 +39,5 @@ setup(name='haven',
         'urllib3>=1.25.7',
         'notebook >= 4.0',
         'PyYAML>=5.2',
-        'Cython>=0.29.15'
+        'Cython>=0.29.10'
       ]),
