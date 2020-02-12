@@ -301,16 +301,16 @@ class ResultManager:
         plt.show()
 
     def get_images(self, n_exps=3, n_images=1, 
-               height=12, width=12, legend_list=None):
+               height=12, width=12, legend_list=None,
+               dirname='images'):
         savedir_base = self.savedir_base
         for exp_list in self.exp_sublists:
-            assert(legend_list is not None)
             for k, exp_dict in enumerate(exp_list):
                 if k >= n_exps:
                     break
                 result_dict = {}
                 if legend_list is None:
-                    label = ''
+                    label = hu.hash_dict(exp_dict)
                 else:
                     label = "_".join([str(exp_dict.get(k)) for 
                                             k in legend_list])
@@ -320,10 +320,12 @@ class ResultManager:
                 print('Exp:', exp_id)
                 savedir = savedir_base + "/%s/" % exp_id 
                 # img_list = glob.glob(savedir + "/*/*.jpg")[:n_images]
-                img_list = glob.glob(savedir + "/images/*.jpg")[:n_images]
-                img_list += glob.glob(savedir + "/images/images/*.jpg")[:n_images]
+                base_dir = os.path.join(savedir, dirname)
+                img_list = glob.glob(os.path.join(base_dir, "*.jpg"))[:n_images]
+                img_list += glob.glob(os.path.join(base_dir, "*.png"))[:n_images]
+                # img_list += glob.glob(savedir + "/images/images/*.jpg")[:n_images]
                 if len(img_list) == 0:
-                    print('no images in %s' % savedir)
+                    print('no images in %s' % base_dir)
                     continue
 
                 ncols = len(img_list)
