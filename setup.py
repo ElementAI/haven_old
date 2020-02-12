@@ -31,10 +31,9 @@ setup(name='haven',
         'scipy>=1.4.0',
         'six>=1.13.0',
         'sklearn>=0.0',
-        'torch>=1.3.1',
-        'torchvision>=0.4.2',
+        'torch>=0.0',
+        'torchvision>=0.0',
         'tqdm>=4.40.2',
         'urllib3>=1.25.7',
-        'notebook >= 4.0',
-        'PyYAML>=5.2'
+        'notebook >= 4.0'
       ]),
