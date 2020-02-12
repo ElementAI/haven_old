@@ -7,7 +7,6 @@ import itertools
 import torch
 import numpy as np
 import PIL, glob
-import hashlib
 import yaml
 import copy
 import pickle
@@ -29,7 +28,6 @@ import contextlib
 import json
 import sys
 import scipy
-from importlib import reload
 from skimage.segmentation import mark_boundaries
 
 
@@ -848,92 +846,12 @@ def get_exp_meta(exp_dict, savedir_base, mode=None, remove_keys=None,
 
     return exp_meta
 
-# =========================================
-# Utils 
-# ========================================
-"""Haven utils."""
-import hashlib
-import yaml
-import pickle
-import os
-import torch
-import time
-from datetime import datetime
-import pytz
-import threading
-import subprocess
-import shlex
-import numpy as np
-import contextlib
-import json
-from importlib import reload
-
-
-# def load_json(fname, decode=None):
-#
-#     with open(fname, "r") as json_file:
-#         d = json.load(json_file)
-#
-#     return d
 
 def save_json(fname, data):
     create_dirs(fname)
     with open(fname, "w") as json_file:
         json.dump(data, json_file, indent=4, sort_keys=True)
 
-
-                
-                
-                
-            
-
-    # for exp_dict in exp_list:
-    #     select_flag = True
-
-    #     if regard_dict:
-
-    #     # regard dict
-    #     for k in exp_dict:
-    #         # get exp value
-    #         value_exp = exp_dict.get(k)
-
-    #         # regard these values
-    #         if regard_dict and k in regard_dict:
-    #             val = regard_dict[k]
-
-    #             # make list
-    #             if not isinstance(val, list):
-    #                 val_list = [val]
-
-    #             for v in val_list:
-    #                 if isinstance(v, dict):
-    #                     pass
-    #                 else:
-    #                     if v = value_exp:
-    #                         select_flag = False
-                        
-                    
-                    
-            
-    #         # disregard these values
-    #         if disregard_dict and k in disregard_dict:
-    #             val = disregard_dict[k]
-
-    #             # make list
-    #             if not isinstance(val, list):
-    #                 val = [val]
-
-    #             if value_exp not in val:
-    #                 select_flag = False
-    #                 break
-            
-    #         if not select_flag:
-    #             break
-            
-    #     if select_flag:
-    #         exp_list_new += [exp_dict]
-
-    # return exp_list_new
 
 def flatten_dict(exp_dict):
     result_dict = {}
@@ -1066,30 +984,6 @@ def load_txt(fname):
         lines = f.readlines()
     return lines
 
-
-
-# def save_pkl(fname, data, with_rename=True):
-#     """Save data in pkl format."""
-#     # Create folder
-#     create_dirs(fname)
-#
-#     # Save file
-#     if with_rename:
-#         fname_tmp = fname + "_tmp.pth"
-#         with open(fname_tmp, "wb") as f:
-#             pickle.dump(data, f)
-#         os.rename(fname_tmp, fname)
-#     else:
-#         with open(fname, "wb") as f:
-#             pickle.dump(data, f)
-
-
-# def load_pkl(fname):
-#     """Load the content of a pkl file."""
-#     with open(fname, "rb") as f:
-#         return pickle.load(f)
-
-
 def torch_load(fname, map_location=None, safe_flag=False):
     """Load the content of a torch file."""
     fname_writing = fname + "_writing_dict.json.tmp"
@@ -1130,35 +1024,10 @@ def torch_save(fname, obj, safe_flag=True):
         save_json(fname_writing, {"writing": 0})
 
 
-# def fname_parent(filepath, levels=1):
-#     """Get the parent directory at x levels above."""
-#     common = filepath
-#     for i in range(levels + 1):
-#         common = os.path.dirname(common)
-#     return os.path.relpath(filepath, common)
-
-
 
 def time2mins(time_taken):
     """Convert time into minutes."""
     return time_taken / 60.
-
-
-# def time_to_montreal():  # TODO: Remove commented code
-#     """Get time in Montreal zone."""
-#     # Get time
-#     ts = time.time()
-#
-#     # Convert to utc time
-#     # utc_dt = datetime.utcfromtimestamp(ts)
-#
-#     # aware_utc_dt = utc_dt.replace(tzinfo=pytz.utc)
-#
-#     tz = pytz.timezone('America/Montreal')
-#     # dt = aware_utc_dt.astimezone(tz)
-#     dt = datetime.fromtimestamp(ts, tz)
-#
-#     return dt.strftime("%I:%M %p (%b %d)")
 
 
 class Parallel:
@@ -1333,61 +1202,5 @@ def read_text(fname):
         # lines = [line.decode('utf-8').strip() for line in f.readlines()]
     return lines
 
-# def extract_fname(directory):
-#     import ntpath
-#     return ntpath.basename(directory)
 
-# def flatten_dict(exp_dict):
-#     result_dict = {}
-#     for k in exp_dict:
-#         # print(k, exp_dict)
-#         if isinstance(exp_dict[k], dict):
-#             for k2 in exp_dict[k]:
-#                 result_dict[k2] = exp_dict[k][k2]
-#         else:
-#             result_dict[k] = exp_dict[k]
-#     return result_dict
-
-def filter_flag(exp_dict, regard_dict=None, disregard_dict=None):
-    # regard dict
-    flag_filter = False
-    flattened = flatten_dict(exp_dict)
-    if regard_dict:
-        for k in regard_dict:
-            if flattened.get(k) != regard_dict[k]:
-                flag_filter = True
-                break
-
-    # disregard dict
-    if disregard_dict:
-        for k in disregard_dict:
-            if flattened.get(k) == disregard_dict[k]:
-                flag_filter = True
-                break
-
-    return flag_filter
-
-
-def get_filtered_exp_list(exp_list, regard_dict=None, disregard_dict=None):
-    fname_list = glob.glob(savedir_base + "/*/exp_dict.json")
-
-    exp_list_new = []
-    for exp_dict in exp_list:
-        if filter_flag(exp_dict, regard_dict, disregard_dict):
-            continue
-        exp_list_new += [exp_dict]
-
-    return exp_list_new
-
-def get_filtered_exp_list_savedir(savedir_base, regard_dict=None, disregard_dict=None):
-    fname_list = glob.glob(savedir_base + "/*/exp_dict.json")
-
-    exp_list_new = []
-    for fname in fname_list:
-        exp_dict = load_json(fname)
-        if filter_flag(exp_dict, regard_dict, disregard_dict):
-            continue
-        exp_list_new += [exp_dict]
-
-    return exp_list_new
 
