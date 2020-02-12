@@ -10,13 +10,33 @@ setup(name='haven',
       packages=['haven'],
       zip_safe=False,
       install_requires=[
-        'scikit-image',
-        'numpy',
-        'gdown',
-        'Pillow>=5.0.0,<7.0.0',
-        'h5py~=2.9.0',
-        'tqdm>=4.0.0',
-        'opencv-python',
-        'scopy',
-        'pandas'
+        'beautifulsoup4>=4.8.1'
+        'bs4>=0.0.1'
+        'certifi>=2019.11.28'
+        'cycler>=0.10.0'
+        'decorator>=4.4.1'
+        'imageio>=2.6.1'
+        'joblib>=0.14.1'
+        'llvmlite>=0.30.0'
+        'matplotlib>=3.1.2'
+        'numpy>=1.17.4'
+        'opencv-python>=4.1.2.30'
+        'pandas>=0.25.3'
+        'Pillow>=6.2.1'
+        'pycocotools>=2.0.0'
+        'pylab>=0.0.2'
+        'pyparsing>=2.4.5'
+        'python-dateutil>=2.8.1'
+        'pytz>=2019.3'
+        'scikit-image>=0.16.2'
+        'scikit-learn>=0.22'
+        'scipy>=1.4.0'
+        'six>=1.13.0'
+        'sklearn>=0.0'
+        'torch>=1.3.1'
+        'torchvision>=0.4.2'
+        'tqdm>=4.40.2'
+        'urllib3>=1.25.7'
+        'notebook >= 4.0'
+        'PyYAML>=5.2'
       ]),
