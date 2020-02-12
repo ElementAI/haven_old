@@ -7,7 +7,6 @@ import itertools
 import torch
 import numpy as np
 import PIL, glob
-import yaml
 import copy
 import pickle
 import os
