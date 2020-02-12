@@ -5,7 +5,7 @@ from . import haven_utils as hu
 
 
 def delete_and_backup_experiment(savedir):
-    exp_id = hu.fname_parent(savedir, levels=1)
+    exp_id = os.path.split(savedir)[-1]
     assert(len(exp_id) == 32)
     hu.fname_parent(savedir)
     savedir_base = os.path.dirname(os.path.dirname(savedir))
