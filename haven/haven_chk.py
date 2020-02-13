@@ -7,7 +7,7 @@ from . import haven_utils as hu
 def delete_and_backup_experiment(savedir):
     exp_id = os.path.split(savedir)[-1]
     assert(len(exp_id) == 32)
-  
+
     savedir_base = os.path.dirname(savedir)
     
     savedir = os.path.join(savedir_base, exp_id)

@@ -95,10 +95,11 @@ def load_pkl(fname):
     with open(fname, "rb") as f:
         return pickle.load(f)
 
-def save_pkl(fname, data, with_rename=True):
+def save_pkl(fname, data, with_rename=True, makedirs=True):
     """Save data in pkl format."""
     # Create folder
-    os.makedirs(fname, exist_ok=True)
+    if makedirs:
+        os.makedirs(os.path.dirname(fname), exist_ok=True)
 
     # Save file
     if with_rename:
@@ -198,12 +199,70 @@ def denormalize(img, mode=0):
 
     return image
 
-def save_image(fname, img):
+def get_image(imgs,
+              mask=None,
+              label=False,
+              enlarge=0,
+              gray=False,
+              denorm=0,
+              bbox_yxyx=None,
+              annList=None,
+              pretty=False,
+              pointList=None,
+              **options):
+
+    imgs = denormalize(imgs, mode=denorm)
+    if isinstance(imgs, Image.Image):
+        imgs = np.array(imgs)
+    if isinstance(mask, Image.Image):
+        mask = np.array(mask)
+
+    imgs = t2n(imgs).copy()
+    imgs = l2f(imgs)
+
+    if pointList is not None and len(pointList):
+        h, w = pointList[0]["h"], pointList[0]["w"]
+        mask_points = np.zeros((h, w))
+        for p in pointList:
+            y, x = p["y"], p["x"]
+            mask_points[int(h*y), int(w*x)] = 1
+        imgs = maskOnImage(imgs, mask_points, enlarge=1)
+
+    if pretty or annList is not None:
+        imgs = pretty_vis(imgs, annList, **options)
+        imgs = l2f(imgs)
+
+    if mask is not None and mask.sum() != 0:
+        imgs = maskOnImage(imgs, mask, enlarge)
+
+    if bbox_yxyx is not None:
+        _, _, h, w = imgs.shape
+        mask = bbox_yxyx_2_mask(bbox_yxyx, h, w)
+        imgs = maskOnImage(imgs, mask, enlarge=1)
+
+    # LABEL
+    elif (not gray) and (label or imgs.ndim == 2 or
+                         (imgs.ndim == 3 and imgs.shape[0] != 3) or
+                         (imgs.ndim == 4 and imgs.shape[1] != 3)):
+
+        imgs = label2Image(imgs)
+
+        if enlarge:
+            imgs = zoom(imgs, 11)
+
+    # Make sure it is 4-dimensional
+    if imgs.ndim == 3:
+        imgs = imgs[np.newaxis]
+
+    return imgs
+
+def save_image(fname, img, makedirs=True):
     if img.dtype == 'uint8':
         img_pil = Image.fromarray(img)
         img_pil.save(fname)
     else:
-        os.makedirs(os.path.dirname(fname), exist_ok=True)
+        if makedirs:
+            os.makedirs(os.path.dirname(fname), exist_ok=True)
         images = f2l(t2n(img))
         imsave(fname , img)
 
@@ -271,8 +330,9 @@ def zip_score_list(exp_list, savedir_base, out_fname, include_list=None):
                out_fname, include_list=include_list)
 
 
-def save_json(fname, data):
-    os.makedirs(fname, exist_ok=True)
+def save_json(fname, data, makedirs=True):
+    if makedirs:
+        os.makedirs(os.path.dirname(fname), exist_ok=True)
     with open(fname, "w") as json_file:
         json.dump(data, json_file, indent=4, sort_keys=True)
 
@@ -390,10 +450,10 @@ def torch_load(fname, map_location=None, safe_flag=False):
     return obj
 
 
-def torch_save(fname, obj, safe_flag=True):
+def torch_save(fname, obj, safe_flag=False):
     """"Save data in torch format."""
     # Create folder
-    os.makedirs(fname, exist_ok=True)
+    os.makedirs(os.path.dirname(fname), exist_ok=True)
 
     # Define names of temporal files
     fname_tmp = fname + ".tmp"
@@ -402,7 +462,7 @@ def torch_save(fname, obj, safe_flag=True):
 
     if safe_flag:
         wait_until_safe2save(fname_reading)
-        save_json(fname_writing, {"writing": 1})
+        save_json(os.path.dirname(fname_writing), {"writing": 1})
 
     torch.save(obj, fname_tmp)
     if os.path.exists(fname):
@@ -410,7 +470,7 @@ def torch_save(fname, obj, safe_flag=True):
     os.rename(fname_tmp, fname)
 
     if safe_flag:
-        save_json(fname_writing, {"writing": 0})
+        save_json(os.path.dirname(fname_writing), {"writing": 0})
 
 
 
