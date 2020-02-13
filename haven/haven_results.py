@@ -1,27 +1,12 @@
-import cv2 
 import pylab as plt
 import pandas as pd
 from . import haven_utils as hu
 import os
-import pylab as plt 
-import pandas as pd 
-import numpy as np
-import copy 
-import glob 
-from itertools import groupby 
-import os
-import pylab as plt 
-import pandas as pd 
 import numpy as np
 import copy 
 import glob 
 from itertools import groupby 
 
-# =================================
-# filtering
-# =================================
-
-import copy
 
 class ResultManager:
     def __init__(self, savedir_base, exp_list=None):
@@ -57,8 +42,8 @@ class ResultManager:
 
                 exp_id = hu.hash_dict(exp_dict)
                 result_dict["exp_id"] = exp_id
-                savedir = savedir_base + "/%s/" % exp_id 
-                if not os.path.exists(savedir + "/score_list.pkl"):
+                savedir = os.path.join(savedir_base, exp_id)
+                if not os.path.exists(os.path.join(savedir, 'score_list.pkl')):
                     score_list_list += [result_dict]
                     continue
 
@@ -130,7 +115,7 @@ class ResultManager:
     def to_dropbox(self, fname, dropbox_path=None, access_token=None):
         from haven import haven_dropbox as hd
 
-        dropbox_path = '/SLS_results/'
+        dropbox_path = '/SLS_results'
         access_token = 'Z61CnS89EjIAAAAAAABJ19VZt6nlqaw5PtWEBZYBhdLbW7zDyHOYP8GDU2vA2HAI'
         out_fname = os.path.join(dropbox_path, fname)
         src_fname = os.path.join(self.savedir_base, fname)
@@ -318,12 +303,12 @@ class ResultManager:
                 exp_id = hu.hash_dict(exp_dict)
                 result_dict["exp_id"] = exp_id
                 print('Exp:', exp_id)
-                savedir = savedir_base + "/%s/" % exp_id 
-                # img_list = glob.glob(savedir + "/*/*.jpg")[:n_images]
+                savedir = os.path.join(savedir_base, exp_id)
+
                 base_dir = os.path.join(savedir, dirname)
                 img_list = glob.glob(os.path.join(base_dir, "*.jpg"))[:n_images]
                 img_list += glob.glob(os.path.join(base_dir, "*.png"))[:n_images]
-                # img_list += glob.glob(savedir + "/images/images/*.jpg")[:n_images]
+      
                 if len(img_list) == 0:
                     print('no images in %s' % base_dir)
                     continue
@@ -414,7 +399,7 @@ def get_exp_list_from_savedir_base(savedir_base):
 
         for exp_id in tqdm.tqdm(dir_list):
             savedir = os.path.join(savedir_base, exp_id)
-            fname = savedir + "/exp_dict.json"
+            fname = os.path.join(savedir, 'exp_dict.json')
             if not os.path.exists(fname):
                 continue
             exp_dict = hu.load_json(fname)
@@ -448,8 +433,8 @@ def get_best_exp_dict(exp_list, savedir_base, reduce_score, reduce_mode, return_
     for exp_dict in exp_list:
         exp_id = hu.hash_dict(exp_dict)
         
-        savedir = savedir_base + "/%s/" % exp_id 
-        if not os.path.exists(savedir + "/score_list.pkl"):
+        savedir = os.path.join(savedir_base, exp_id)
+        if not os.path.exists(os.path.join(savedir_base, 'score_list.pkl')):
             continue
             
         score_list_fname = os.path.join(savedir, "score_list.pkl")
@@ -481,29 +466,6 @@ def get_best_exp_dict(exp_list, savedir_base, reduce_score, reduce_mode, return_
     return exp_dict_best
 
 
-# def filter_best_results(exp_list, savedir_base, regard_dict_list, y_name,
-#                         bar_flag):
-#     exp_sublists = []
-
-#     if bar_flag == 'min':
-#         lower_is_better = True
-#     elif bar_flag == 'max':
-#         lower_is_better = False
-    
-#     for regard_dict in regard_dict_list:
-#         exp_sublists += [filter_exp_list(exp_list, regard_dict=regard_dict)]
-        
-#     print('# exp subsets:', [len(es) for es in exp_sublists])
-# #     stop
-#     exp_list_new = [] 
-#     for exp_subset in exp_sublists:
-#         exp_dict_best = get_best_exp_dict(exp_subset, savedir_base, 
-#                     score_key=y_name, lower_is_better=lower_is_better)
-#         if exp_dict_best is None:
-#             continue
-#         exp_list_new += [exp_dict_best]
-#     return exp_list_new
-
 def view_experiments(exp_list, savedir_base):
     df = get_dataframe_score_list(exp_list=exp_list,
                                      savedir_base=savedir_base)
@@ -513,9 +475,8 @@ def view_experiments(exp_list, savedir_base):
 
 
 def get_score_list_across_runs(exp_dict, savedir_base, y_name, x_name):    
-    savedir = "%s/%s/" % (savedir_base,
-                                 hu.hash_dict(exp_dict))
-    score_list = hu.load_pkl(savedir + "/score_list.pkl")
+    savedir = os.path.join(savedir_base, hu.hash_dict(exp_dict))
+    score_list = hu.load_pkl(os.path.join(savedir, 'score_list.pkl'))
     keys = score_list[0].keys()
     result_dict = {}
     result_dict[y_name] = np.ones((exp_dict["max_epoch"], 5))*-1
@@ -524,13 +485,13 @@ def get_score_list_across_runs(exp_dict, savedir_base, y_name, x_name):
     for r in [0,1,2,3,4]:
         exp_dict_new = copy.deepcopy(exp_dict)
         exp_dict_new["runs"]  = r
-        savedir_new = "%s/%s/" % (savedir_base,
+        savedir_new = os.path.join(savedir_base,
                                   hu.hash_dict(exp_dict_new))
         
         
-        if not os.path.exists(savedir_new + "/score_list.pkl"):
+        if not os.path.exists(os.path.join(savedir_new, "score_list.pkl")):
             continue
-        score_list_new = hu.load_pkl(savedir_new + "/score_list.pkl")
+        score_list_new = hu.load_pkl(os.path.join(savedir_new, "score_list.pkl"))
         df = pd.DataFrame(score_list_new)
         # print(df)
         
@@ -574,10 +535,10 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
     for exp_dict in exp_list:
         
         exp_id = hu.hash_dict(exp_dict)
-        savedir = savedir_base + "/%s/" % exp_id 
-
-        path = savedir + "/score_list.pkl"
-        if not os.path.exists(savedir + "/exp_dict.json") or not os.path.exists(path):
+        savedir = os.path.join(savedir_base, exp_id)
+        path = os.path.join(savedir, "score_list.pkl")
+        
+        if not os.path.exists(os.path.join(savedir, "exp_dict.json")) or not os.path.exists(path):
             continue
         else:
             # average runs
@@ -718,24 +679,7 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
 
 
 
-
-
-
-
-
-
 def group_exp_list(exp_list, groupby_key_list):
-    # # filter out nones 
-    # exp_list_new = []
-    # for exp_dict in exp_list:
-    #     flag = True
-    #     for k in groupby_key_list:
-    #         if exp_dict.get(k) is None:
-    #             flag = False
-    #     if flag:
-    #         exp_list_new += [exp_dict]
-    # exp_list = exp_list_new
-
     def key_func(x):
         x_list = []
         for groupby_key in groupby_key_list:
@@ -832,45 +776,3 @@ def as_double_list(v):
         v = [v] 
     
     return v 
-
-def get_best_exp_list(exp_list, 
-                      groupby_key=None):
-    exp_list_new = []
-    # aggregate results
-    for exp_dict in exp_list:
-        result_dict = {}
-
-        exp_id = hu.hash_dict(exp_dict)
-        result_dict["exp_id"] = exp_id
-        savedir = savedir_base + "/%s/" % exp_id 
-        if not os.path.exists(savedir + "/score_list.pkl"):
-            score_list_list += [result_dict]
-            continue
-
-        for k in exp_dict:
-            result_dict[k] = exp_dict[k]
-            
-        score_list_fname = os.path.join(savedir, "score_list.pkl")
-
-        if os.path.exists(score_list_fname):
-            score_list = hu.load_pkl(score_list_fname)
-            score_df = pd.DataFrame(score_list)
-            if len(score_list):
-                score_dict_last = score_list[-1]
-                for k, v in score_dict_last.items():
-                    if "float" not  in str(score_df[k].dtype):
-                        result_dict["*"+k] = v
-                    else:
-                        result_dict["*"+k] = "%.3f (%.3f-%.3f)" % (v, score_df[k].min(), score_df[k].max())
-
-        score_list_list += [result_dict]
-
-
-    return exp_list_new
-
-
-
-
-    
-
-
