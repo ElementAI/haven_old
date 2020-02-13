@@ -3,7 +3,7 @@ from setuptools import setup
 setup(name='haven',
       version='0.4.1',
       description='Manage large-scale experiments',
-      url='https://github.com/ElementAI/haven_borgy',
+      url='https://github.com/ElementAI/haven',
       author='Issam Laradji',
       author_email='issam.laradji@elementai.com',
       license='MIT',
