@@ -28,6 +28,7 @@ def run_exp_list_jobs(exp_list,
         else:
             hash_list.add(exp_id)
 
+    # let the user choose one of these options
     print('%d experiments.' % len(exp_list))
     prompt = ("Type one of the following:\n"
               "  1)'reset' to reset the experiments; or\n"
