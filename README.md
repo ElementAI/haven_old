@@ -1,6 +1,10 @@
 ### Code template for main.py 
 
 ```python
+import os
+import argparse
+import exp_configs 
+
 from haven import haven_utils as hu
 from haven import haven_results as hr
 from haven import haven_chk as hc
@@ -85,7 +89,6 @@ if __name__ == "__main__":
 
     parser.add_argument('-e', '--exp_group_list', nargs="+")
     parser.add_argument('-sb', '--savedir_base', required=True)
-    parser.add_argument('-d', '--datadir_base', required=True)
     parser.add_argument("-r", "--reset",  default=0, type=int)
     parser.add_argument("-ei", "--exp_id", default=None)
     parser.add_argument("-v", "--view_experiments", default=None)
@@ -120,15 +123,7 @@ if __name__ == "__main__":
         from haven import haven_jobs as hj
         hj.run_exp_list_jobs(exp_list, 
                        savedir_base=args.savedir_base, 
-                       workdir=os.path.dirname(os.path.realpath(__file__)),
-                       username='issam',
-                       run_command='python trainval.py -ei <exp_id> -sb %s -d %s' % (args.savedir_base, args.datadir_base),
-                       job_utils_path='/mnt/datasets/public/issam/haven_borgy/haven_jobs_utils.py',
-                       image='images.borgy.elementai.net/issam.laradji/main',
-                       bid=1,
-                       mem=20,
-                       cpu=2,
-                       gpu=1)
+                       workdir=os.path.dirname(os.path.realpath(__file__)))
 
     else:
         # run experiments
@@ -139,6 +134,20 @@ if __name__ == "__main__":
                     datadir_base=args.datadir_base,
                     reset=args.reset)
 ```
+
+### Code template for exp_configs.py 
+
+```python
+from haven import haven_utils as hu
+
+# Define exp groups for parameter search
+EXP_GROUPS = {'mnist':
+                hu.cartesian_exp_group({
+                    'lr':[1e-3, 1e-4],
+                    'batch_size':[32, 64]})
+                }
+```
+
 
 ### Install
 
