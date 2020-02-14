@@ -4,7 +4,6 @@ import os
 import itertools
 import torch
 import numpy as np
-import glob
 from PIL import Image
 import copy
 import time
@@ -21,30 +20,9 @@ import json
 import sys
 
 
-def get_longest_list(listOfLists):
-    LL = listOfLists
-    longest_list = []
-
-    if LL is None:
-        return longest_list
-
-    for L in LL:
-        if not isinstance(L, list):
-            continue
-
-        if not isinstance(L[0], list):
-            L = [L]
-        
-        if len(L) > len(longest_list):
-            longest_list = L
-
-    #print(longest_list)
-    return longest_list
-    
-def get_padding(kernel_size=1):
-    return int((kernel_size - 1) / 2)
-
-
+# ============================================
+# exp utils
+# ============================================
 def cartesian_exp_group(exp_config):
     """Cartesian experiment config.
 
@@ -79,7 +57,8 @@ def cartesian_exp_group(exp_config):
 def hash_dict(dictionary):
     """Create a hash for a dictionary."""
     dict2hash = ""
-
+    if not isinstance(dictionary, dict):
+        raise ValueError('dictionary is not a dict')
     for k in sorted(dictionary.keys()):
         if isinstance(dictionary[k], dict):
             v = hash_dict(dictionary[k])
@@ -89,6 +68,36 @@ def hash_dict(dictionary):
         dict2hash += os.path.join(str(k), str(v))
 
     return hashlib.md5(dict2hash.encode()).hexdigest()
+
+def hash_str(str):
+    """Hash a string"""
+    return hashlib.md5(str.encode()).hexdigest()
+
+# ============================================
+# saving and loading utils
+# ============================================
+
+def save_json(fname, data, makedirs=True):
+    if makedirs:
+        os.makedirs(os.path.dirname(fname), exist_ok=True)
+    with open(fname, "w") as json_file:
+        json.dump(data, json_file, indent=4, sort_keys=True)
+
+def loadmat(fname):
+    return io.loadmat(fname)
+
+def load_json(fname, decode=None):
+    with open(fname, "r") as json_file:
+        d = json.load(json_file)
+
+    return d
+
+def read_text(fname):
+    # READS LINES
+    with open(fname, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+        # lines = [line.decode('utf-8').strip() for line in f.readlines()]
+    return lines
 
 def load_pkl(fname):
     """Load the content of a pkl file."""
@@ -112,6 +121,167 @@ def save_pkl(fname, data, with_rename=True, makedirs=True):
     else:
         with open(fname, "wb") as f:
             pickle.dump(data, f)
+
+def save_image(fname, img, makedirs=True):
+    if img.dtype == 'uint8':
+        img_pil = Image.fromarray(img)
+        img_pil.save(fname)
+    else:
+        if makedirs:
+            os.makedirs(os.path.dirname(fname), exist_ok=True)
+        images = f2l(t2n(img))
+        imsave(fname , img)
+
+def imsave(fname, arr, size=None):
+    from PIL import Image
+    arr = f2l(t2n(arr)).squeeze()
+    os.makedirs(os.path.dirname(fname), exist_ok=True)
+    #print(arr.shape)
+    if size is not None:
+        arr = Image.fromarray(arr)
+        arr = arr.resize(size)
+        arr = np.array(arr)
+ 
+    img = Image.fromarray(np.uint8(arr * 255))
+    img.save(fname)
+
+
+def load_txt(fname):
+    """Load the content of a txt file."""
+    with open(fname, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    return lines
+
+def torch_load(fname, map_location=None, safe_flag=False):
+    """Load the content of a torch file."""
+    fname_writing = fname + "_writing_dict.json.tmp"
+    fname_reading = fname + "_reading_dict.json.tmp"
+
+    if safe_flag:
+        wait_until_safe2load(fname_writing)
+        save_json(fname_reading, {"reading": 1})
+
+    obj = torch.load(fname, map_location=map_location)
+
+    if safe_flag:
+        save_json(fname_reading, {"reading": 0})
+
+    return obj
+
+
+def torch_save(fname, obj, safe_flag=False):
+    """"Save data in torch format."""
+    # Create folder
+    os.makedirs(os.path.dirname(fname), exist_ok=True)
+
+    # Define names of temporal files
+    fname_tmp = fname + ".tmp"
+    fname_writing = fname + "_writing_dict.json.tmp"
+    fname_reading = fname + "_reading_dict.json.tmp"
+
+    if safe_flag:
+        wait_until_safe2save(fname_reading)
+        save_json(os.path.dirname(fname_writing), {"writing": 1})
+
+    torch.save(obj, fname_tmp)
+    if os.path.exists(fname):
+        os.remove(fname)
+    os.rename(fname_tmp, fname)
+
+    if safe_flag:
+        save_json(os.path.dirname(fname_writing), {"writing": 0})
+
+
+def wait_until_safe2load(path, patience=10):
+    """Wait until safe to load."""
+    # Check if someone is writting in the file
+    writing_flag = False
+    if os.path.exists(path):
+        writing_flag = load_json(path).get("writing")
+
+    # Keep checking until noone is writting there
+    waiting = 0
+    while writing_flag and waiting < patience:
+        time.sleep(.5)
+        waiting += 1
+        if os.path.exists(path):
+            writing_flag = load_json(path).get("writing")
+
+    return writing_flag
+
+
+def wait_until_safe2save(path, patience=10):
+    # Check if someone is reading the file
+    reading_flag = False
+    if os.path.exists(path):
+        reading_flag = load_json(path).get("reading")
+
+    # Keep trying until noone is reading the file
+    reading = 0
+    while reading_flag and reading < patience:
+        time.sleep(.5)
+        reading += 1
+        if os.path.exists(path):
+            reading_flag = load_json(path).get("reading")
+
+    return reading_flag
+
+# ============================================
+# system utils
+# ============================================
+class Parallel:
+    """Class for run a function in parallel."""
+
+    def __init__(self):
+        self.threadList = []
+        self.count = 0
+
+    def add(self, func,  *args):
+        """Add a funtion."""
+        self.threadList += [
+            threading.Thread(target=func, name="thread-%d"%self.count,
+                             args=args)]
+        self.count += 1
+
+    def run(self):
+        for thread in self.threadList:
+            thread.daemon = True
+            print("  > Starting thread %s" % thread.name)
+            thread.start()
+
+    def close(self):
+        for thread in self.threadList:
+            print("  > Joining thread %s" % thread.name)
+            thread.join()
+
+def subprocess_call(cmd_string):
+    return subprocess.check_output(
+        shlex.split(cmd_string), shell=False).decode("utf-8")
+
+def copy_code(src_path, dst_path, verbose=1):
+    """Copy code."""
+    time.sleep(.5)  # TODO: Why?
+
+    if verbose:
+        print("  > Copying code from %s to %s" % (src_path, dst_path))
+    # Create destination folder
+    os.makedirs(dst_path, exist_ok=True)
+
+    rsync_code = "rsync -av -r -q  --delete-before --exclude='.git/' " \
+                 " --exclude='*.pyc' --exclude='__pycache__/' %s %s" % (
+                    src_path, dst_path)
+
+    try:
+        subprocess_call(rsync_code)
+    except subprocess.CalledProcessError as e:
+        raise ValueError("Ping stdout output:\n", e.output)  # TODO: Through an error?
+
+    # print("  > Code copied\n")
+    time.sleep(.5) 
+
+# ============================================
+# misc utils
+# ============================================
 
 def time_to_montreal():  # TODO: Remove commented code
     """Get time in Montreal zone."""
@@ -256,15 +426,6 @@ def get_image(imgs,
 
     return imgs
 
-def save_image(fname, img, makedirs=True):
-    if img.dtype == 'uint8':
-        img_pil = Image.fromarray(img)
-        img_pil.save(fname)
-    else:
-        if makedirs:
-            os.makedirs(os.path.dirname(fname), exist_ok=True)
-        images = f2l(t2n(img))
-        imsave(fname , img)
 
 def f2l(X):
     if X.ndim == 3 and (X.shape[2] == 3 or X.shape[2] == 1):
@@ -281,31 +442,8 @@ def f2l(X):
     return X
 
 
-def imsave(fname, arr, size=None):
-    from PIL import Image
-    arr = f2l(t2n(arr)).squeeze()
-    os.makedirs(os.path.dirname(fname), exist_ok=True)
-    #print(arr.shape)
-    if size is not None:
-        arr = Image.fromarray(arr)
-        arr = arr.resize(size)
-        arr = np.array(arr)
- 
-    img = Image.fromarray(np.uint8(arr * 255))
-    img.save(fname)
-
-
-# ========================================================
-# results
-import zipfile
-
-def fname_parent(filepath, levels=1):
-    common = filepath
-    for i in range(levels + 1):
-        common = os.path.dirname(common)
-    return os.path.relpath(filepath, common)
-    
 def zipdir(src_dirname, out_fname, include_list=None):
+    import zipfile
     zipf = zipfile.ZipFile(out_fname, 'w', 
                            zipfile.ZIP_DEFLATED)
     # ziph is zipfile handle
@@ -328,14 +466,6 @@ def zip_score_list(exp_list, savedir_base, out_fname, include_list=None):
         exp_id = hash_dict(exp_dict)
         zipdir(os.path.join(savedir_base, exp_id), 
                out_fname, include_list=include_list)
-
-
-def save_json(fname, data, makedirs=True):
-    if makedirs:
-        os.makedirs(os.path.dirname(fname), exist_ok=True)
-    with open(fname, "w") as json_file:
-        json.dump(data, json_file, indent=4, sort_keys=True)
-
 
 def flatten_dict(exp_dict):
     result_dict = {}
@@ -375,160 +505,12 @@ def shrink2roi(img, roi):
     return img[y_min:y_max, x_min:x_max]
 
 
-def hash_dict(dictionary):
-    """Create a hash for a dictionary."""
-    dict2hash = ""
-    if not isinstance(dictionary, dict):
-        raise ValueError('dictionary is not a dict')
-    for k in sorted(dictionary.keys()):
-        if isinstance(dictionary[k], dict):
-            v = hash_dict(dictionary[k])
-        else:
-            v = dictionary[k]
-
-        dict2hash += os.path.join(str(k), str(v))
-
-    return hashlib.md5(dict2hash.encode()).hexdigest()
-
-def hash_str(str):
-    return hashlib.md5(str.encode()).hexdigest()
-
-def wait_until_safe2load(path, patience=10):
-    """Wait until safe to load."""
-    # Check if someone is writting in the file
-    writing_flag = False
-    if os.path.exists(path):
-        writing_flag = load_json(path).get("writing")
-
-    # Keep checking until noone is writting there
-    waiting = 0
-    while writing_flag and waiting < patience:
-        time.sleep(.5)
-        waiting += 1
-        if os.path.exists(path):
-            writing_flag = load_json(path).get("writing")
-
-    return writing_flag
-
-
-def wait_until_safe2save(path, patience=10):
-    # Check if someone is reading the file
-    reading_flag = False
-    if os.path.exists(path):
-        reading_flag = load_json(path).get("reading")
-
-    # Keep trying until noone is reading the file
-    reading = 0
-    while reading_flag and reading < patience:
-        time.sleep(.5)
-        reading += 1
-        if os.path.exists(path):
-            reading_flag = load_json(path).get("reading")
-
-    return reading_flag
-
-def load_txt(fname):
-    """Load the content of a txt file."""
-    with open(fname, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-    return lines
-
-def torch_load(fname, map_location=None, safe_flag=False):
-    """Load the content of a torch file."""
-    fname_writing = fname + "_writing_dict.json.tmp"
-    fname_reading = fname + "_reading_dict.json.tmp"
-
-    if safe_flag:
-        wait_until_safe2load(fname_writing)
-        save_json(fname_reading, {"reading": 1})
-
-    obj = torch.load(fname, map_location=map_location)
-
-    if safe_flag:
-        save_json(fname_reading, {"reading": 0})
-
-    return obj
-
-
-def torch_save(fname, obj, safe_flag=False):
-    """"Save data in torch format."""
-    # Create folder
-    os.makedirs(os.path.dirname(fname), exist_ok=True)
-
-    # Define names of temporal files
-    fname_tmp = fname + ".tmp"
-    fname_writing = fname + "_writing_dict.json.tmp"
-    fname_reading = fname + "_reading_dict.json.tmp"
-
-    if safe_flag:
-        wait_until_safe2save(fname_reading)
-        save_json(os.path.dirname(fname_writing), {"writing": 1})
-
-    torch.save(obj, fname_tmp)
-    if os.path.exists(fname):
-        os.remove(fname)
-    os.rename(fname_tmp, fname)
-
-    if safe_flag:
-        save_json(os.path.dirname(fname_writing), {"writing": 0})
-
-
-
 def time2mins(time_taken):
     """Convert time into minutes."""
     return time_taken / 60.
 
 
-class Parallel:
-    """Class for run a function in parallel."""
 
-    def __init__(self):
-        self.threadList = []
-        self.count = 0
-
-    def add(self, func,  *args):
-        """Add a funtion."""
-        self.threadList += [
-            threading.Thread(target=func, name="thread-%d"%self.count,
-                             args=args)]
-        self.count += 1
-
-    def run(self):
-        for thread in self.threadList:
-            thread.daemon = True
-            print("  > Starting thread %s" % thread.name)
-            thread.start()
-
-    def close(self):
-        for thread in self.threadList:
-            print("  > Joining thread %s" % thread.name)
-            thread.join()
-
-
-def subprocess_call(cmd_string):
-    return subprocess.check_output(
-        shlex.split(cmd_string), shell=False).decode("utf-8")
-
-def copy_code(src_path, dst_path, verbose=1):
-    """Copy code."""
-    time.sleep(.5)  # TODO: Why?
-
-    if verbose:
-        print("  > Copying code from %s to %s" % (src_path, dst_path))
-    # Create destination folder
-    os.makedirs(dst_path, exist_ok=True)
-
-    rsync_code = "rsync -av -r -q  --delete-before --exclude='.git/' " \
-                 " --exclude='*.pyc' --exclude='__pycache__/' %s %s" % (
-                    src_path, dst_path)
-
-    try:
-        subprocess_call(rsync_code)
-    except subprocess.CalledProcessError as e:
-        raise ValueError("Ping stdout output:\n", e.output)  # TODO: Through an error?
-
-    # print("  > Code copied\n")
-    time.sleep(.5) 
 
 @contextlib.contextmanager
 def random_seed(seed):
@@ -539,30 +521,4 @@ def random_seed(seed):
     finally:
         np.random.set_state(state)
 
-
-
-def loadmat(fname):
-    return io.loadmat(fname)
-
-def join_df_list(df_list):
-    result_df = df_list[0]
-    for i in range(1, len(df_list)):
-        result_df = result_df.join(df_list[i], how="outer", lsuffix='_%d'%i, rsuffix='')
-    return result_df
-
-
-def load_json(fname, decode=None):
-    with open(fname, "r") as json_file:
-        d = json.load(json_file)
-
-    return d
-
-def read_text(fname):
-    # READS LINES
-    with open(fname, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-        # lines = [line.decode('utf-8').strip() for line in f.readlines()]
-    return lines
-
-
-
+    

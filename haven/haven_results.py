@@ -327,7 +327,7 @@ class ResultManager:
                     img = plt.imread(img_list[i])
                     axs[i].imshow(img)
                     axs[i].set_axis_off()
-                    axs[i].set_title('%s:%s' % (label, hu.extract_fname(img_list[i])))
+                    axs[i].set_title('%s:%s' % (label, os.path.split(img_list[i])[-1]))
 
                 plt.axis('off')
                 plt.tight_layout()
@@ -563,7 +563,7 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
 
             if label_regard_dict is not None:
                 for k in label_regard_dict:
-                    if is_equal(label_regard_dict[k], exp_dict):
+                    if is_subset(label_regard_dict[k], exp_dict):
                         label = k
                         break
             
@@ -571,7 +571,7 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
             color = None
             if color_regard_dict is not None:
                 for k in color_regard_dict:
-                    if is_equal(color_regard_dict[k], exp_dict):
+                    if is_subset(color_regard_dict[k], exp_dict):
                         color = k
                         break
 
@@ -579,7 +579,7 @@ def plot_exp_list(axis, exp_list, y_name, x_name, avg_runs, legend_list, s_epoch
             marker = "*"
             if marker_regard_dict is not None:
                 for k in marker_regard_dict:
-                    if is_equal(marker_regard_dict[k], exp_dict):
+                    if is_subset(marker_regard_dict[k], exp_dict):
                         marker = k
                         break
                 
@@ -706,7 +706,7 @@ def group_exp_list(exp_list, groupby_key_list):
     return exp_sublists, exp_group_dict
 
 
-def is_equal(d1, d2):
+def is_subset(d1, d2):
     flag = True
     for k in d1:
         v1, v2 = d1.get(k), d2.get(k)
@@ -718,7 +718,7 @@ def is_equal(d1, d2):
             
         # if both are dicts
         elif isinstance(v2, dict) and isinstance(v1, dict):
-            flag = is_equal(v1, v2)
+            flag = is_subset(v1, v2)
 
         # if d1 is dict and not d2
         elif isinstance(v1, dict) and not isinstance(v2, dict):
@@ -743,7 +743,7 @@ def filter_regard_dict(exp_list, regard_dict, savedir_base):
     for exp_dict in exp_list:
         select_flag = False
         
-        if is_equal(regard_dict, exp_dict):
+        if is_subset(regard_dict, exp_dict):
             select_flag = True
 
         if select_flag:

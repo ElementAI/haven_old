@@ -1,7 +1,5 @@
 import pandas as pd 
-import pylab as plt 
 from . import haven_utils
-import glob 
 import os
 
 
@@ -38,38 +36,17 @@ def create_jupyter(exp_group_list, savedir_base,
     save_ipynb(fname, cells)
     print("saved: %s" % fname)
     
-    # print('link: %s' % )
-
 def generate_header_script(savedir_base, workdir):
     script = ("""
-import itertools
-import pprint
-import argparse
-import sys
-import os
-import pylab as plt
-import pandas as pd
-import sys
-import numpy as np
-import hashlib 
-import pickle
-import json
-import glob
-import copy
-from itertools import groupby
-
-savedir_base = '%s'
-workdir = '%s'
-sys.path.append(workdir)
-
+from importlib import reload
 from haven import haven_jupyter as hj
 from haven import haven_results as hr
 from haven import haven_dropbox as hd
+from haven import haven_utils as hu
 
 hj.init_datatable_mode()
 from IPython.core.display import display, HTML
-display(HTML("<style>.container { width:100%% !important; }</style>"))
-
+display(HTML("<style>.container { width:100% !important; }</style>"))
           """ % (savedir_base, workdir))
     return script
 
@@ -104,33 +81,6 @@ for exp_subset in exp_subsets:
           """ % (exp_group_list, regard_dict, disregard_dict, groupby_list))
     return script
 
-
-def generate_results_script_basic(legend_list, score_list, groupby_list):
-    script = ("""
-for i, exp_subset in enumerate(exp_subsets):
-    # exp_subset = hr.filter_best_results(exp_subset, savedir_base=savedir_base, groupby_key_list=['model'], score_key='val_mae')
-    
-    # score df
-    df = hr.get_dataframe_score_list(exp_subset, savedir_base=savedir_base)
-    display(df)
-
-    # plot
-    fig = hr.get_plot(exp_subset, %s, savedir_base, 
-    title_list=%s,
-    avg_runs=0,
-    legend_list=%s,
-    height=8,
-    width=8
-    )
-    # plt.savefig('%%s/results/%%s_%%d.jpg' %% (workdir, exp_group_name, i))
-    plt.show()
-
-    # qualitative
-    hr.get_images(exp_subset, savedir_base, n_exps=3, split="row",
-                  height=12,
-                  width=12, legend_list=%s)
-          """% (score_list, groupby_list, legend_list, legend_list))
-    return script
 
 def generate_zip_script(outdir):
     script = ("""
@@ -195,39 +145,4 @@ def init_datatable_mode():
 
     pd.DataFrame._repr_javascript_ = _repr_datatable_
 
-
-def get_images(exp_list, savedir_base, n_exps=3):
-    from IPython.core.display import display
-    
-    for k, exp_dict in enumerate(exp_list):
-        if k >= n_exps:
-            return
-        result_dict = {}
-
-        exp_id = haven_utils.hash_dict(exp_dict)
-        result_dict["exp_id"] = exp_id
-        savedir = savedir_base + "/%s/" % exp_id 
-        img_list = glob.glob(savedir + "/images/images/*.jpg")
-        
-        ncols = len(img_list)
-        # ncols = len(exp_configs)
-        nrows = 1
-        fig, axs = plt.subplots(nrows=nrows, ncols=ncols, 
-                                figsize=(ncols*12, nrows*3))
-        
-        if not isinstance(axs, list):
-            axs = [axs]
-   
-        for i in range(ncols):
-            img = plt.imread(img_list[i])
-            axs[0][i].imshow(img)
-            axs[0][i].set_axis_off()
-            axs[0][i].set_title(haven_utils.extract_fname(img_list[i]))
-#         fig.suptitle(exp_id)
-        plt.axis('off')
-        plt.tight_layout()
-        display("Experiment %s %s" % (exp_id,"="*100))
-        display(pd.DataFrame([exp_dict]))
-        plt.show()
-#         display("="*100)
         
