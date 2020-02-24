@@ -650,7 +650,10 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1,
     """
     fig_list = []
     for k, exp_dict in enumerate(exp_list):
+        
         if k >= n_exps:
+            if verbose:
+                print('displayed %d/%d experiment images' % (k, n_exps))
             break
         result_dict = {}
         if legend_list is None:
@@ -662,7 +665,7 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1,
         exp_id = hu.hash_dict(exp_dict)
         result_dict['exp_id'] = exp_id
         if verbose:
-            print('Exp:', exp_id)
+            print('Displaying Images for Exp:', exp_id)
         savedir = os.path.join(savedir_base, exp_id)
 
         base_dir = os.path.join(savedir, dirname)

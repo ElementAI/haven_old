@@ -256,9 +256,9 @@ def text_on_image(text, image):
     return img_np
 
 def bbox_on_image(bbox_xyxy, image, mode='xyxy'):
-    image_uint8 = image_as_uint8(img)
+    image_uint8 = image_as_uint8(image)
 
-    H, W, _ = image.shape
+    H, W, _ = image_uint8.shape
 
     for bb in bbox_xyxy:
         x1, y1, x2, y2 = bb
@@ -270,8 +270,8 @@ def bbox_on_image(bbox_xyxy, image, mode='xyxy'):
             start_point = (int(x1*W), int(y1*H), ) 
             end_point = ( int(x2*W), int(y2*H),)
         else:
-            start_point = (x1, y1)
-            end_point = (x2, y2)
+            start_point = (int(x1), int(y1))
+            end_point = (int(x2), int(y2))
         
             
         
@@ -280,11 +280,9 @@ def bbox_on_image(bbox_xyxy, image, mode='xyxy'):
         
         # Line thickness of 2 px 
         thickness = 2
-        
-        # Using cv2.rectangle() method 
         # Draw a rectangle with blue line borders of thickness of 2 px 
         image_uint8 = cv2.rectangle(image_uint8, start_point, end_point, color, thickness) 
-    # hu.save_image("/mnt/datasets/public/issam/prototypes/wscl/tmp.jpg", image_uint8)
+
     return image_uint8 / 255.
 
 def points_on_image(y_list, x_list, image, radius=3):

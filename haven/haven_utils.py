@@ -223,7 +223,7 @@ def save_pkl(fname, data, with_rename=True, makedirs=True):
             pickle.dump(data, f)
 
 
-def save_image(fname, img, makedirs=True):
+def save_image(fname, img, size=None, makedirs=True):
     """[summary]
 
     Parameters
