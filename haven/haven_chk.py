@@ -5,14 +5,15 @@ from . import haven_utils as hu
 
 
 def delete_experiment(savedir, backup_flag=False):
-    """[summary]
+    """Delete an experiment. If the backup_flag is true it moves the experiment
+    to the delete folder.
     
     Parameters
     ----------
-    savedir : [type]
-        [description]
+    savedir : str
+        Directory of the experiment
     backup_flag : bool, optional
-        [description], by default False
+        If true, instead of deleted is moved to delete folder, by default False
     """
     # get experiment id
     exp_id = os.path.split(savedir)[-1]
@@ -43,12 +44,12 @@ def delete_experiment(savedir, backup_flag=False):
 
 
 def delete_and_backup_experiment(savedir):
-    """[summary]
+    """Delete an experiment and make a backup (Movo to the trash)
     
     Parameters
     ----------
-    savedir : [type]
-        [description]
+    savedir : str
+        Directory of the experiment
     """
     # delete and backup experiment
     delete_experiment(savedir, backup_flag=True)
@@ -58,15 +59,15 @@ def get_savedir(exp_dict, savedir_base):
     
     Parameters
     ----------
-    exp_dict : [type]
-        [description]
-    savedir_base : [type]
-        [description]
+    exp_dict : dict
+        Dictionary describing the hyperparameters of an experiment
+    savedir_base : str
+        Directory where the experiments are saved
     
     Returns
     -------
-    [type]
-        [description]
+    str
+        Directory of the experiment
     """
     # get experiment savedir
     exp_id = hu.hash_dict(exp_dict)
