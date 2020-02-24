@@ -102,16 +102,16 @@ def hash_str(str):
 
 
 def save_json(fname, data, makedirs=True):
-    """[summary]
+    """Save data into a json file.
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        Name of the json file
     data : [type]
-        [description]
+        Data to save into the json file
     makedirs : bool, optional
-        [description], by default True
+        If enabled creates the folder for saving the file, by default True
     """
     if makedirs:
         os.makedirs(os.path.dirname(fname), exist_ok=True)
@@ -120,35 +120,35 @@ def save_json(fname, data, makedirs=True):
 
 
 def load_mat(fname):
-    """[summary]
+    """Load a matlab file.
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        File name
 
     Returns
     -------
-    [type]
-        [description]
+    dict
+        Dictionary with the loaded data
     """
     return io.loadmat(fname)
 
 
-def load_json(fname, decode=None):
-    """[summary]
+def load_json(fname, decode=None):  # TODO: decode???
+    """Load a json file.
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        Name of the file
     decode : [type], optional
         [description], by default None
 
     Returns
     -------
     [type]
-        [description]
+        Content of the file
     """
     with open(fname, "r") as json_file:
         d = json.load(json_file)
@@ -157,21 +157,21 @@ def load_json(fname, decode=None):
 
 
 def read_text(fname):
-    """[summary]
+    """Loads the content of a text file.
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        File name
 
     Returns
     -------
-    [type]
-        [description]
+    list
+        Content of the file. List containing the lines of the file
     """
     with open(fname, "r", encoding="utf-8") as f:
         lines = f.readlines()
-        # lines = [line.decode('utf-8').strip() for line in f.readlines()]
+        # lines = [line.decode('utf-8').strip() for line in f.readlines()]  # TODO: Delete?
     return lines
 
 
@@ -180,13 +180,13 @@ def load_pkl(fname):
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        File name
 
     Returns
     -------
     [type]
-        [description]
+        Content of the file
     """
     with open(fname, "rb") as f:
         return pickle.load(f)
@@ -197,10 +197,10 @@ def save_pkl(fname, data, with_rename=True, makedirs=True):
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        File name
     data : [type]
-        [description]
+        Data to save in the file
     with_rename : bool, optional
         [description], by default True
     makedirs : bool, optional
