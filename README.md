@@ -195,9 +195,9 @@ if __name__ == "__main__":
                     reset=args.reset)
 ```
 
-## Haven structure
+## Guidelines
 
 | File | Description |
 | --- | --- |
-| `haven_utils.py` | Global utility functions |
+| save `score_list.pkl` after saving `model.pth` |  This ensures that the score list corresponds to the model for preemptable jobs |
 | `haven_results.py` | Functions related to viewing  and manipulating results |
