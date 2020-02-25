@@ -197,7 +197,7 @@ if __name__ == "__main__":
 
 ## Guidelines
 
-| Guidelines | Description |
-| --- | --- |
-| Save `score_list.pkl` after saving `model.pth` |  This ensures that the score list corresponds to the model for preemptable jobs |
-| Use Jupyter with `haven_results.py` to view the results | This enables the flexibility needed for manipulating and aggregating data |
+|#| Guidelines | Reasoning |
+|---| --- | --- |
+|1| Save `score_list.pkl` after saving `model.pth` |  This ensures that the score list corresponds to the model for preemptable jobs |
+|2| Use Jupyter with `haven_results.py` to view the results | This enables the flexibility needed for manipulating and aggregating data |
