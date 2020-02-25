@@ -197,7 +197,16 @@ if __name__ == "__main__":
 
 ## Guidelines
 
-|#| Guidelines | Reasoning |
-|---| --- | --- |
-|1| Save `score_list.pkl` after saving `model.pth` |  This ensures that the score list corresponds to the model for preemptable jobs |
-|2| Use Jupyter with `haven_results.py` to view the results | This enables the flexibility needed for manipulating and aggregating data |
+|Guidelines  |
+|--- |
+|Save `score_list.pkl` after saving `model.pth`. This ensures that the score list corresponds to the model for preemptable jobs |
+|Use Jupyter with `haven_results.py` to view the results. This enables the flexibility needed for manipulating and aggregating data |
+|Put the framework modules under src and the configuration files at the top level. This enables a clear separation between the two types of files |
+|Put secondary scripts under `scripts`   |
+|Have one main file that runs the code using a given experiment configuration  |
+|Create a `tests.py` file that tests the datasets, models, and so on   |
+|Define the experiment configurations as a dictionary to access the hyperparamters easily |
+|Save an experiment under a directory defined by its hash |
+| Define a list of scores that gets saved with the model. Each score is a dictionary that defines the metrics recorded in an epoch.  |
+
+
