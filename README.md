@@ -208,5 +208,6 @@ if __name__ == "__main__":
 |Define the experiment configurations as a dictionary to access the hyperparamters easily |
 |Save an experiment under a directory defined by its hash |
 | Define a list of scores that gets saved with the model. Each score is a dictionary that defines the metrics recorded in an epoch.  |
-
+| Only hyper-parameters that change the results should be in the experiment dictionary. num_workers for instance does not affect the experiment results so it should be part of `argparse` instead of `exp_dict`.  |
+| Have a sampler that only selects few training and validation examples to see if the model works well on a small set of examples. If it cannot train on small number of examples, then it won't be able to learn on full-scale. |
 
