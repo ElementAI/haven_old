@@ -128,7 +128,7 @@ def trainval(exp_dict, savedir_base, reset=False):
 
         # Report & Save
         score_df = pd.DataFrame(score_list)
-        print("\n", score_df.tail()
+        print("\n", score_df.tail())
         hu.torch_save(model_path, model.get_state_dict())
         hu.save_pkl(score_list_path, score_list)
         print("Checkpoint Saved: %s" % savedir)
