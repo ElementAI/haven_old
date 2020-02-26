@@ -211,4 +211,9 @@ if __name__ == "__main__":
 | Define a list of scores that gets saved with the model. Each score is a dictionary that defines the metrics recorded in an epoch.  |
 | Only hyper-parameters that change the results should be in the experiment dictionary. num_workers for instance does not affect the experiment results so it should be part of `argparse` instead of `exp_dict`.  |
 | Have a sampler that only selects few training and validation examples to see if the model works well on a small set of examples. If it cannot train on small number of examples, then it won't be able to learn on full-scale. |
+| When adding a new hyperparameter, the code should only change in one place. |
+| Wrappers instead of parents. |
+| Code should change at the lowest level possible. Top-level code that has higher coupling should be modified the least. |
+| Branches should be created for new extensions and merged within few days. |
+
 
