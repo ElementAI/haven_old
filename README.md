@@ -215,5 +215,7 @@ if __name__ == "__main__":
 | Wrappers instead of parents. |
 | Code should change at the lowest level possible. Top-level code that has higher coupling should be modified the least. |
 | Branches should be created for new extensions and merged within few days. |
+| If a group of classes are registered, all the registered classes should be explicitly shown in one place. |
+| Each function should do one simple task. |
 
 
