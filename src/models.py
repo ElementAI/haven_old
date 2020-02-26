@@ -1,16 +1,17 @@
 import torch
 from torch import nn
-# from torch.utils.data import DataLoader
 from torch.nn import functional as F
 
 
-def get_model(model_name):
+def get_model(model_name, use_cuda=True):
+    use_cuda = use_cuda and torch.cuda.is_available()
+    device = torch.device("cuda" if use_cuda else "cpu")
     if model_name == 'mlp':
-        return MLP()
+        return MLP(device=device).to(device)
 
 
 class MLP(nn.Module):
-    def __init__(self, input_size=784, n_classes=10):
+    def __init__(self, input_size=784, n_classes=10, device="cpu"):
         """Constructor."""
         super().__init__()
 
@@ -19,6 +20,7 @@ class MLP(nn.Module):
         self.output_layer = nn.Linear(256, n_classes)
 
         self.opt = torch.optim.SGD(self.parameters(), lr=1e-3)
+        self.device = device
 
     def forward(self, x):
         """Forward pass of one batch."""
@@ -50,7 +52,8 @@ class MLP(nn.Module):
             loss_sum += float(self.train_on_batch(batch))
 
             if i % (n_batches//10) == 0:
-                print("%d - Training loss: %.4f" % (i, loss_sum / (i + 1)))
+                print("   Iteration: %04d/%04d - Training loss: %.4f" %
+                      (i, len(train_loader), loss_sum / (i + 1)))
 
         loss = loss_sum / n_batches
 
@@ -73,7 +76,8 @@ class MLP(nn.Module):
             n_samples += gt_labels.shape[0]
 
             if i % (n_batches//10) == 0:
-                print("%d - Val score: %.4f" % (i, se / n_samples))
+                print("   Iteration: %04d/%04d - Val accuracy: %.4f" %
+                      (i, len(val_loader), se / n_samples))
 
         acc = se / n_samples
 
@@ -82,7 +86,8 @@ class MLP(nn.Module):
     def train_on_batch(self, batch):
         """Train for one batch."""
         images, labels = batch
-        images, labels = images, labels
+        images = images.to(self.device)
+        labels = labels.to(self.device)
 
         self.opt.zero_grad()
         probs = F.log_softmax(self(images), dim=1)
@@ -96,7 +101,7 @@ class MLP(nn.Module):
     def predict_on_batch(self, batch, **options):
         """Predict for one batch."""
         images, labels = batch
-        images = images
+        images = images.to(self.device)
         probs = F.log_softmax(self(images), dim=1)
 
         return probs.argmax(dim=1)
