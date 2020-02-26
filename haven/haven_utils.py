@@ -102,16 +102,16 @@ def hash_str(str):
 
 
 def save_json(fname, data, makedirs=True):
-    """[summary]
+    """Save data into a json file.
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        Name of the json file
     data : [type]
-        [description]
+        Data to save into the json file
     makedirs : bool, optional
-        [description], by default True
+        If enabled creates the folder for saving the file, by default True
     """
     if makedirs:
         os.makedirs(os.path.dirname(fname), exist_ok=True)
@@ -120,35 +120,35 @@ def save_json(fname, data, makedirs=True):
 
 
 def load_mat(fname):
-    """[summary]
+    """Load a matlab file.
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        File name
 
     Returns
     -------
-    [type]
-        [description]
+    dict
+        Dictionary with the loaded data
     """
     return io.loadmat(fname)
 
 
-def load_json(fname, decode=None):
-    """[summary]
+def load_json(fname, decode=None):  # TODO: decode???
+    """Load a json file.
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        Name of the file
     decode : [type], optional
         [description], by default None
 
     Returns
     -------
     [type]
-        [description]
+        Content of the file
     """
     with open(fname, "r") as json_file:
         d = json.load(json_file)
@@ -157,21 +157,21 @@ def load_json(fname, decode=None):
 
 
 def read_text(fname):
-    """[summary]
+    """Loads the content of a text file.
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        File name
 
     Returns
     -------
-    [type]
-        [description]
+    list
+        Content of the file. List containing the lines of the file
     """
     with open(fname, "r", encoding="utf-8") as f:
         lines = f.readlines()
-        # lines = [line.decode('utf-8').strip() for line in f.readlines()]
+        # lines = [line.decode('utf-8').strip() for line in f.readlines()]  # TODO: Delete?
     return lines
 
 
@@ -180,13 +180,13 @@ def load_pkl(fname):
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        File name
 
     Returns
     -------
     [type]
-        [description]
+        Content of the file
     """
     with open(fname, "rb") as f:
         return pickle.load(f)
@@ -197,14 +197,14 @@ def save_pkl(fname, data, with_rename=True, makedirs=True):
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        File name
     data : [type]
-        [description]
+        Data to save in the file
     with_rename : bool, optional
         [description], by default True
     makedirs : bool, optional
-        [description], by default True
+        If enabled creates the folder for saving the file, by default True
     """
     # Create folder
     if makedirs:
@@ -224,28 +224,28 @@ def save_pkl(fname, data, with_rename=True, makedirs=True):
 
 
 def save_image(fname, img, size=None, makedirs=True):
-    """[summary]
+    """Save an image into a file.
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        Name of the file
     img : [type]
-        [description]
+        Image data. #TODO We asume it is.....?????? \in [0, 1]? Numpy? PIL? RGB?
     makedirs : bool, optional
-        [description], by default True
+        If enabled creates the folder for saving the file, by default True
     """
     if img.dtype == 'uint8':
         img_pil = Image.fromarray(img)
         img_pil.save(fname)
     else:
-        if makedirs:
+        if makedirs:  # TODO: Shouldn't this be before the PIL if?
             os.makedirs(os.path.dirname(fname), exist_ok=True)
 
         arr = f2l(t2n(img)).squeeze()
-        os.makedirs(os.path.dirname(fname), exist_ok=True)
+        os.makedirs(os.path.dirname(fname), exist_ok=True) # TODO: This is repeated
         # print(arr.shape)
-        if size is not None:
+        if size is not None:  #TODO: This does not have effect if the image is in PIL
             arr = Image.fromarray(arr)
             arr = arr.resize(size)
             arr = np.array(arr)
@@ -259,13 +259,13 @@ def load_txt(fname):
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        File name
 
     Returns
     -------
-    [type]
-        [description]
+    list
+        Content of the file. List containing the lines of the file
     """
     with open(fname, "r", encoding="utf-8") as f:
         lines = f.readlines()
@@ -277,15 +277,17 @@ def torch_load(fname, map_location=None):
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        File name
     map_location : [type], optional
-        [description], by default None
+        Maping the loaded model to a specific device (i.e., CPU or GPU), this
+        is needed if trained in CPU and loaded in GPU and viceversa, by default
+        None
 
     Returns
     -------
     [type]
-        [description]
+        Loaded torch model
     """
     obj = torch.load(fname, map_location=map_location)
 
@@ -297,18 +299,16 @@ def torch_save(fname, obj):
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        File name
     obj : [type]
-        [description]
-    safe_flag : bool, optional
-        [description], by default False
+        Data to save
     """
     # Create folder
-    os.makedirs(os.path.dirname(fname), exist_ok=True)
+    os.makedirs(os.path.dirname(fname), exist_ok=True)  # TODO: add makedirs parameter?
 
     # Define names of temporal files
-    fname_tmp = fname + ".tmp"
+    fname_tmp = fname + ".tmp"  # TODO: Make the safe flag?
 
     torch.save(obj, fname_tmp)
     if os.path.exists(fname):
@@ -317,12 +317,10 @@ def torch_save(fname, obj):
 
 
 class Parallel:
-    """Class for run a function in parallel.
-    """
+    """Class for run a function in parallel."""
 
     def __init__(self):
-        """[summary]
-        """
+        """Constructor"""
         self.threadList = []
         self.count = 0
 
@@ -331,8 +329,10 @@ class Parallel:
 
         Parameters
         ----------
-        func : [type]
-            [description]
+        func : function
+            Pointer to the function to parallelize
+        args : list
+            Arguments of the funtion to parallelize
         """
         self.threadList += [
             threading.Thread(target=func, name="thread-%d" % self.count,
@@ -340,99 +340,106 @@ class Parallel:
         self.count += 1
 
     def run(self):
-        """[summary]
-        """
+        """Run the added functions in parallel"""
         for thread in self.threadList:
             thread.daemon = True
             print("  > Starting thread %s" % thread.name)
             thread.start()
 
     def close(self):
-        """[summary]
-        """
+        """Finish: wait for all the functions to finish"""
         for thread in self.threadList:
             print("  > Joining thread %s" % thread.name)
             thread.join()
 
 
 def subprocess_call(cmd_string):
-    """[summary]
+    """Run a terminal process.
 
     Parameters
     ----------
-    cmd_string : [type]
-        [description]
+    cmd_string : str
+        Command to execute in the terminal
 
     Returns
     -------
     [type]
-        [description]
+        Error code or 0 if no error happened
     """
     return subprocess.check_output(
         shlex.split(cmd_string), shell=False).decode("utf-8")
 
 
 def copy_code(src_path, dst_path, verbose=1):
-    """[summary]
+    """Copy the code.
+    
+    Typically, when you run an experiment, first you copy the code used to the
+    experiment folder. This function copies the code using rsync terminal
+    command.
 
     Parameters
     ----------
-    src_path : [type]
-        [description]
-    dst_path : [type]
-        [description]
+    src_path : str
+        Source code directory
+    dst_path : str
+        Destination code directory
     verbose : int, optional
-        [description], by default 1
+        Verbosity level. If 0 does not print stuff, by default 1
 
     Raises
     ------
     ValueError
         [description]
     """
-    time.sleep(.5)  # TODO: Why?
+    time.sleep(.5)  # TODO: Why? Why?
 
     if verbose:
         print("  > Copying code from %s to %s" % (src_path, dst_path))
+
     # Create destination folder
     os.makedirs(dst_path, exist_ok=True)
 
+    # Define the command for copying the code using rsync
     rsync_code = "rsync -av -r -q  --delete-before --exclude='.git/' " \
                  " --exclude='*.pyc' --exclude='__pycache__/' %s %s" % (
                      src_path, dst_path)
 
+    # Run the command in the terminal
     try:
         subprocess_call(rsync_code)
     except subprocess.CalledProcessError as e:
-        # TODO: Through an error?
         raise ValueError("Ping stdout output:\n", e.output)
 
-    time.sleep(.5)
+    time.sleep(.5)  # TODO: Why?
 
 
 def zipdir(src_dirname, out_fname, include_list=None):
-    """[summary]
+    """Compress a folder using ZIP.
 
     Parameters
     ----------
-    src_dirname : [type]
-        [description]
-    out_fname : [type]
-        [description]
-    include_list : [type], optional
-        [description], by default None
+    src_dirname : str
+        Directory to compress
+    out_fname : str
+        File name of the compressed file
+    include_list : list, optional
+        List of files to include. If None, include all files in the folder, by
+        default None
     """
-    import zipfile
-    zipf = zipfile.ZipFile(out_fname, 'w',
-                           zipfile.ZIP_DEFLATED)
+    import zipfile  # TODO: Move to the beggining of the file
+    # TODO: Do we need makedirs?
+    # Create the zip file
+    zipf = zipfile.ZipFile(out_fname, 'w', zipfile.ZIP_DEFLATED)
+
     # ziph is zipfile handle
     for root, dirs, files in os.walk(src_dirname):
         for file in files:
-
+            # Descard files if needed
             if include_list is not None and file not in include_list:
                 continue
-
+            
             abs_path = os.path.join(root, file)
-            rel_path = fname_parent(abs_path)
+            rel_path = fname_parent(abs_path)  # TODO: fname_parent not defined
             print(rel_path)
             zipf.write(abs_path, rel_path)
 
@@ -440,21 +447,24 @@ def zipdir(src_dirname, out_fname, include_list=None):
 
 
 def zip_score_list(exp_list, savedir_base, out_fname, include_list=None):
-    """[summary]
+    """Compress a list of experiments in zip.
 
     Parameters
     ----------
-    exp_list : [type]
-        [description]
-    savedir_base : [type]
-        [description]
-    out_fname : [type]
-        [description]
-    include_list : [type], optional
-        [description], by default None
+    exp_list : list
+        List of experiments to zip
+    savedir_base : str
+        Directory where the experiments from the list are saved
+    out_fname : str
+        File name for the zip file
+    include_list : list, optional
+        List of files to include. If None, include all files in the folder, by
+        default None
     """
-    for exp_dict in exp_list:
+    for exp_dict in exp_list:  # TODO: This will zip only the last experiments, zipdir will overwritwe the previous file
+        # Get the experiment id
         exp_id = hash_dict(exp_dict)
+        # Zip folder
         zipdir(os.path.join(savedir_base, exp_id),
                out_fname, include_list=include_list)
 
@@ -464,8 +474,8 @@ def time_to_montreal():
 
     Returns
     -------
-    [type]
-        [description]
+    str
+        Current date at the selected timezone in string format
     """
     # Get time
     ts = time.time()
@@ -481,18 +491,32 @@ def time2mins(time_taken):
 
     Parameters
     ----------
-    time_taken : [type]
-        [description]
+    time_taken : float
+        Time in seconds
 
     Returns
     -------
-    [type]
-        [description]
+    float
+        Minutes
     """
     return time_taken / 60.
 
 
-def n2t(x, dtype="float"):
+def n2t(x, dtype="float"):  # TODO: dtype is not used!!
+    """Array or Numpy array to Pytorch tensor.
+
+    Parameters
+    ----------
+    x : array or Numpy array
+        Data to transform
+    dtype : [type]
+        [description]
+
+    Returns
+    -------
+    Pytorch tensor
+        x converted to pytorch tensor format
+    """
     if isinstance(x, (int, np.int64, float)):
         x = np.array([x])
 
@@ -502,17 +526,17 @@ def n2t(x, dtype="float"):
 
 
 def t2n(x):
-    """[summary]
+    """Pytorch tensor to Numpy array.
 
     Parameters
     ----------
-    x : [type]
-        [description]
+    x : Pytorch tensor
+        A Pytorch tensor to transform
 
     Returns
     -------
-    [type]
-        [description]
+    Numpy array
+        x transformed to numpy array
     """
     try:
         x = x.detach().cpu().numpy()
@@ -523,17 +547,17 @@ def t2n(x):
 
 
 def l2f(X):
-    """[summary]
+    """Move the channels from the last dimension to the first dimension.
 
     Parameters
     ----------
-    X : [type]
-        [description]
+    X : Numpy array
+        Tensor with the channel dimension at the last dimension
 
     Returns
     -------
-    [type]
-        [description]
+    Numpy array
+        X transformed with the channel dimension at the first dimension
     """
     if X.ndim == 3 and (X.shape[0] == 3 or X.shape[0] == 1):
         return X
@@ -543,7 +567,7 @@ def l2f(X):
     if X.ndim == 4 and (X.shape[1] < X.shape[3]):
         return X
 
-    # CHANNELS LAST
+    # Move the channel dimension from the last position to the first one
     if X.ndim == 3:
         return np.transpose(X, (2, 0, 1))
     if X.ndim == 4:
@@ -553,24 +577,24 @@ def l2f(X):
 
 
 def f2l(X):
-    """[summary]
+    """Move the channels from the first dimension to the last dimension.
 
-    Parameters
+`   Parameters
     ----------
-    X : [type]
-        [description]
+    X : Numpy array
+        Tensor with the channel dimension at the first dimension
 
     Returns
     -------
-    [type]
-        [description]
+    Numpy array
+        X transformed with the channel dimension at the last dimension
     """
     if X.ndim == 3 and (X.shape[2] == 3 or X.shape[2] == 1):
         return X
     if X.ndim == 4 and (X.shape[3] == 3 or X.shape[3] == 1):
         return X
 
-    # CHANNELS FIRST
+    # Move the channel dimension from the first position to the last one
     if X.ndim == 3:
         return np.transpose(X, (1, 2, 0))
     if X.ndim == 4:
@@ -579,18 +603,18 @@ def f2l(X):
     return X
 
 
-def n2p(image):
-    """[summary]
+def n2p(image):  #TODO: Create p2n function and use it in get_image()
+    """Numpy image to PIL image.
 
     Parameters
     ----------
-    image : [type]
-        [description]
+    image : Numpy array
+        Input image in numpy format
 
     Returns
     -------
-    [type]
-        [description]
+    PIL image
+        Input image converted into PIL format
     """
     image = f2l(image.squeeze())
     if image.max() <= 1:
@@ -599,26 +623,26 @@ def n2p(image):
 
 
 def _denorm(image, mu, var, bgr2rgb=False):
-    """[summary]
+    """Denormalize an image.
 
     Parameters
     ----------
     image : [type]
-        [description]
+        Image to denormalize
     mu : [type]
-        [description]
+        Mean used to normalize the image
     var : [type]
-        [description]
+        Variance used to normalize the image
     bgr2rgb : bool, optional
-        [description], by default False
+        Whether to also convert from bgr 2 rgb, by default False
 
     Returns
     -------
     [type]
-        [description]
+        Denormalized image
     """
     if image.ndim == 3:
-        result = image * var[:, None, None] + mu[:, None, None]
+        result = image * var[:, None, None] + mu[:, None, None]  # TODO: Is it variance or std?
         if bgr2rgb:
             result = result[::-1]
     else:
@@ -628,20 +652,24 @@ def _denorm(image, mu, var, bgr2rgb=False):
     return result
 
 
-def denormalize(img, mode=0):
-    """[summary]
+def denormalize(img, mode=0):  # TODO: Remove the default value or set to a valid number, complete documentation
+    """Denormalize an image.
 
     Parameters
     ----------
     img : [type]
-        [description]
-    mode : int, optional
-        [description], by default 0
+        Input image to denormalize
+    mode : int or str, optional
+        Predefined denormalizations, by default 0
+        If 1 or 'rgb'... 
+        If 2 or 'brg'...,
+        If 3 or 'basic'...
+        Else do nothing
 
     Returns
     -------
     [type]
-        [description]
+        Denormalized image
     """
     # _img = t2n(img)
     # _img = _img.copy()
@@ -650,7 +678,6 @@ def denormalize(img, mode=0):
     if mode in [1, "rgb"]:
         mu = np.array([0.485, 0.456, 0.406])
         var = np.array([0.229, 0.224, 0.225])
-        # (0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
         image = _denorm(image, mu, var)
 
     elif mode in [2, "bgr"]:
@@ -661,23 +688,16 @@ def denormalize(img, mode=0):
     elif mode in [3, "basic"]:
         mu = np.array([0.5, 0.5, 0.5])
         var = np.array([0.5, 0.5, 0.5])
-
         image = _denorm(image, mu, var)
+
+    # TODO: Add a case for 0 or None and else raise an error exception.
 
     return image
 
 
-def get_image(imgs,
-              mask=None,
-              label=False,
-              enlarge=0,
-              gray=False,
-              denorm=0,
-              bbox_yxyx=None,
-              annList=None,
-              pretty=False,
-              pointList=None,
-              **options):
+def get_image(imgs, mask=None, label=False, enlarge=0, gray=False, denorm=0,
+              bbox_yxyx=None, annList=None, pretty=False, pointList=None,
+              **options):  # TODO: Issam, can you document this?
     """[summary]
 
     Parameters
@@ -708,6 +728,7 @@ def get_image(imgs,
     [type]
         [description]
     """
+    # TODO: Comment these transformations and make sure they are correct. Difficult to follow.
     imgs = denormalize(imgs, mode=denorm)
     if isinstance(imgs, Image.Image):
         imgs = np.array(imgs)
@@ -754,21 +775,21 @@ def get_image(imgs,
     return imgs
 
 
-def show_image(fname):
-    """[summary]
+def show_image(fname):  # TODO: Why the input is a filename instead of an image?
+    """Load and image from hard disk and plot it.
 
     Parameters
     ----------
-    fname : [type]
-        [description]
+    fname : str
+        Name of an image to load and show
     """
-    ncols = 1
+    ncols = 1  # TODO: Magic numbers
     nrows = 1
     height = 12
     width = 12
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols,
                             figsize=(ncols*width, nrows*height))
-    if not hasattr(axs, 'size'):
+    if not hasattr(axs, 'size'):  #TODO: What is this?
         axs = [[axs]]
 
     for i in range(ncols):

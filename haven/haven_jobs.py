@@ -35,19 +35,19 @@ def run_exp_list_jobs(exp_list,
     >>> elif args.run_jobs:
     >>>    from haven import haven_jobs as hjb
     >>>    job_config = {'volume': ['/mnt:/mnt'],
-    >>>                'image': <image>,
-    >>>            'bid': '1',
-    >>>            'restartable': '1',
-    >>>            'gpu': '1',
-    >>>            'mem': '20',
-    >>>            'cpu': '2',
-    >>>            'username':<username>}
+    >>>                  'image': <image>,
+    >>>                  'bid': '1',
+    >>>                  'restartable': '1',
+    >>>                  'gpu': '1',
+    >>>                  'mem': '20',
+    >>>                  'cpu': '2',
+    >>>                  'username':<username>}
     >>>    run_command = ('python trainval.py -ei <exp_id> -sb %s' %  (args.savedir_base))
     >>>    hjb.run_exp_list_jobs(exp_list, 
-    >>>                        savedir_base=args.savedir_base, 
-    >>>                        workdir=os.path.dirname(os.path.realpath(__file__)),
-    >>>                        run_command=run_command,
-    >>>                        job_config=job_config)
+    >>>                          savedir_base=args.savedir_base, 
+    >>>                          workdir=os.path.dirname(os.path.realpath(__file__)),
+    >>>                          run_command=run_command,
+    >>>                          job_config=job_config)
     """
     add_job_utils()
     import haven_jobs_utils as hju
