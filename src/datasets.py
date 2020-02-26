@@ -1,5 +1,4 @@
 import torchvision
-
 from torch.utils.data import DataLoader
 
 
@@ -10,15 +9,12 @@ def get_loader(dataset_name, datadir, split, batch_size):
                 torchvision.transforms.Normalize((0.5,), (0.5,))])
 
         if split == 'train':
-            train = True 
+            train = True
         else:
-            train = False 
+            train = False
 
-        dataset = torchvision.datasets.MNIST(datadir,
-                                                train=train,
-                                                download=True,
-                                                transform=transform)
-        loader = DataLoader(dataset, shuffle=True,
-                                  batch_size=batch_size)
-        
+        dataset = torchvision.datasets.MNIST(
+            datadir, train=train, download=True, transform=transform)
+        loader = DataLoader(dataset, shuffle=True, batch_size=batch_size)
+
         return loader

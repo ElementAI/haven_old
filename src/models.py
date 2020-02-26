@@ -1,9 +1,8 @@
-import torch 
-
-
+import torch
 from torch import nn
-from torch.utils.data import DataLoader
+# from torch.utils.data import DataLoader
 from torch.nn import functional as F
+
 
 def get_model(model_name):
     if model_name == 'mlp':
@@ -31,10 +30,10 @@ class MLP(nn.Module):
         logits = self.output_layer(out)
 
         return logits
-    
+
     def get_state_dict(self):
         return {'model': self.state_dict(),
-                'opt': self.opt.state_dict()} 
+                'opt': self.opt.state_dict()}
 
     def set_state_dict(self, state_dict):
         self.load_state_dict(state_dict['model'])
@@ -56,7 +55,7 @@ class MLP(nn.Module):
         loss = loss_sum / n_batches
 
         return {"train_loss": loss}
-    
+
     @torch.no_grad()
     def val_on_loader(self, val_loader):
         """Validate the model."""
@@ -72,7 +71,7 @@ class MLP(nn.Module):
 
             se += float((pred_labels.cpu() == gt_labels).sum())
             n_samples += gt_labels.shape[0]
-            
+
             if i % (n_batches//10) == 0:
                 print("%d - Val score: %.4f" % (i, se / n_samples))
 
