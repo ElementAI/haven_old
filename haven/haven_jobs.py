@@ -1,7 +1,7 @@
-import os
+# import os
 import time
 import sys
-import subprocess
+# import subprocess
 
 from . import haven_utils as hu
 
@@ -42,12 +42,13 @@ def run_exp_list_jobs(exp_list,
     >>>                  'mem': '20',
     >>>                  'cpu': '2',
     >>>                  'username':<username>}
-    >>>    run_command = ('python trainval.py -ei <exp_id> -sb %s' %  (args.savedir_base))
-    >>>    hjb.run_exp_list_jobs(exp_list, 
-    >>>                          savedir_base=args.savedir_base, 
-    >>>                          workdir=os.path.dirname(os.path.realpath(__file__)),
-    >>>                          run_command=run_command,
-    >>>                          job_config=job_config)
+    >>>    run_command = ('python trainval.py -ei <exp_id> -sb %s' %
+                          (args.savedir_base))
+    >>>    hjb.run_exp_list_jobs(
+                exp_list, savedir_base=args.savedir_base,
+                workdir=os.path.dirname(os.path.realpath(__file__)),
+                run_command=run_command,
+                job_config=job_config)
     """
     add_job_utils()
     import haven_jobs_utils as hju
@@ -118,8 +119,6 @@ def run_exp_list_jobs(exp_list,
         time.sleep(wait_seconds)
         hju.get_job_stats(exp_list, savedir_base=savedir_base,
                           username=job_config['username'])
-
-
 
 
 def add_job_utils():

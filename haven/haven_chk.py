@@ -1,5 +1,5 @@
 import shutil
-import os 
+import os
 
 from . import haven_utils as hu
 
@@ -7,7 +7,7 @@ from . import haven_utils as hu
 def delete_experiment(savedir, backup_flag=False):
     """Delete an experiment. If the backup_flag is true it moves the experiment
     to the delete folder.
-    
+
     Parameters
     ----------
     savedir : str
@@ -24,19 +24,19 @@ def delete_experiment(savedir, backup_flag=False):
     savedir = os.path.join(savedir_base, exp_id)
 
     if backup_flag:
-        # create 'deleted' folder 
+        # create 'deleted' folder
         dst = os.path.join(savedir_base, 'deleted', exp_id)
         os.makedirs(dst, exist_ok=True)
 
         if os.path.exists(dst):
             shutil.rmtree(dst)
-    
+
     if os.path.exists(savedir):
         if backup_flag:
             # moves folder to 'deleted'
             shutil.move(savedir, dst)
         else:
-            # delete experiment folder 
+            # delete experiment folder
             shutil.rmtree(savedir)
 
     # make sure the experiment doesn't exist anymore
@@ -45,7 +45,7 @@ def delete_experiment(savedir, backup_flag=False):
 
 def delete_and_backup_experiment(savedir):
     """Delete an experiment and make a backup (Movo to the trash)
-    
+
     Parameters
     ----------
     savedir : str
@@ -54,16 +54,17 @@ def delete_and_backup_experiment(savedir):
     # delete and backup experiment
     delete_experiment(savedir, backup_flag=True)
 
+
 def get_savedir(exp_dict, savedir_base):
     """[summary]
-    
+
     Parameters
     ----------
     exp_dict : dict
         Dictionary describing the hyperparameters of an experiment
     savedir_base : str
         Directory where the experiments are saved
-    
+
     Returns
     -------
     str
