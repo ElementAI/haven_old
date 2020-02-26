@@ -171,7 +171,6 @@ def read_text(fname):
     """
     with open(fname, "r", encoding="utf-8") as f:
         lines = f.readlines()
-        # lines = [line.decode('utf-8').strip() for line in f.readlines()]  # TODO: Delete?
     return lines
 
 
@@ -231,7 +230,7 @@ def save_image(fname, img, size=None, makedirs=True):
     fname : str
         Name of the file
     img : [type]
-        Image data. #TODO We asume it is.....?????? \in [0, 1]? Numpy? PIL? RGB?
+        [Define]
     makedirs : bool, optional
         If enabled creates the folder for saving the file, by default True
     """
@@ -243,9 +242,9 @@ def save_image(fname, img, size=None, makedirs=True):
             os.makedirs(os.path.dirname(fname), exist_ok=True)
 
         arr = f2l(t2n(img)).squeeze()
-        os.makedirs(os.path.dirname(fname), exist_ok=True) # TODO: This is repeated
+        os.makedirs(os.path.dirname(fname), exist_ok=True)  # TODO: This is repeated
         # print(arr.shape)
-        if size is not None:  #TODO: This does not have effect if the image is in PIL
+        if size is not None:  # TODO: This does not have effect if the image is in PIL
             arr = Image.fromarray(arr)
             arr = arr.resize(size)
             arr = np.array(arr)
@@ -372,7 +371,7 @@ def subprocess_call(cmd_string):
 
 def copy_code(src_path, dst_path, verbose=1):
     """Copy the code.
-    
+
     Typically, when you run an experiment, first you copy the code used to the
     experiment folder. This function copies the code using rsync terminal
     command.
@@ -437,7 +436,7 @@ def zipdir(src_dirname, out_fname, include_list=None):
             # Descard files if needed
             if include_list is not None and file not in include_list:
                 continue
-            
+
             abs_path = os.path.join(root, file)
             rel_path = fname_parent(abs_path)  # TODO: fname_parent not defined
             print(rel_path)
@@ -603,7 +602,7 @@ def f2l(X):
     return X
 
 
-def n2p(image):  #TODO: Create p2n function and use it in get_image()
+def n2p(image):  # TODO: Create p2n function and use it in get_image()
     """Numpy image to PIL image.
 
     Parameters
@@ -661,7 +660,7 @@ def denormalize(img, mode=0):  # TODO: Remove the default value or set to a vali
         Input image to denormalize
     mode : int or str, optional
         Predefined denormalizations, by default 0
-        If 1 or 'rgb'... 
+        If 1 or 'rgb'...
         If 2 or 'brg'...,
         If 3 or 'basic'...
         Else do nothing
@@ -789,7 +788,7 @@ def show_image(fname):  # TODO: Why the input is a filename instead of an image?
     width = 12
     fig, axs = plt.subplots(nrows=nrows, ncols=ncols,
                             figsize=(ncols*width, nrows*height))
-    if not hasattr(axs, 'size'):  #TODO: What is this?
+    if not hasattr(axs, 'size'):  # TODO: What is this?
         axs = [[axs]]
 
     for i in range(ncols):

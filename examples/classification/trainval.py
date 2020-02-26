@@ -60,7 +60,7 @@ def trainval(exp_dict, savedir_base, reset):
     # ==================
     model = MLP(n_classes=10).cuda()
     model.opt = torch.optim.Adam(model.parameters(), lr=exp_dict["lr"])
-    
+
     model_path = savedir + "/model.pth"
     score_list_path = savedir + "/score_list.pkl"
 
@@ -99,8 +99,6 @@ def trainval(exp_dict, savedir_base, reset):
         print("Checkpoint Saved: %s" % savedir_base)
 
 
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -119,10 +117,9 @@ if __name__ == "__main__":
     if args.exp_id is not None:
         # select one experiment
         savedir = args.savedir_base + "/%s/" % args.exp_id
-        exp_dict = hu.load_json(savedir+"/exp_dict.json")        
-        
+        exp_dict = hu.load_json(savedir+"/exp_dict.json")
         exp_list = [exp_dict]
-        
+
     else:
         # select exp group
         exp_list = []
@@ -138,17 +135,16 @@ if __name__ == "__main__":
 
     elif args.create_jupyter:
         # view experiments
-        hj.create_jupyter(args.exp_group_list, 
-                        savedir_base=args.savedir_base, 
-                       workdir=os.path.dirname(__file__),
-                       legend_list=['lr','batch_size'],
-                       score_list=['train_loss', 'val_acc'])
+        hj.create_jupyter(args.exp_group_list,
+                          savedir_base=args.savedir_base,
+                          workdir=os.path.dirname(__file__),
+                          legend_list=['lr', 'batch_size'],
+                          score_list=['train_loss', 'val_acc'])
 
     else:
         # run experiments
         for exp_dict in exp_list:
             # do trainval
             trainval(exp_dict=exp_dict,
-                    savedir_base=args.savedir_base,
-                    reset=args.reset)
-
+                     savedir_base=args.savedir_base,
+                     reset=args.reset)

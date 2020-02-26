@@ -1,13 +1,13 @@
 import os
 import argparse
-import torchvision
+# import torchvision
 import pandas as pd
 import pprint
-
+import getpass
 from src import datasets, models
 
 from haven import haven_utils as hu
-from haven import haven_results as hr
+# from haven import haven_results as hr
 from haven import haven_chk as hc
 from haven import haven_jupyter as hj
 
@@ -23,27 +23,30 @@ def trainval(exp_dict, savedir_base, reset=False):
     if reset:
         # delete and backup experiment
         hc.delete_experiment(savedir, backup_flag=True)
-    
+
     # create folder and save the experiment dictionary
     os.makedirs(savedir, exist_ok=True)
     hu.save_json(os.path.join(savedir, 'exp_dict.json'), exp_dict)
+    print('> Running experiment:')
     pprint.pprint(exp_dict)
-    print('Experiment saved in %s' % savedir)
+    print('> Experiment saved in %s' % savedir)
 
     # Dataset
     # -----------
 
     # train loader
-    train_loader = datasets.get_loader(dataset_name=exp_dict['dataset'], datadir=savedir_base, 
-                                        split='train', batch_size=exp_dict['batch_size'])
+    train_loader = datasets.get_loader(
+        dataset_name=exp_dict['dataset'], datadir=savedir_base, split='train',
+        batch_size=exp_dict['batch_size'])
 
     # val loader
-    val_loader = datasets.get_loader(dataset_name=exp_dict['dataset'], datadir=savedir_base, 
-                                     split='val', batch_size=exp_dict['batch_size'])
+    val_loader = datasets.get_loader(
+        dataset_name=exp_dict['dataset'], datadir=savedir_base, split='val',
+        batch_size=exp_dict['batch_size'])
 
     # Model
     # -----------
-    model = models.get_model(model_name=exp_dict['model'])
+    model = models.get_model(model_name=exp_dict['model'], use_cuda=True)
 
     # Checkpoint
     # -----------
@@ -62,15 +65,17 @@ def trainval(exp_dict, savedir_base, reset=False):
 
     # Train & Val
     # ------------
-    print('Starting experiment at epoch %d' % (s_epoch))
+    print('> Starting experiment at epoch %d' % (s_epoch))
 
     for e in range(s_epoch, exp_dict['max_epoch']):
         score_dict = {}
 
         # Train the model
+        print('> Training at epoch %d' % (e))
         train_dict = model.train_on_loader(train_loader)
 
         # Validate the model
+        print('> Validation at epoch %d' % (e))
         val_dict = model.val_on_loader(val_loader)
 
         # Get metrics
@@ -83,29 +88,28 @@ def trainval(exp_dict, savedir_base, reset=False):
 
         # Report & Save
         score_df = pd.DataFrame(score_list)
-        print(score_df.tail())
+        print('> Score history')
+        print(score_df.tail().to_string(index=False))
         hu.torch_save(model_path, model.get_state_dict())
         hu.save_pkl(score_list_path, score_list)
-        print('Checkpoint Saved: %s' % savedir)
+        print('> Checkpoint Saved: %s' % savedir)
 
-    print('experiment completed')
+    print('> Experiment completed')
 
 
 # Define exp groups for parameter search
-EXP_GROUPS = {'mnist':
-                hu.cartesian_exp_group({
-                    'dataset':'mnist',
-                    'model':'mlp',
-                    'max_epoch':20,
-                    'lr':[1e-3, 1e-4],
-                    'batch_size':[32, 64]})
-                }
+EXP_GROUPS = {'mnist': hu.cartesian_exp_group({
+                           'dataset': 'mnist',
+                           'model': 'mlp',
+                           'max_epoch': 20,
+                           'lr': [1e-3, 1e-4],
+                           'batch_size': [32, 64]})}
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('-e', '--exp_group_list', nargs='+')
+    parser.add_argument('-e', '--exp_group_list', nargs='+', required=True)
     parser.add_argument('-sb', '--savedir_base', required=True)
     parser.add_argument('-r', '--reset',  default=0, type=int)
     parser.add_argument('-ei', '--exp_id', default=None)
@@ -119,38 +123,47 @@ if __name__ == '__main__':
     if args.exp_id is not None:
         # select one experiment
         savedir = os.path.join(args.savedir_base, args.exp_id)
-        exp_dict = hu.load_json(os.path.join(savedir, 'exp_dict.json'))        
-        
+        exp_dict = hu.load_json(os.path.join(savedir, 'exp_dict.json'))
         exp_list = [exp_dict]
-        
+
     else:
         # select exp group
         exp_list = []
         for exp_group_name in args.exp_group_list:
             exp_list += EXP_GROUPS[exp_group_name]
 
-
     # Run experiments or View them
     # ----------------------------
     if args.view_jupyter:
         # view results
-        hj.view_jupyter(exp_list, 
-                        savedir_base=args.savedir_base, 
-                        fname='example.ipynb',
-                        job_utils_path='results',
+        hj.view_jupyter(exp_list,
+                        savedir_base=args.savedir_base,
+                        fname='./example.ipynb',
+                        # job_utils_path='results',
+                        workdir='results',
                         install_flag=False)
 
     elif args.run_jobs:
         # launch jobs
         from haven import haven_jobs as hj
-        hj.run_exp_list_jobs(exp_list, 
-                       savedir_base=args.savedir_base, 
-                       workdir=os.path.dirname(os.path.realpath(__file__)))
+        job_config = {'volume': ['/mnt:/mnt'],
+                      'image': "",
+                      'bid': '1',
+                      'restartable': '1',
+                      'gpu': '1',
+                      'mem': '20',
+                      'cpu': '2',
+                      'username': getpass.getuser()}
+        run_command = ('python trainval.py -ei <exp_id> -sb %s' %
+                       (args.savedir_base))
+        hj.run_exp_list_jobs(
+            exp_list, savedir_base=args.savedir_base,
+            workdir=os.path.dirname(os.path.realpath(__file__)),
+            run_command=run_command, job_config=job_config)
 
     else:
         # run experiments
         for exp_dict in exp_list:
             # do trainval
-            trainval(exp_dict=exp_dict,
-                    savedir_base=args.savedir_base,
-                    reset=args.reset)
+            trainval(exp_dict=exp_dict, savedir_base=args.savedir_base,
+                     reset=args.reset)

@@ -1,6 +1,7 @@
 def get_models():
     return
 
+
 class MLP(nn.Module):
     def __init__(self, input_size=784, n_classes=10):
         """Constructor."""
@@ -20,7 +21,7 @@ class MLP(nn.Module):
         logits = self.output_layer(out)
 
         return logits
-    
+
     def get_state_dict(self):
         return {'model': self.state_dict(),
                 'opt': self.opt.state_dict()} 
@@ -46,7 +47,7 @@ class MLP(nn.Module):
         loss = loss_sum / n_batches
 
         return {"train_loss": loss}
-    
+
     @torch.no_grad()
     def val_on_loader(self, val_loader):
         """Validate the model."""

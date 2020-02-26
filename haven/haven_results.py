@@ -1,4 +1,4 @@
-import copy
+# import copy
 import glob
 import os
 import sys
@@ -36,6 +36,7 @@ def group_exp_list(exp_list, groupby_list):
     >>>
     """
     groupby_list = hu.as_double_list(groupby_list)[0]
+
     def split_func(x):
         x_list = []
         for split_hparam in groupby_list:
@@ -61,7 +62,8 @@ def group_exp_list(exp_list, groupby_list):
     return list_of_exp_list
 
 
-def get_best_exp_dict(exp_list, savedir_base, metric, min_or_max='min', return_scores=False, verbose=True):
+def get_best_exp_dict(exp_list, savedir_base, metric, min_or_max='min',
+                      return_scores=False, verbose=True):
     """Obtain best the experiment for a specific metric.
 
     Parameters
@@ -82,7 +84,7 @@ def get_best_exp_dict(exp_list, savedir_base, metric, min_or_max='min', return_s
         best_score = np.inf
     else:
         best_score = 0.
-    
+
     exp_dict_best = None
     for exp_dict in exp_list:
         exp_id = hu.hash_dict(exp_dict)
@@ -93,7 +95,7 @@ def get_best_exp_dict(exp_list, savedir_base, metric, min_or_max='min', return_s
             if verbose:
                 print('%s: missing score_list.pkl' % exp_id)
             continue
-        
+
         score_list = hu.load_pkl(score_list_fname)
 
         if min_or_max == 'min':
@@ -107,21 +109,21 @@ def get_best_exp_dict(exp_list, savedir_base, metric, min_or_max='min', return_s
                 best_score = score
                 exp_dict_best = exp_dict
 
-        scores_dict += [{'score': score,
-                         'epochs': len(score_list), 
+        scores_dict += [{'score': score, 'epochs': len(score_list),
                          'exp_id': exp_id}]
 
     if exp_dict_best is None:
         if verbose:
             print('no experiments with metric "%s"' % metric)
         return {}
-        
+
     return exp_dict_best
 
 
-def get_exp_list_from_exp_configs(exp_group_list, workdir, filterby_list=None, verbose=True):
+def get_exp_list_from_exp_configs(exp_group_list, workdir, filterby_list=None,
+                                  verbose=True):
     """[summary]
-    
+
     Parameters
     ----------
     exp_group_list : [type]
@@ -137,7 +139,6 @@ def get_exp_list_from_exp_configs(exp_group_list, workdir, filterby_list=None, v
         [description]
     """
     assert workdir is not None
-    
     from importlib import reload
     assert(workdir is not None)
     if workdir not in sys.path:
@@ -154,9 +155,10 @@ def get_exp_list_from_exp_configs(exp_group_list, workdir, filterby_list=None, v
     exp_list = filter_exp_list(exp_list, filterby_list, verbose=verbose)
     return exp_list
 
+
 def get_exp_list(savedir_base, filterby_list=None, verbose=True):
     """[summary]
-    
+
     Parameters
     ----------
     savedir_base : [type], optional
@@ -178,7 +180,7 @@ def get_exp_list(savedir_base, filterby_list=None, verbose=True):
         if len(exp_id) != 32:
             if verbose:
                 print('"%s/" is not an exp directory' % exp_id)
-            continue 
+            continue
 
         if not os.path.exists(fname):
             if verbose:
@@ -213,14 +215,14 @@ def zip_exp_list(savedir_base):
 
 def filter_exp_list(exp_list, filterby_list, verbose=True):
     """[summary]
-    
+
     Parameters
     ----------
     exp_list : [type]
         A list of experiments, each defines a single set of hyper-parameters
     filterby_list : [type]
         [description]
-    
+
     Returns
     -------
     [type]
@@ -243,12 +245,14 @@ def filter_exp_list(exp_list, filterby_list, verbose=True):
         if select_flag:
             exp_list_new += [exp_dict]
     if verbose:
-        print('Filtered: %d/%d experiments gathered...' % (len(exp_list_new), len(exp_list)))
+        print('Filtered: %d/%d experiments gathered...' %
+              (len(exp_list_new), len(exp_list)))
     return exp_list_new
+
 
 def get_score_lists(exp_list, savedir_base, filterby_list=None, verbose=True):
     """[summary]
-    
+
     Parameters
     ----------
     exp_list : [type]
@@ -257,7 +261,7 @@ def get_score_lists(exp_list, savedir_base, filterby_list=None, verbose=True):
         [description]
     filterby_list : [type], optional
         [description], by default None
-    
+
     Returns
     -------
     [type]
@@ -267,9 +271,12 @@ def get_score_lists(exp_list, savedir_base, filterby_list=None, verbose=True):
     -------
     >>> from haven import haven_results as hr
     >>> savedir_base='/mnt/datasets/public/issam/prototypes/isps/'
-    >>> exp_list = hr.get_exp_list(savedir_base=savedir_base, 
-    >>>                            filterby_list=[{'sampler':{'train':'basic'}}])
-    >>> lists_of_score_lists = hr.get_score_lists(exp_list, savedir_base=savedir_base, columns=['train_loss', 'exp_id'])
+    >>> exp_list = hr.get_exp_list(
+            savedir_base=savedir_base,
+            filterby_list=[{'sampler':{'train':'basic'}}])
+    >>> lists_of_score_lists = hr.get_score_lists(
+            exp_list, savedir_base=savedir_base,
+            columns=['train_loss', 'exp_id'])
     >>> print(lists_of_score_lists)
     """
     if len(exp_list) == 0:
@@ -290,14 +297,16 @@ def get_score_lists(exp_list, savedir_base, filterby_list=None, verbose=True):
             if verbose:
                 print('%s: missing score_list.pkl' % exp_id)
             continue
-        
+
         else:
             score_lists += [hu.load_pkl(score_list_fname)]
-    
+
     return score_lists
 
-def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None, verbose=True):
-    """Get a table showing the scores for the given list of experiments 
+
+def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
+                 verbose=True):
+    """Get a table showing the scores for the given list of experiments.
 
     Parameters
     ----------
@@ -307,7 +316,7 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None, verbo
         a list of columns you would like to display, by default None
     savedir_base : str, optional
         A directory where experiments are saved
-        
+
     Returns
     -------
     DataFrame
@@ -317,9 +326,11 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None, verbo
     -------
     >>> from haven import haven_results as hr
     >>> savedir_base='/mnt/datasets/public/issam/prototypes/isps/'
-    >>> exp_list = hr.get_exp_list(savedir_base=savedir_base, 
-    >>>                            filterby_list=[{'sampler':{'train':'basic'}}])
-    >>> df = hr.get_score_df(exp_list, savedir_base=savedir_base, columns=['train_loss', 'exp_id'])
+    >>> exp_list = hr.get_exp_list(
+            savedir_base=savedir_base,
+            filterby_list=[{'sampler':{'train':'basic'}}])
+    >>> df = hr.get_score_df(exp_list, savedir_base=savedir_base,
+                             columns=['train_loss', 'exp_id'])
     >>> print(df)
     """
     if len(exp_list) == 0:
@@ -372,33 +383,16 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None, verbo
     return df
 
 
-def get_plot(exp_list, savedir_base, 
-             x_metric, y_metric,
-             mode='line',
-             filterby_list=None,
-             title_list=None,
-             legend_list=None,
-             log_metric_list=None,
-             figsize=None,
-             avg_across=None,
-             fig=None,
-             axis=None,
-             ylim=None,
-             xlim=None,
-             legend_fontsize=None,
-             y_fontsize=None,
-             x_fontsize=None,
-             ytick_fontsize=None,
-             xtick_fontsize=None,
-             title_fontsize=None,
-             legend_kwargs=None,
-             map_exp_list=tuple(),
-             map_title_list=tuple(),
-             map_xlabel_list=tuple(),
-             map_ylabel_list=dict(),
-             verbose=True):
+def get_plot(exp_list, savedir_base, x_metric, y_metric, mode='line',
+             filterby_list=None, title_list=None, legend_list=None,
+             log_metric_list=None, figsize=None, avg_across=None,
+             fig=None, axis=None, ylim=None, xlim=None, legend_fontsize=None,
+             y_fontsize=None, x_fontsize=None, ytick_fontsize=None,
+             xtick_fontsize=None, title_fontsize=None, legend_kwargs=None,
+             map_exp_list=tuple(), map_title_list=tuple(),
+             map_xlabel_list=tuple(), map_ylabel_list=dict(), verbose=True):
     """Plots the experiment list in a single figure.
-    
+
     Parameters
     ----------
     exp_list : list
@@ -437,7 +431,7 @@ def get_plot(exp_list, savedir_base,
         [description], by default None
     legend_kwargs : [type], optional
         [description], by default None
-    
+
     Returns
     -------
     fig : [type]
@@ -449,18 +443,21 @@ def get_plot(exp_list, savedir_base,
     --------
     >>> from haven import haven_results as hr
     >>> savedir_base='/mnt/datasets/public/issam/prototypes/isps/'
-    >>> exp_list = hr.get_exp_list(savedir_base=savedir_base, 
-    >>>                            filterby_list=[{'sampler':{'train':'basic'}}])
-    >>> hr.get_plot(exp_list, savedir_base=savedir_base, x_metric='epoch', y_metric='train_loss', legend_list=['model'])
+    >>> exp_list = hr.get_exp_list(
+            savedir_base=savedir_base,
+            filterby_list=[{'sampler':{'train':'basic'}}])
+    >>> hr.get_plot(exp_list, savedir_base=savedir_base, x_metric='epoch',
+                    y_metric='train_loss', legend_list=['model'])
     """
     if axis is None:
-        fig, axis = plt.subplots(nrows=1, ncols=1,
-                                    figsize=figsize)
+        fig, axis = plt.subplots(nrows=1, ncols=1, figsize=figsize)
     # if len(exp_list) > 50:
     #     if verbose:
-    #         raise ValueError('many experiments in one plot...use filterby_list to reduce them')
-        
-    exp_list = filter_exp_list(exp_list, filterby_list=filterby_list, verbose=verbose)
+    #         raise ValueError('many experiments in one plot...'
+    #                          'use filterby_list to reduce them')
+
+    exp_list = filter_exp_list(exp_list, filterby_list=filterby_list,
+                               verbose=verbose)
     visited = set()
     for exp_dict in exp_list:
         exp_id = hu.hash_dict(exp_dict)
@@ -488,19 +485,22 @@ def get_plot(exp_list, savedir_base,
                 if exp_id in visited:
                     # already used in averaging
                     continue
-                
-                filter_dict = {k:exp_dict[k] for k in exp_dict if k not in avg_across}
-                exp_sublist = filter_exp_list(exp_list, filterby_list=[filter_dict], verbose=verbose)
+
+                filter_dict = {k: exp_dict[k] for k in exp_dict if k not in avg_across}
+                exp_sublist = filter_exp_list(
+                    exp_list, filterby_list=[filter_dict], verbose=verbose)
 
                 # get score list
                 x_dict = {}
                 for sub_dict in exp_sublist:
                     sub_id = hu.hash_dict(sub_dict)
-                    sub_score_list_fname = os.path.join(savedir_base, sub_id, 'score_list.pkl')
+                    sub_score_list_fname = os.path.join(savedir_base, sub_id,
+                                                        'score_list.pkl')
 
                     if not os.path.exists(sub_score_list_fname):
                         if verbose:
-                            print('%s: score_list.pkl does not exist...' % sub_id)
+                            print('%s: score_list.pkl does not exist...'
+                                  % sub_id)
                         continue
 
                     visited.add(sub_id)
@@ -510,7 +510,7 @@ def get_plot(exp_list, savedir_base,
                     for score_dict in sub_score_list:
                         if x_metric in score_dict and y_metric in score_dict:
                             x_val = score_dict[x_metric]
-                            if not x_val in x_dict:
+                            if x_val not in x_dict:
                                 x_dict[x_val] = []
 
                             x_dict[x_val] += [score_dict[y_metric]]
@@ -522,13 +522,14 @@ def get_plot(exp_list, savedir_base,
                     x_list = np.array(list(x_dict.keys()))
                     y_list_all = np.array(list(x_dict.values()))
                     y_std_list = np.std(y_list_all, axis=1)
-                    y_list = np.mean(y_list_all, axis=1)            
-    
+                    y_list = np.mean(y_list_all, axis=1)
+
             if len(x_list) == 0:
                 x_list = np.NaN
                 y_list = np.NaN
                 if verbose:
-                    print('%s: "(%s, %s)" not in score_list' % (exp_id, y_metric, x_metric))
+                    print('%s: "(%s, %s)" not in score_list'
+                          % (exp_id, y_metric, x_metric))
 
             # map properties of exp
             if legend_list is not None:
@@ -550,20 +551,19 @@ def get_plot(exp_list, savedir_base,
                     linewidth = map_dict.get('linewidth', linewidth)
                     markevery = map_dict.get('markevery', markevery)
                     break
-        
+
             # plot
             if mode == 'line':
                 # plot the mean in a line
-                axis.plot(x_list, y_list, color=color, linewidth=linewidth, markersize=markersize,
-                    label=str(label), marker=marker, markevery=markevery)
+                axis.plot(x_list, y_list, color=color, linewidth=linewidth,
+                          markersize=markersize, label=str(label),
+                          marker=marker, markevery=markevery)
 
                 if avg_across:
                     # add confidence interval
-                    axis.fill_between(x_list, 
-                            y_list - y_std_list,
-                            y_list + y_std_list, 
-                            color = color,  
-                            alpha=0.1)
+                    axis.fill_between(x_list, y_list - y_std_list,
+                                      y_list + y_std_list, color=color,
+                                      alpha=0.1)
 
     # default properties
     if title_list is not None:
@@ -591,7 +591,7 @@ def get_plot(exp_list, savedir_base,
     axis.set_title(title, title_fontsize)
     axis.set_ylim(ylim)
     axis.set_xlim(xlim)
-    
+
     if log_metric_list and y_metric in log_metric_list:
         axis.set_yscale('log')
         ylabel = ylabel + ' (log)'
@@ -611,11 +611,11 @@ def get_plot(exp_list, savedir_base,
 
     return fig, axis
 
-def get_images(exp_list, savedir_base, n_exps=3, n_images=1,
-                   height=12, width=12, legend_list=None,
-                   dirname='images', verbose=True):
+
+def get_images(exp_list, savedir_base, n_exps=3, n_images=1, height=12,
+               width=12, legend_list=None, dirname='images', verbose=True):
     """[summary]
-    
+
     Parameters
     ----------
     exp_list : list
@@ -644,13 +644,14 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1,
     -------
     >>> from haven import haven_results as hr
     >>> savedir_base='/mnt/datasets/public/issam/prototypes/isps/'
-    >>> exp_list = hr.get_exp_list(savedir_base=savedir_base, 
-    >>>                            filterby_list=[{'sampler':{'train':'basic'}}])
+    >>> exp_list = hr.get_exp_list(
+            savedir_base=savedir_base,
+            filterby_list=[{'sampler':{'train':'basic'}}])
     >>> hr.get_images(exp_list, savedir_base=savedir_base)
     """
     fig_list = []
     for k, exp_dict in enumerate(exp_list):
-        
+
         if k >= n_exps:
             if verbose:
                 print('displayed %d/%d experiment images' % (k, n_exps))
@@ -659,8 +660,7 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1,
         if legend_list is None:
             label = hu.hash_dict(exp_dict)
         else:
-            label = '_'.join([str(exp_dict.get(k)) for
-                                k in legend_list])
+            label = '_'.join([str(exp_dict.get(k)) for k in legend_list])
 
         exp_id = hu.hash_dict(exp_dict)
         result_dict['exp_id'] = exp_id
@@ -693,19 +693,18 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1,
             img = plt.imread(img_list[i])
             axs[i].imshow(img)
             axs[i].set_axis_off()
-            axs[i].set_title('%s:%s' %
-                                (label, os.path.split(img_list[i])[-1]))
+            axs[i].set_title('%s:%s' % (label, os.path.split(img_list[i])[-1]))
 
         plt.axis('off')
         plt.tight_layout()
         fig_list += [fig]
-    
+
     return fig_list
 
 
 def get_job_stats(exp_list, savedir_base, username):
     """Gets the job stats
-    
+
     Parameters
     ----------
     exp_list : list
@@ -721,9 +720,10 @@ def get_job_stats(exp_list, savedir_base, username):
     hju.get_job_stats(
         exp_list, savedir_base=savedir_base, username=username)
 
+
 def get_job_logs(exp_list, savedir_base, username):
     """Gets the job logs
-    
+
     Parameters
     ----------
     exp_list : list
@@ -741,9 +741,10 @@ def get_job_logs(exp_list, savedir_base, username):
     hju.get_job_stats(
         exp_list, savedir_base=savedir_base, username=username)
 
+
 def get_job_errors(exp_list, savedir_base, username):
     """Get the job errors.
-    
+
     Parameters
     ----------
     exp_list : list
@@ -761,18 +762,13 @@ def get_job_errors(exp_list, savedir_base, username):
     hju.get_job_stats(
         exp_list, savedir_base=savedir_base, username=username)
 
+
 class ResultManager:
-    def __init__(self, 
-                 savedir_base,
-                 exp_list=None,
-                 exp_group_list=None,
-                 workdir=None,
-                 username=None,
-                 filterby_list=None,
-                 groupby_list=None, 
-                 verbose=True):
+    def __init__(self, savedir_base, exp_list=None, exp_group_list=None,
+                 workdir=None, username=None, filterby_list=None,
+                 groupby_list=None, verbose=True):
         """[summary]
-        
+
         Parameters
         ----------
         savedir_base : [type]
@@ -791,7 +787,7 @@ class ResultManager:
             [description], by default None
         has_score_list : [type], optional
             [description], by default None
-        
+
         Example
         -------
         >>> from haven import haven_results as hr
@@ -802,16 +798,19 @@ class ResultManager:
                                 verbose=1)
         >>> for df in rm.get_score_df():
         >>>     display(df)
-        >>> fig_list = rm.get_plot_all(y_metric_list=['train_loss', 'val_acc'], 
+        >>> fig_list = rm.get_plot_all(y_metric_list=['train_loss', 'val_acc'],
                                     order='groups_by_metrics',
-                                    x_metric='epoch', 
+                                    x_metric='epoch',
                                     figsize=(15,6),
-                                    map_exp_list=[({'opt':{'name':'lenet'}}, {'label':'LeNet'})],
+                                    map_exp_list=[({'opt':{'name':'lenet'}},
+                                                   {'label':'LeNet'})],
                                     title_list=['dataset'],
-                                    legend_list=['model']) 
+                                    legend_list=['model'])
         """
         if exp_group_list is not None:
-            exp_list = get_exp_list_from_exp_configs(exp_group_list=exp_group_list, workdir=workdir, verbose=verbose)
+            exp_list = get_exp_list_from_exp_configs(
+                exp_group_list=exp_group_list, workdir=workdir,
+                verbose=verbose)
 
         elif exp_list is None:
             exp_list = get_exp_list(savedir_base=savedir_base, verbose=verbose)
@@ -824,14 +823,17 @@ class ResultManager:
         self.username = username
         self.verbose = verbose
 
-        exp_list = filter_exp_list(exp_list, filterby_list=filterby_list, verbose=verbose)
+        exp_list = filter_exp_list(exp_list, filterby_list=filterby_list,
+                                   verbose=verbose)
         self.exp_groups = group_exp_list(exp_list, groupby_list)
-    
+
     def get_plot(self, **kwargs):
         fig_list = []
         for exp_list in self.exp_groups:
-            fig, ax = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, filterby_list=self.filterby_list, 
-                        verbose=self.verbose,
+            fig, ax = get_plot(exp_list=exp_list,
+                               savedir_base=self.savedir_base,
+                               filterby_list=self.filterby_list,
+                               verbose=self.verbose,
                                **kwargs)
             fig_list += [fig]
 
@@ -839,54 +841,63 @@ class ResultManager:
 
     def get_plot_all(self, y_metric_list, order='groups_by_metrics', **kwargs):
         """[summary]
-        
+
         Parameters
         ----------
         y_metric_list : [type]
             [description]
         order : str, optional
             [description], by default 'groups_by_metrics'
-        
+
         Returns
         -------
         [type]
             [description]
-        
         """
         if order not in ['groups_by_metrics', 'metrics_by_groups']:
-            raise ValueError('%s order is not defined, choose between %s' % (order, ['groups_by_metrics', 'metrics_by_groups']))
-        
+            raise ValueError('%s order is not defined, choose between %s' %
+                             (order, ['groups_by_metrics',
+                                      'metrics_by_groups']))
+
         figsize = kwargs.get('figsize') or None
-        
         fig_list = []
-        
+
         if order == 'groups_by_metrics':
-            for exp_list in self.exp_groups:   
-                fig, ax_list = plt.subplots(nrows=1, ncols=len(y_metric_list), figsize=figsize)
+            for exp_list in self.exp_groups:
+                fig, ax_list = plt.subplots(nrows=1, ncols=len(y_metric_list),
+                                            figsize=figsize)
 
                 for i, y_metric in enumerate(y_metric_list):
-                    fig, _ = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, y_metric=y_metric, 
-                                    fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
-                                    **kwargs)
+                    fig, _ = get_plot(exp_list=exp_list,
+                                      savedir_base=self.savedir_base,
+                                      y_metric=y_metric,
+                                      fig=fig, axis=ax_list[i],
+                                      verbose=self.verbose,
+                                      filterby_list=self.filterby_list,
+                                      **kwargs)
                 fig_list += [fig]
 
         elif order == 'metrics_by_groups':
-
-            for y_metric in y_metric_list:   
-                fig, ax_list = plt.subplots(nrows=1, ncols=len(self.exp_groups) , figsize=figsize)
-                for i, exp_list in enumerate(self.exp_groups): 
-                    fig, _ = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, y_metric=y_metric, 
-                                    fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
-                                    **kwargs)
+            for y_metric in y_metric_list:
+                fig, ax_list = plt.subplots(nrows=1,
+                                            ncols=len(self.exp_groups),
+                                            figsize=figsize)
+                for i, exp_list in enumerate(self.exp_groups):
+                    fig, _ = get_plot(exp_list=exp_list,
+                                      savedir_base=self.savedir_base,
+                                      y_metric=y_metric, fig=fig,
+                                      axis=ax_list[i], verbose=self.verbose,
+                                      filterby_list=self.filterby_list,
+                                      **kwargs)
                 fig_list += [fig]
 
         plt.tight_layout()
 
         return fig_list
-    
+
     def get_score_df(self, **kwargs):
         """[summary]
-        
+
         Returns
         -------
         [type]
@@ -894,12 +905,14 @@ class ResultManager:
         """
         df_list = []
         for exp_list in self.exp_groups:
-            df_list += [get_score_df(exp_list=exp_list, savedir_base=self.savedir_base, verbose=self.verbose, **kwargs)]
-        return df_list 
+            df_list += [get_score_df(exp_list=exp_list,
+                                     savedir_base=self.savedir_base,
+                                     verbose=self.verbose, **kwargs)]
+        return df_list
 
     def get_score_lists(self, **kwargs):
         """[summary]
-        
+
         Returns
         -------
         [type]
@@ -907,42 +920,49 @@ class ResultManager:
         """
         score_groups = []
         for exp_list in self.exp_groups:
-            score_groups += [get_score_lists(exp_list=exp_list, savedir_base=self.savedir_base, 
-                             filterby_list=self.filterby_list, verbose=self.verbose, **kwargs)]
+            score_groups += [get_score_lists(exp_list=exp_list,
+                                             savedir_base=self.savedir_base,
+                                             filterby_list=self.filterby_list,
+                                             verbose=self.verbose, **kwargs)]
         return score_groups
 
     def get_images(self, **kwargs):
         """[summary]
-        
+
         Returns
         -------
         [type]
             [description]
         """
         for exp_list in self.exp_groups:
-            return get_images(exp_list=exp_list, savedir_base=self.savedir_base, verbose=self.verbose, **kwargs)
+            return get_images(exp_list=exp_list,
+                              savedir_base=self.savedir_base,
+                              verbose=self.verbose, **kwargs)
 
     def get_job_stats(self, **kwargs):
         """[summary]
         """
         for exp_list in self.exp_groups:
-            get_job_stats(exp_list=exp_list, savedir_base=self.savedir_base, username=self.username)
-    
+            get_job_stats(exp_list=exp_list, savedir_base=self.savedir_base,
+                          username=self.username)
+
     def get_job_errors(self, **kwargs):
         """[summary]
         """
         for exp_list in self.exp_groups:
-            get_job_errors(exp_list=exp_list, savedir_base=self.savedir_base, username=self.username)
-    
+            get_job_errors(exp_list=exp_list, savedir_base=self.savedir_base,
+                           username=self.username)
+
     def get_job_logs(self, **kwargs):
         """[summary]
         """
         for exp_list in self.exp_groups:
-            get_job_errors(exp_list=exp_list, savedir_base=self.savedir_base, username=self.username)
-   
+            get_job_errors(exp_list=exp_list, savedir_base=self.savedir_base,
+                           username=self.username)
+
     def to_zip(self, fname):
         """[summary]
-        
+
         Parameters
         ----------
         fname : [type]
@@ -956,7 +976,7 @@ class ResultManager:
 
     def to_dropbox(self, fname, dropbox_path=None, access_token=None):
         """[summary]
-        
+
         Parameters
         ----------
         fname : [type]

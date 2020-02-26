@@ -1,7 +1,7 @@
-import os
+# import os
 import time
 import sys
-import subprocess
+# import subprocess
 
 from . import haven_utils as hu
 
@@ -27,6 +27,10 @@ def run_exp_list_jobs(exp_list,
         the command to be ran in the cluster
     job_config : dict
         dictionary describing the job specifications
+    force_run : bool
+        [define], default False
+    wai_seconds : int
+        [define], default 3
 
     Example
     -------
@@ -42,12 +46,13 @@ def run_exp_list_jobs(exp_list,
     >>>                  'mem': '20',
     >>>                  'cpu': '2',
     >>>                  'username':<username>}
-    >>>    run_command = ('python trainval.py -ei <exp_id> -sb %s' %  (args.savedir_base))
-    >>>    hjb.run_exp_list_jobs(exp_list, 
-    >>>                          savedir_base=args.savedir_base, 
-    >>>                          workdir=os.path.dirname(os.path.realpath(__file__)),
-    >>>                          run_command=run_command,
-    >>>                          job_config=job_config)
+    >>>    run_command = ('python trainval.py -ei <exp_id> -sb %s' %
+                          (args.savedir_base))
+    >>>    hjb.run_exp_list_jobs(
+                exp_list, savedir_base=args.savedir_base,
+                workdir=os.path.dirname(os.path.realpath(__file__)),
+                run_command=run_command,
+                job_config=job_config)
     """
     add_job_utils()
     import haven_jobs_utils as hju
@@ -65,7 +70,8 @@ def run_exp_list_jobs(exp_list,
     print('%d experiments.' % len(exp_list))
     prompt = ("Type one of the following:\n"
               "  1)'reset' to reset the experiments; or\n"
-              "  2)'run' to run the remaining experiments and retry the failed ones; or\n"
+              "  2)'run' to run the remaining experiments and retry the"
+              " failed ones; or\n"
               "  3)'status' to view the job status.\n"
               "  4)'logs' to view the job logs.\n"
               "  5)'kill' to kill the jobs.\n"
@@ -120,16 +126,8 @@ def run_exp_list_jobs(exp_list,
                           username=job_config['username'])
 
 
-
-
 def add_job_utils():
-    """adds the ElementAI plugin for running jobs
-
-    Parameters
-    ----------
-    savedir_base : str
-        [description]
-    """
+    """adds the ElementAI plugin for running jobs"""
     path = '/mnt/datasets/public/issam/haven_utils'
     if path in sys.path:
         return

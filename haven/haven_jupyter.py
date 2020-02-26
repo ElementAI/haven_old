@@ -1,21 +1,17 @@
-import pandas as pd 
-from . import haven_utils
+# import pandas as pd
+# from . import haven_utils
 import os
 
 
-def view_jupyter(exp_group_list=[],
-                 savedir_base='<savedir_base>', 
-                 fname='results/example.ipynb', 
-                 workdir='<workdir>',
-                 install_flag=False,
-                 run_flag=False,
-                 job_flag=False):
-    cells = [header_cell(), 
+def view_jupyter(exp_group_list=[], savedir_base='<savedir_base>',
+                 fname='results/example.ipynb', workdir='<workdir>',
+                 install_flag=False, run_flag=False, job_flag=False):
+    cells = [header_cell(),
              exp_list_cell(savedir_base, workdir, exp_group_list)]
 
     if job_flag:
         cells += [job_cell()]
-        
+
     if install_flag:
         cells += [install_cell()]
 
@@ -24,13 +20,14 @@ def view_jupyter(exp_group_list=[],
 
     if run_flag:
         run_notebook(fname)
-        
+
     print('Saved Jupyter: %s' % fname)
+
 
 def run_notebook(fname):
     import nbformat
     from nbconvert.preprocessors import ExecutePreprocessor
-    from nbconvert import PDFExporter
+    # from nbconvert import PDFExporter
 
     with open(fname) as f:
         nb = nbformat.read(f, as_version=4)
@@ -39,7 +36,7 @@ def run_notebook(fname):
     with open(fname, 'w', encoding='utf-8') as f:
         nbformat.write(nb, f)
 
-    
+
 def header_cell():
     script = ("""
 from haven import haven_jupyter as hj
@@ -52,6 +49,7 @@ from IPython.core.display import display, HTML
 display(HTML("<style>.container { width:100% !important; }</style>"))
           """)
     return script
+
 
 def install_cell():
     script = ("""
@@ -67,6 +65,7 @@ reload(hd)
 reload(hu)
           """)
     return script
+
 
 def exp_list_cell(savedir_base, workdir, exp_group_list):
     script = ("""
@@ -84,14 +83,15 @@ for df in df_list:
     display(df)
 
 # plot
-rm.get_plots(y_list=['train_loss', 'val_acc'], transpose=True, 
-             x_name='epoch', legend_list=['model'], 
+rm.get_plots(y_list=['train_loss', 'val_acc'], transpose=True,
+             x_name='epoch', legend_list=['model'],
              title_list=['dataset'])
 
 # show images
 rm.get_images(legend_list=['model'], dirname='images')
           """ % (savedir_base, workdir, exp_group_list))
     return script
+
 
 def job_cell():
     script = ("""
@@ -100,6 +100,7 @@ rm.get_job_logs()
 rm.get_job_stats()
           """)
     return script
+
 
 def generate_zip_script(outdir):
     script = ("""
@@ -114,6 +115,7 @@ hd.zipdir(exp_id_list, savedir_base, src_fname)
           """ % outdir)
     return script
 
+
 def save_ipynb(fname, script_list):
     import nbformat as nbf
 
@@ -122,7 +124,7 @@ def save_ipynb(fname, script_list):
                    script_list]
     with open(fname, 'w') as f:
         nbf.write(nb, f)
-    
+
 
 def init_datatable_mode():
     """Initialize DataTable mode for pandas DataFrame represenation."""
@@ -163,5 +165,3 @@ def init_datatable_mode():
         return script
 
     pd.DataFrame._repr_javascript_ = _repr_datatable_
-
-        

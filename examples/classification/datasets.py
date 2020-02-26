@@ -4,10 +4,8 @@ def get_datasets():
          torchvision.transforms.Normalize((0.5,), (0.5,))])
 
     # train set
-    train_set = torchvision.datasets.MNIST(savedir_base,
-                                           train=True,
-                                           download=True,
-                                           transform=transform)
+    train_set = torchvision.datasets.MNIST(
+        savedir_base, train=True, download=True, transform=transform)
 
-    val_set = torchvision.datasets.MNIST(savedir_base, train=False,
-                                         download=True, transform=transform)
+    val_set = torchvision.datasets.MNIST(
+        savedir_base, train=False, download=True, transform=transform)
