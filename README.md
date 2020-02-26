@@ -60,6 +60,7 @@ import argparse
 from haven import haven_utils as hu
 from haven import haven_results as hr
 from haven import haven_chk as hc
+import pandas as pd
 
 
 def trainval(exp_dict, savedir_base, reset=False):
