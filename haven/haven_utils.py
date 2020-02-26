@@ -577,9 +577,9 @@ def l2f(X):
 
 
 def f2l(X):
-     """Move the channels from the first dimension to the last dimension.
+    """Move the channels from the first dimension to the last dimension.
 
-    Parameters
+`   Parameters
     ----------
     X : Numpy array
         Tensor with the channel dimension at the first dimension
