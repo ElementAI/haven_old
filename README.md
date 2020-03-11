@@ -220,24 +220,159 @@ python example.py -e mnist -sb ../results -r 1
 
 #### Visualization
 
-```python
-from haven import haven_results as hr
+##### Install Jupyter
 
-savedir_base='../results'
-exp_list = hr.get_exp_list(savedir_base=savedir_base, 
-                           filterby_list=[{'dataset':'mnist'])
-
-# get score lists
-score_lists = hr.get_score_lists(exp_list, savedir_base=savedir_base)
-
-# get score table
-df = hr.get_score_df(exp_list, savedir_base=savedir_base)
-
-# get plot
-fig, axis = hr.get_plot(exp_list, savedir_base=savedir_base, x_metric='epoch', y_metric='train_loss', legend_list=['model'])
+```bash
+mkdir .jupyter_server
+cd .jupyter_server
+virtualenv -p python3 .
+source bin/activate
+pip install jupyter notebook
+pip install ipywidgets
+jupyter nbextension enable --py widgetsnbextension --sys-prefix
+jupyter notebook --ip 0.0.0.0 --port 9123 \
+      --notebook-dir="/home/$USER" --NotebookApp.token=<password>
 ```
 
-See also example.ipynb to display the results:
+##### Create Jupyter
+
+Shown in example.ipynb.
+Add the following cells to a Jupyter
+
+##### Cell 1
+
+```python
+# Create vizualizations
+# =====================
+
+import pprint 
+
+from ipywidgets import Button, HBox, VBox
+from ipywidgets import widgets
+from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
+
+from IPython.display import display
+from IPython.core.display import Javascript, display
+
+from haven import haven_results as hr
+from haven import haven_jupyter as hj
+
+hj.init_datatable_mode()
+
+# Get experiments
+rm = hr.ResultManager(workdir=workdir, 
+                      exp_group_list=exp_group_list,
+                      savedir_base=savedir_base, 
+                      filterby_list=filterby_list,
+                      groupby_list=groupby_list,
+                      verbose=verbose
+                     )
+
+tables = widgets.Output()
+plots = widgets.Output()
+images = widgets.Output()
+job_states = widgets.Output()
+job_logs = widgets.Output()
+job_failed = widgets.Output()
+
+# Display tabs
+tab = widgets.Tab(children = [tables, plots, images, job_states, job_logs, job_failed])
+tab.set_title(0, 'Tables')
+tab.set_title(1, 'Plots')
+tab.set_title(2, 'Images')
+tab.set_title(3, 'Job States')
+tab.set_title(4, 'Job Logs')
+tab.set_title(5, 'Job Failed')
+display(tab)
+
+# Display tables
+with tables:
+    exp_table = rm.get_exp_table()
+    # Get score table 
+    score_table = rm.get_score_table()
+    output.clear_output()
+    
+    display(exp_table)
+    display(score_table)
+
+# Display plots
+with plots:
+    rm.get_plot(y_metric=y_metric, 
+            x_metric=x_metric, 
+            legend_list=legend_list, 
+            map_exp_list=map_exp_list, 
+            mode=mode,
+            figsize=figsize,
+            title_list=title_list)
+    show_inline_matplotlib_plots()
+
+# Display images
+with images:
+    rm.get_images(legend_list=image_legend_list, n_images=n_images)
+    show_inline_matplotlib_plots()
+
+# Display job states
+with job_states:
+    table_dict = rm.get_job_summary(username=username)[0]
+    display(table_dict['status'])
+    display(table_dict['table'])
+
+# Display job failed
+with job_logs:
+    table_dict = rm.get_job_summary(username=username)[0]
+ 
+    display(table_dict['status'])
+    display(table_dict['table'])
+    for logs in table_dict['logs']:
+         pprint.pprint(logs)
+                
+# Display job failed
+with job_failed:
+    table_dict = rm.get_job_summary(username=username)[0]
+    if len(table_dict['failed']) == 0:
+        display('no failed experiments')
+    else:
+        display(table_dict['failed'])
+        for failed in table_dict['logs_failed']:
+             pprint.pprint(failed)
+```
+
+##### Cell 2
+
+```
+# Setup variables
+# ===============
+
+savedir_base = '/mnt/datasets/public/issam/prototypes/isps/borgy/'
+workdir='/mnt/home/issam/Research_Ground/isps'
+exp_group_list=['pascal_full']
+
+
+# exp vars
+filterby_list = None
+groupby_list = None
+verbose = 1
+
+# table vars
+columns = None
+
+# plot vars
+y_metric='val_score'
+x_metric='epoch'
+map_exp_list = []
+figsize=(10,5)
+title_list=['dataset']
+legend_list=['model']
+mode='line'
+
+# image vars
+image_legend_list = []
+n_images=5
+
+# job vars
+username = 'issam'
+columns = None
+```
 
 
 

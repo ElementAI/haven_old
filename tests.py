@@ -104,6 +104,7 @@ class Test(unittest.TestCase):
         exp_list = hr.get_exp_list(savedir_base=savedir_base)
         
         score_df = hr.get_score_df(exp_list, savedir_base=savedir_base)
+        
         assert(np.array(score_df['dataset'])[0] == 'mnist')
 
         shutil.rmtree('.tmp')
@@ -181,6 +182,8 @@ class Test(unittest.TestCase):
         rm.get_score_df()
         rm.get_score_lists()
         rm.get_images()
+        table = rm.get_score_table()
+        table = rm.get_exp_table()
         
         fig_list = rm.get_plot(x_metric='epoch', y_metric='acc', title_list=['dataset'], legend_list=['model'])
         for i, fig in enumerate(fig_list):

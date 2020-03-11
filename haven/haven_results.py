@@ -970,6 +970,38 @@ class ResultManager:
             df_list += [get_exp_list_df(exp_list=exp_list, verbose=self.verbose, **kwargs)]
         return df_list 
 
+    def get_exp_table(self, **kwargs):
+        """[summary]
+        
+        Returns
+        -------
+        [type]
+            [description]
+        """
+        exp_list_all = []
+        for exp_list in self.exp_groups:
+            exp_list_all += exp_list
+
+        table = get_exp_list_df(exp_list=exp_list_all, verbose=self.verbose, **kwargs)
+        return table 
+
+    def get_score_table(self, **kwargs):
+        """[summary]
+        
+        Returns
+        -------
+        [type]
+            [description]
+        """
+        exp_list_all = []
+        for exp_list in self.exp_groups:
+            exp_list_all += exp_list
+
+        table = get_score_df(exp_list=exp_list_all, 
+                    savedir_base=self.savedir_base, 
+                    verbose=self.verbose, **kwargs)
+        return table 
+
     def get_score_lists(self, **kwargs):
         """[summary]
         
