@@ -136,7 +136,7 @@ if __name__ == '__main__':
     # Launch jobs on compute cluster
     if False:
         from haven import haven_jobs as hj
-        run_command = ('python3.6 train.py -ei <exp_id> '
+        run_command = ('python train.py -ei <exp_id> '
                        '-fid %d -sb %s -u %s -t %s' % 
                         (args.compute_fid, args.savedir_base, args.username,
                          args.use_tensorboard))

@@ -11,12 +11,16 @@
 
 
 A style-guide for creating, managing, and visualizing experiments. 
+* [Install](#install)
 * [Overview](#overview)
 * [Examples](#examples)
 * [Features](#features)
-* [Install](#install)
 * [Contributing](#contributing)
 
+### Install
+```
+$ pip install --upgrade git+https://github.com/ElementAI/haven
+```
 ### Overview
 
 This guide focuses on readability, reliability, and flexibility. It consists of 4 main steps:
@@ -220,7 +224,9 @@ python example.py -e mnist -sb ../results -r 1
 
 #### Visualization
 
-##### Install Jupyter
+The following two steps will setup the visualization environment.
+
+##### 1. Install Jupyter
 
 ```bash
 mkdir .jupyter_server
@@ -234,19 +240,20 @@ jupyter notebook --ip 0.0.0.0 --port 9123 \
       --notebook-dir="/home/$USER" --NotebookApp.token=<password>
 ```
 
-##### Create Jupyter
+##### 2. Create Jupyter
 
 Shown in example.ipynb.
-Add the following cells to a Jupyter
+Add the following two cells to a Jupyter notebook.
 
 ##### Cell 1
-```
+
+```python
 # Setup variables
 # ===============
 
-savedir_base = '/mnt/datasets/public/issam/prototypes/isps/borgy/'
-workdir='/mnt/home/issam/Research_Ground/isps'
-exp_group_list=['pascal_full']
+savedir_base = <savedir_base>
+workdir = <workdir>
+exp_group_list = ['default']
 
 
 # exp vars
@@ -258,7 +265,7 @@ verbose = 1
 columns = None
 
 # plot vars
-y_metric='val_score'
+y_metric='train_loss'
 x_metric='epoch'
 map_exp_list = []
 figsize=(10,5)
@@ -374,22 +381,14 @@ with images:
 #              pprint.pprint(failed)
 ```
 
-
-
-
-### Install
-```
-$ pip install --upgrade git+https://github.com/ElementAI/haven
-```
-
-To install from a jupyter cell,
+To install Haven from a jupyter cell, add the following cell,
 
 ```python
 import sys
 !{sys.executable} -m pip install --upgrade  --no-dependencies 'git+https://github.com/ElementAI/haven' --user
 ```
-
 <!-- /home/issam/Research_Ground/haven/ -->
+
 
 ### Contributing
 
