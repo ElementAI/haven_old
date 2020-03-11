@@ -1,4 +1,4 @@
-<table>
+<!-- <table>
     <thead>
         <tr>
             <th style="text-align:center;"><img src="docs/images/haven_logo.png" width="40%" alt="Image"></th>
@@ -6,50 +6,48 @@
     </thead>
     <tbody>
     </tbody>
-</table>
+</table> -->
+# Haven 
 
 
-- [Documentation](https://haven.readthedocs.io/en/latest/py-modindex.html)  
-- Travis Test: ![CircleCI](https://circleci.com/gh/ElementAI/haven.svg)
+A style-guide for creating, managing, and visualizing experiments. 
+* [Overview](#overview)
+* [Examples](#examples)
+* [Features](#features)
+* [Install](#install)
+* [Contributing](#contributing)
 
-<!-- ![](docs/images/haven_logo.png){:height="50%" width="50%"} -->
-### Install
-```
-$ pip install --upgrade git+https://github.com/ElementAI/haven
-```
+### Overview
 
-### Demo
+This guide focuses on readability, reliability, and flexibility. It consists of 4 main steps:
 
-Perform 4 different experiments on mnist:
+1. [Codebase](#codebase): write code for a machine learning project.
+2. [Hyperparameters](#hyperparameters): define a list of experiments.
+3. [Experiments](#experiments): run  and manage thousands of experiments.
+4. [Visualization](#visualization): aggregate through thousands of results.
 
-```
-python example.py -e mnist -sb ../results -r 1
-```
+### Examples
 
-Visualize results:
+- [Classification](https://github.com/ElementAI/haven/tree/master/examples/classification)
+- [Active Learning](https://github.com/ElementAI/haven/tree/master/examples/active_learning)
+- [Generative Adversarial Networks](https://github.com/ElementAI/haven/tree/master/examples/gans)
+- [Object Counting](https://github.com/ElementAI/haven/tree/master/examples/object_counting)
 
-```python
-from haven import haven_results as hr
+### Features
 
-savedir_base='../results'
-exp_list = hr.get_exp_list(savedir_base=savedir_base, 
-                           filterby_list=[{'dataset':'mnist'])
-
-# get score lists
-score_lists = hr.get_score_lists(exp_list, savedir_base=savedir_base)
-
-# get score table
-df = hr.get_score_df(exp_list, savedir_base=savedir_base)
-
-# get plot
-fig, axis = hr.get_plot(exp_list, savedir_base=savedir_base, x_metric='epoch', y_metric='train_loss', legend_list=['model'])
-```
-
-See also example.ipynb to display the results:
+- Create a list of hyperparameters.
+- Save a score dictionary at each epoch.
+- Launch a score dictionary at each epoch.
+- Create and Launch Jupyter.
+- View experiment configurations.
+- View scores as a table.
+- View scores as a plot.
+- View scores as a barchart.
 
 
 
-### Usage
+
+#### Codebase
 
 Create a file `main.py` with the template below: 
 
@@ -195,3 +193,59 @@ if __name__ == "__main__":
                     datadir_base=args.datadir_base,
                     reset=args.reset)
 ```
+
+
+
+#### Hyperparameters
+Define an experiment group `mnist` as a list of hyperparameters
+
+```
+EXP_GROUPS = {'mnist':
+                hu.cartesian_exp_group({
+                    'dataset':'mnist',
+                    'model':'mlp',
+                    'max_epoch':20,
+                    'lr':[1e-3, 1e-4],
+                    'batch_size':[32, 64]})
+                }
+```
+
+#### Experiments
+
+Trains a model on mnist across a set of hyperparameters:
+
+```
+python example.py -e mnist -sb ../results -r 1
+```
+
+#### Visualization
+
+```python
+from haven import haven_results as hr
+
+savedir_base='../results'
+exp_list = hr.get_exp_list(savedir_base=savedir_base, 
+                           filterby_list=[{'dataset':'mnist'])
+
+# get score lists
+score_lists = hr.get_score_lists(exp_list, savedir_base=savedir_base)
+
+# get score table
+df = hr.get_score_df(exp_list, savedir_base=savedir_base)
+
+# get plot
+fig, axis = hr.get_plot(exp_list, savedir_base=savedir_base, x_metric='epoch', y_metric='train_loss', legend_list=['model'])
+```
+
+See also example.ipynb to display the results:
+
+
+
+### Install
+```
+$ pip install --upgrade git+https://github.com/ElementAI/haven
+```
+
+### Contributing
+
+We love contributions!
