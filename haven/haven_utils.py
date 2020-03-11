@@ -1,49 +1,22 @@
-from torch.autograd import Variable
-import hashlib 
-import pickle
-import json
-import os
-import itertools
-import torch
-import numpy as np
-import PIL, glob
-import hashlib
-import yaml
-import copy
-import pickle
-import os
-import torch.nn.functional as F
-import torch
-import time
-import scipy.misc
-import scipy.io as io
-import pandas as pd
-from datetime import datetime
-import pytz
-import threading
-import pylab as plt
-import subprocess
-import shlex 
-import numpy as np
 import contextlib
+import copy
+import hashlib
+import itertools
 import json
-import sys
-import scipy
-from importlib import reload
-from skimage.segmentation import mark_boundaries
+import os
+import pickle
+import shlex
+import subprocess
+import threading
+import time
+from datetime import datetime
+
+import numpy as np
+import pylab as plt
+import torch
+from PIL import Image
 
 
-def get_padding(kernel_size=1):
-    return int((kernel_size - 1) / 2)
-
-def delete_run_dict(savedir):
-    """Delete a run dictionary."""
-    fname = "%s/run_dict.json" % savedir
-    if os.path.exists(fname):
-        os.remove(fname)
-
-# =======================================================
-# exp helpers
 def cartesian_exp_group(exp_config):
     """Cartesian experiment config.
 
@@ -51,21 +24,24 @@ def cartesian_exp_group(exp_config):
     the cartesian product of the different configuration. It is equivalent to
     do a grid search.
 
-    Args:
-        exp_config: Dictionary with the experiment Configuration
+    Parameters
+    ----------
+    exp_config : str
+        Dictionary with the experiment Configuration
 
-    Returns:
-        exp_list: List with an experiment dictionary for each individual
-        experiment
-
+    Returns
+    -------
+    exp_list: str
+        A list of experiments, each defines a single set of hyper-parameters
     """
-    # Create the cartesian product
     exp_config_copy = copy.deepcopy(exp_config)
-    
-    for k,v in exp_config_copy.items():
+
+    # Make sure each value is a list
+    for k, v in exp_config_copy.items():
         if not isinstance(exp_config_copy[k], list):
             exp_config_copy[k] = [v]
 
+    # Create the cartesian product
     exp_list_raw = (dict(zip(exp_config_copy.keys(), values))
                     for values in itertools.product(*exp_config_copy.values()))
 
@@ -73,162 +49,165 @@ def cartesian_exp_group(exp_config):
     exp_list = []
     for exp_dict in exp_list_raw:
         exp_list += [exp_dict]
+
     return exp_list
 
-def hash_dict(dictionary):
-    """Create a hash for a dictionary."""
+
+def hash_dict(exp_dict):
+    """Create a hash for an experiment.
+
+    Parameters
+    ----------
+    exp_dict : dict
+        An experiment, which is a single set of hyper-parameters
+
+    Returns
+    -------
+    hash_id: str
+        A unique id defining the experiment
+    """
     dict2hash = ""
+    if not isinstance(exp_dict, dict):
+        raise ValueError('exp_dict is not a dict')
 
-    for k in sorted(dictionary.keys()):
-        if isinstance(dictionary[k], dict):
-            v = hash_dict(dictionary[k])
+    for k in sorted(exp_dict.keys()):
+        if isinstance(exp_dict[k], dict):
+            v = hash_dict(exp_dict[k])
         else:
-            v = dictionary[k]
+            v = exp_dict[k]
 
-        dict2hash += "%s_%s_" % (str(k), str(v))
+        dict2hash += os.path.join(str(k), str(v))
 
-    return hashlib.md5(dict2hash.encode()).hexdigest()
+    hash_id = hashlib.md5(dict2hash.encode()).hexdigest()
 
-# =======================================================
-# checkpoint helpers
-class CheckpointManager:
-    """Checkpoint manager."""
-
-    def __init__(self, exp_dict=None, savedir=None, mins2save=1, verbose=1):
-        """Constructor."""
-        # Save arguments
-        self.exp_dict = exp_dict
-        self.savedir = savedir
-        self.mins2save = mins2save
-        self.verbose = verbose
-        # self.wait = 120  # seconds
-        # self.friend_exp_dict = friend_exp_dict
-
-    def save(self, save_dict):
-        """
-        Save the checkpoint to disk.
-
-        Args:
-            save_dict: dictionary of files to save
-
-        Returns:
-
-        """
-        # Save each field of the dictionary independently in a file
-        for k, v in save_dict.items():
-            # Define the filename
-            fname = os.path.join(self.savedir, k)
-
-            # Save with pytorch or pickle
-            if ".pth" in k:
-                torch_save(fname, v)
-            else:
-                save_pkl(fname, v)
-
-    def load(self, keys):
-        """Load latest checkpoint and history.
-
-        Args:
-            keys: List of filenames to load
-
-        Returns:
-            save_dict: Dictionary of the filenames with their template_content
-
-        """
-        save_dict = {}
-        for k in keys:
-            # Filename with the path
-            fname = os.path.join(self.savedir, k)
-
-            # Load content with pytorch or pickle
-            if ".pth" in k:
-                save_dict[k] = torch_load(fname)
-            else:
-                save_dict[k] = load_pkl(fname)
-
-        return save_dict
-
-def create_checkpoint(savedir, exp_dict):
-    save_json(savedir + "/exp_dict.json", exp_dict)
-    save_json(savedir + "/run_dict.json", {"started at":time_to_montreal()})
-    # print("Saved: %s" % savedir)
-
-def delete_checkpoint(savedir):
-    if os.path.exists(savedir + "/run_dict.json"):
-        os.remove(savedir + "/run_dict.json")
-    if os.path.exists(savedir + "/meta_dict.pkl"):
-        os.remove(savedir + "/meta_dict.pkl")
-    if os.path.exists(savedir + "/score_list.pkl"):
-        os.remove(savedir + "/score_list.pkl")
+    return hash_id
 
 
-def create_tiny(dataset, size=5):
-    data = [dataset[i] for i in range(size)]
+def hash_str(str):
+    """Hashes a string using md5.
 
-    class TinyDataset(torch.nn.Module):
-        def __init__(self, data):
-            self.data = data
+    Parameters
+    ----------
+    str
+        a string
 
-        def __getitem__(self, item):
-            return self.data[item]
+    Returns
+    -------
+    str
+        md5 hash for the input string
+    """
+    return hashlib.md5(str.encode()).hexdigest()
 
-        def __len__(self):
-            return len(self.data)
-    split = dataset.split
-    dataset = TinyDataset(data)
-    dataset.split = split
-    return dataset
 
-def checkpoint_exists(savedir):
-    if (os.path.exists(savedir + "/run_dict.json") and
-        os.path.exists(savedir + "/score_list.pkl")):
-        return True
-    return False
+def save_json(fname, data, makedirs=True):
+    """Save data into a json file.
 
-# =======================================================
-# helpers
-def load_pkl(fname):
-    """Load the content of a pkl file."""
-    with open(fname, "rb") as f:
-        return pickle.load(f)
+    Parameters
+    ----------
+    fname : str
+        Name of the json file
+    data : [type]
+        Data to save into the json file
+    makedirs : bool, optional
+        If enabled creates the folder for saving the file, by default True
+    """
+    if makedirs:
+        os.makedirs(os.path.dirname(fname), exist_ok=True)
+    with open(fname, "w") as json_file:
+        json.dump(data, json_file, indent=4, sort_keys=True)
 
-def load_json(fname, decode=None):
+
+def load_mat(fname):
+    """Load a matlab file.
+
+    Parameters
+    ----------
+    fname : str
+        File name
+
+    Returns
+    -------
+    dict
+        Dictionary with the loaded data
+    """
+    import scipy.io as io
+    return io.loadmat(fname)
+
+
+def load_json(fname, decode=None):  # TODO: decode???
+    """Load a json file.
+
+    Parameters
+    ----------
+    fname : str
+        Name of the file
+    decode : [type], optional
+        [description], by default None
+
+    Returns
+    -------
+    [type]
+        Content of the file
+    """
     with open(fname, "r") as json_file:
         d = json.load(json_file)
 
     return d
 
-# def torch_save(fname, obj):
-#     """"Save data in torch format."""
-#     # Define names of temporal files
-#     os.makedirs(os.path.dirname(fname), exist_ok=True)
-#     fname_tmp = fname + ".tmp"
-#
-#     torch.save(obj, fname_tmp)
-#     os.rename(fname_tmp, fname)
 
-# def read_text(fname):
-#     # READS LINES
-#     with open(fname, "r", encoding="utf-8") as f:
-#         lines = f.readlines()
-#     return lines
+def read_text(fname):
+    """Loads the content of a text file.
 
-# def save_pkl(fname, dict):
-#     os.makedirs(os.path.dirname(fname), exist_ok=True)
-#     fname_tmp = fname + "_tmp.pkl"
-#     with open(fname_tmp, "wb") as f:
-#         pickle.dump(dict, f)
-#     os.rename(fname_tmp, fname)
+    Parameters
+    ----------
+    fname : str
+        File name
 
-# def save_json(fname, data):
-#     os.makedirs(os.path.dirname(fname), exist_ok=True)
-#     with open(fname, "w") as json_file:
-#         json.dump(data, json_file, indent=4, sort_keys=True)
+    Returns
+    -------
+    list
+        Content of the file. List containing the lines of the file
+    """
+    with open(fname, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+        # lines = [line.decode('utf-8').strip() for line in f.readlines()]  # TODO: Delete?
+    return lines
 
-def save_pkl(fname, data, with_rename=True):
-    """Save data in pkl format."""
+
+def load_pkl(fname):
+    """Load the content of a pkl file.
+
+    Parameters
+    ----------
+    fname : str
+        File name
+
+    Returns
+    -------
+    [type]
+        Content of the file
+    """
+    with open(fname, "rb") as f:
+        return pickle.load(f)
+
+
+def save_pkl(fname, data, with_rename=True, makedirs=True):
+    """Save data in pkl format.
+
+    Parameters
+    ----------
+    fname : str
+        File name
+    data : [type]
+        Data to save in the file
+    with_rename : bool, optional
+        [description], by default True
+    makedirs : bool, optional
+        If enabled creates the folder for saving the file, by default True
+    """
     # Create folder
-    create_dirs(fname)
+    if makedirs:
+        os.makedirs(os.path.dirname(fname), exist_ok=True)
 
     # Save file
     if with_rename:
@@ -241,51 +220,302 @@ def save_pkl(fname, data, with_rename=True):
     else:
         with open(fname, "wb") as f:
             pickle.dump(data, f)
-#
-# def torch_save(fname, obj, with_rename=True):
-#     """"Save data in torch format."""
-#     # Define names of temporal files
-#     os.makedirs(os.path.dirname(fname), exist_ok=True)
-#     # fname_tmp = fname + ".tmp"
-#
-#     # torch.save(obj, fname_tmp)
-#     # os.rename(fname_tmp, fname)
-#
-#     if with_rename:
-#         fname_tmp = fname + "_tmp.pth"
-#         with open(fname_tmp, "wb") as f:
-#             torch.save(obj, f)
-#         if os.path.exists(fname):
-#             os.remove(fname)
-#         os.rename(fname_tmp, fname)
-#     else:
-#         with open(fname, "wb") as f:
-#             torch.save(obj, f)
-
-def create_dirs(fname):
-    """Create folders."""
-    # If it is a filename do nothing
-    if "/" not in fname:
-        return
-
-    # If the folder do not exist, create it
-    if not os.path.exists(os.path.dirname(fname)):
-        print(os.path.dirname(fname))
-        os.makedirs(os.path.dirname(fname))
 
 
-def time_to_montreal():  # TODO: Remove commented code
-    """Get time in Montreal zone."""
+def save_image(fname, img, size=None, makedirs=True):
+    """Save an image into a file.
+
+    Parameters
+    ----------
+    fname : str
+        Name of the file
+    img : [type]
+        Image data. #TODO We asume it is.....?????? \in [0, 1]? Numpy? PIL? RGB?
+    makedirs : bool, optional
+        If enabled creates the folder for saving the file, by default True
+    """
+    if img.dtype == 'uint8':
+        img_pil = Image.fromarray(img)
+        img_pil.save(fname)
+    else:
+        if makedirs:  # TODO: Shouldn't this be before the PIL if?
+            os.makedirs(os.path.dirname(fname), exist_ok=True)
+
+        arr = f2l(t2n(img)).squeeze()
+        os.makedirs(os.path.dirname(fname), exist_ok=True) # TODO: This is repeated
+        # print(arr.shape)
+        if size is not None:  #TODO: This does not have effect if the image is in PIL
+            arr = Image.fromarray(arr)
+            arr = arr.resize(size)
+            arr = np.array(arr)
+
+        img = Image.fromarray(np.uint8(arr * 255))
+        img.save(fname)
+
+
+def load_txt(fname):
+    """Load the content of a txt file.
+
+    Parameters
+    ----------
+    fname : str
+        File name
+
+    Returns
+    -------
+    list
+        Content of the file. List containing the lines of the file
+    """
+    with open(fname, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    return lines
+
+
+def torch_load(fname, map_location=None):
+    """Load the content of a torch file.
+
+    Parameters
+    ----------
+    fname : str
+        File name
+    map_location : [type], optional
+        Maping the loaded model to a specific device (i.e., CPU or GPU), this
+        is needed if trained in CPU and loaded in GPU and viceversa, by default
+        None
+
+    Returns
+    -------
+    [type]
+        Loaded torch model
+    """
+    obj = torch.load(fname, map_location=map_location)
+
+    return obj
+
+
+def torch_save(fname, obj):
+    """Save data in torch format.
+
+    Parameters
+    ----------
+    fname : str
+        File name
+    obj : [type]
+        Data to save
+    """
+    # Create folder
+    os.makedirs(os.path.dirname(fname), exist_ok=True)  # TODO: add makedirs parameter?
+
+    # Define names of temporal files
+    fname_tmp = fname + ".tmp"  # TODO: Make the safe flag?
+
+    torch.save(obj, fname_tmp)
+    if os.path.exists(fname):
+        os.remove(fname)
+    os.rename(fname_tmp, fname)
+
+
+class Parallel:
+    """Class for run a function in parallel."""
+    def __init__(self):
+        """Constructor"""
+        self.threadList = []
+        self.count = 0
+
+    def add(self, func,  *args):
+        """Add a function to run as a process.
+
+        Parameters
+        ----------
+        func : function
+            Pointer to the function to parallelize
+        args : list
+            Arguments of the funtion to parallelize
+        """
+        self.threadList += [
+            threading.Thread(target=func, name="thread-%d" % self.count,
+                             args=args)]
+        self.count += 1
+
+    def run(self):
+        """Run the added functions in parallel"""
+        for thread in self.threadList:
+            thread.daemon = True
+            print("  > Starting thread %s" % thread.name)
+            thread.start()
+
+    def close(self):
+        """Finish: wait for all the functions to finish"""
+        for thread in self.threadList:
+            print("  > Joining thread %s" % thread.name)
+            thread.join()
+
+
+def subprocess_call(cmd_string):
+    """Run a terminal process.
+
+    Parameters
+    ----------
+    cmd_string : str
+        Command to execute in the terminal
+
+    Returns
+    -------
+    [type]
+        Error code or 0 if no error happened
+    """
+    return subprocess.check_output(
+        shlex.split(cmd_string), shell=False).decode("utf-8")
+
+
+def copy_code(src_path, dst_path, verbose=1):
+    """Copy the code.
+    
+    Typically, when you run an experiment, first you copy the code used to the
+    experiment folder. This function copies the code using rsync terminal
+    command.
+
+    Parameters
+    ----------
+    src_path : str
+        Source code directory
+    dst_path : str
+        Destination code directory
+    verbose : int, optional
+        Verbosity level. If 0 does not print stuff, by default 1
+
+    Raises
+    ------
+    ValueError
+        [description]
+    """
+    time.sleep(.5)  # TODO: Why? Why?
+
+    if verbose:
+        print("  > Copying code from %s to %s" % (src_path, dst_path))
+
+    # Create destination folder
+    os.makedirs(dst_path, exist_ok=True)
+
+    # Define the command for copying the code using rsync
+    rsync_code = "rsync -av -r -q  --delete-before --exclude='.git/' " \
+                 " --exclude='*.pyc' --exclude='__pycache__/' %s %s" % (
+                     src_path, dst_path)
+
+    # Run the command in the terminal
+    try:
+        subprocess_call(rsync_code)
+    except subprocess.CalledProcessError as e:
+        raise ValueError("Ping stdout output:\n", e.output)
+
+    time.sleep(.5)  # TODO: Why?
+
+
+def zipdir(src_dirname, out_fname, include_list=None):
+    """Compress a folder using ZIP.
+
+    Parameters
+    ----------
+    src_dirname : str
+        Directory to compress
+    out_fname : str
+        File name of the compressed file
+    include_list : list, optional
+        List of files to include. If None, include all files in the folder, by
+        default None
+    """
+    import zipfile  # TODO: Move to the beggining of the file
+    # TODO: Do we need makedirs?
+    # Create the zip file
+    zipf = zipfile.ZipFile(out_fname, 'w', zipfile.ZIP_DEFLATED)
+
+    # ziph is zipfile handle
+    for root, dirs, files in os.walk(src_dirname):
+        for file in files:
+            # Descard files if needed
+            if include_list is not None and file not in include_list:
+                continue
+            
+            abs_path = os.path.join(root, file)
+            rel_path = fname_parent(abs_path)  # TODO: fname_parent not defined
+            print(rel_path)
+            zipf.write(abs_path, rel_path)
+
+    zipf.close()
+
+
+def zip_score_list(exp_list, savedir_base, out_fname, include_list=None):
+    """Compress a list of experiments in zip.
+
+    Parameters
+    ----------
+    exp_list : list
+        List of experiments to zip
+    savedir_base : str
+        Directory where the experiments from the list are saved
+    out_fname : str
+        File name for the zip file
+    include_list : list, optional
+        List of files to include. If None, include all files in the folder, by
+        default None
+    """
+    for exp_dict in exp_list:  # TODO: This will zip only the last experiments, zipdir will overwritwe the previous file
+        # Get the experiment id
+        exp_id = hash_dict(exp_dict)
+        # Zip folder
+        zipdir(os.path.join(savedir_base, exp_id),
+               out_fname, include_list=include_list)
+
+
+def time_to_montreal():
+    """Get time in Montreal zone.
+
+    Returns
+    -------
+    str
+        Current date at the selected timezone in string format
+    """
     # Get time
     ts = time.time()
 
+    import pytz
     tz = pytz.timezone('America/Montreal')
-    # dt = aware_utc_dt.astimezone(tz)
     dt = datetime.fromtimestamp(ts, tz)
 
     return dt.strftime("%I:%M %p (%b %d)")
 
-def n2t(x, dtype="float"):
+
+def time2mins(time_taken):
+    """Convert time into minutes.
+
+    Parameters
+    ----------
+    time_taken : float
+        Time in seconds
+
+    Returns
+    -------
+    float
+        Minutes
+    """
+    return time_taken / 60.
+
+
+def n2t(x, dtype="float"):  # TODO: dtype is not used!!
+    """Array or Numpy array to Pytorch tensor.
+
+    Parameters
+    ----------
+    x : array or Numpy array
+        Data to transform
+    dtype : [type]
+        [description]
+
+    Returns
+    -------
+    Pytorch tensor
+        x converted to pytorch tensor format
+    """
     if isinstance(x, (int, np.int64, float)):
         x = np.array([x])
 
@@ -294,35 +524,214 @@ def n2t(x, dtype="float"):
     return x
 
 
-# ===============================================================
-# image helpers
-def get_image(imgs,
-              mask=None,
-              label=False,
-              enlarge=0,
-              gray=False,
-              denorm=0,
-              bbox_yxyx=None,
-              annList=None,
-              pretty=False,
-              pointList=None,
-              win=None,
-              **options):
+def t2n(x):
+    """Pytorch tensor to Numpy array.
 
-    if isinstance(imgs, tuple):
-            fig = None
+    Parameters
+    ----------
+    x : Pytorch tensor
+        A Pytorch tensor to transform
 
-            colors = ["red", "blue"]
-            for i in range(len(imgs)):
-                fig = scatter_plot(imgs[i], color=colors[i], fig=fig, title=win)
+    Returns
+    -------
+    Numpy array
+        x transformed to numpy array
+    """
+    try:
+        x = x.detach().cpu().numpy()
+    except:
+        x = x
 
-            return visFigure(fig, win=win)
-            
+    return x
 
+
+def l2f(X):
+    """Move the channels from the last dimension to the first dimension.
+
+    Parameters
+    ----------
+    X : Numpy array
+        Tensor with the channel dimension at the last dimension
+
+    Returns
+    -------
+    Numpy array
+        X transformed with the channel dimension at the first dimension
+    """
+    if X.ndim == 3 and (X.shape[0] == 3 or X.shape[0] == 1):
+        return X
+    if X.ndim == 4 and (X.shape[1] == 3 or X.shape[1] == 1):
+        return X
+
+    if X.ndim == 4 and (X.shape[1] < X.shape[3]):
+        return X
+
+    # Move the channel dimension from the last position to the first one
+    if X.ndim == 3:
+        return np.transpose(X, (2, 0, 1))
+    if X.ndim == 4:
+        return np.transpose(X, (0, 3, 1, 2))
+
+    return X
+
+
+def f2l(X):
+    """Move the channels from the first dimension to the last dimension.
+
+`   Parameters
+    ----------
+    X : Numpy array
+        Tensor with the channel dimension at the first dimension
+
+    Returns
+    -------
+    Numpy array
+        X transformed with the channel dimension at the last dimension
+    """
+    if X.ndim == 3 and (X.shape[2] == 3 or X.shape[2] == 1):
+        return X
+    if X.ndim == 4 and (X.shape[3] == 3 or X.shape[3] == 1):
+        return X
+
+    # Move the channel dimension from the first position to the last one
+    if X.ndim == 3:
+        return np.transpose(X, (1, 2, 0))
+    if X.ndim == 4:
+        return np.transpose(X, (0, 2, 3, 1))
+
+    return X
+
+
+def n2p(image):  #TODO: Create p2n function and use it in get_image()
+    """Numpy image to PIL image.
+
+    Parameters
+    ----------
+    image : Numpy array
+        Input image in numpy format
+
+    Returns
+    -------
+    PIL image
+        Input image converted into PIL format
+    """
+    image = f2l(image.squeeze())
+    if image.max() <= 1:
+        image = image * 255
+    return Image.fromarray(image.astype('uint8'))
+
+
+def _denorm(image, mu, var, bgr2rgb=False):
+    """Denormalize an image.
+
+    Parameters
+    ----------
+    image : [type]
+        Image to denormalize
+    mu : [type]
+        Mean used to normalize the image
+    var : [type]
+        Variance used to normalize the image
+    bgr2rgb : bool, optional
+        Whether to also convert from bgr 2 rgb, by default False
+
+    Returns
+    -------
+    [type]
+        Denormalized image
+    """
+    if image.ndim == 3:
+        result = image * var[:, None, None] + mu[:, None, None]  # TODO: Is it variance or std?
+        if bgr2rgb:
+            result = result[::-1]
+    else:
+        result = image * var[None, :, None, None] + mu[None, :, None, None]
+        if bgr2rgb:
+            result = result[:, ::-1]
+    return result
+
+
+def denormalize(img, mode=0):  # TODO: Remove the default value or set to a valid number, complete documentation
+    """Denormalize an image.
+
+    Parameters
+    ----------
+    img : [type]
+        Input image to denormalize
+    mode : int or str, optional
+        Predefined denormalizations, by default 0
+        If 1 or 'rgb'... 
+        If 2 or 'brg'...,
+        If 3 or 'basic'...
+        Else do nothing
+
+    Returns
+    -------
+    [type]
+        Denormalized image
+    """
+    # _img = t2n(img)
+    # _img = _img.copy()
+    image = t2n(img).copy().astype("float")
+
+    if mode in [1, "rgb"]:
+        mu = np.array([0.485, 0.456, 0.406])
+        var = np.array([0.229, 0.224, 0.225])
+        image = _denorm(image, mu, var)
+
+    elif mode in [2, "bgr"]:
+        mu = np.array([102.9801, 115.9465, 122.7717])
+        var = np.array([1, 1, 1])
+        image = _denorm(image, mu, var, bgr2rgb=True).clip(0, 255).round()
+
+    elif mode in [3, "basic"]:
+        mu = np.array([0.5, 0.5, 0.5])
+        var = np.array([0.5, 0.5, 0.5])
+        image = _denorm(image, mu, var)
+
+    # TODO: Add a case for 0 or None and else raise an error exception.
+
+    return image
+
+
+def get_image(imgs, mask=None, label=False, enlarge=0, gray=False, denorm=0,
+              bbox_yxyx=None, annList=None, pretty=False, pointList=None,
+              **options):  # TODO: Issam, can you document this?
+    """[summary]
+
+    Parameters
+    ----------
+    imgs : [type]
+        [description]
+    mask : [type], optional
+        [description], by default None
+    label : bool, optional
+        [description], by default False
+    enlarge : int, optional
+        [description], by default 0
+    gray : bool, optional
+        [description], by default False
+    denorm : int, optional
+        [description], by default 0
+    bbox_yxyx : [type], optional
+        [description], by default None
+    annList : [type], optional
+        [description], by default None
+    pretty : bool, optional
+        [description], by default False
+    pointList : [type], optional
+        [description], by default None
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    # TODO: Comment these transformations and make sure they are correct. Difficult to follow.
     imgs = denormalize(imgs, mode=denorm)
-    if isinstance(imgs, PIL.Image.Image):
+    if isinstance(imgs, Image.Image):
         imgs = np.array(imgs)
-    if isinstance(mask, PIL.Image.Image):
+    if isinstance(mask, Image.Image):
         mask = np.array(mask)
 
     imgs = t2n(imgs).copy()
@@ -365,582 +774,50 @@ def get_image(imgs,
     return imgs
 
 
+def show_image(fname):  # TODO: Why the input is a filename instead of an image?
+    """Load and image from hard disk and plot it.
+
+    Parameters
+    ----------
+    fname : str
+        Name of an image to load and show
+    """
+    ncols = 1  # TODO: Magic numbers
+    nrows = 1
+    height = 12
+    width = 12
+    fig, axs = plt.subplots(nrows=nrows, ncols=ncols,
+                            figsize=(ncols*width, nrows*height))
+    if not hasattr(axs, 'size'):  #TODO: What is this?
+        axs = [[axs]]
+
+    for i in range(ncols):
+        img = plt.imread(fname)
+        axs[0][i].imshow(img)
+        axs[0][i].set_axis_off()
+        axs[0][i].set_title('%s' % (fname))
+
+    plt.axis('off')
+    plt.tight_layout()
+
+    plt.show()
 
-def zoom(img, kernel_size=3):
-    img = n2t(img)
-    if img.dim() == 4:
-        img = img.sum(1).unsqueeze(1)
-    img = Variable(n2t(img)).float()
-    img = F.max_pool2d(
-        img,
-        kernel_size=kernel_size,
-        stride=1,
-        padding=get_padding(kernel_size))
-    return t2n(img)
-
-
-def label2Image(imgs):
-    imgs = t2n(imgs).copy()
-
-    if imgs.ndim == 3:
-        imgs = imgs[:, np.newaxis]
-
-    imgs = l2f(imgs)
-
-    if imgs.ndim == 4 and imgs.shape[1] != 1:
-        imgs = np.argmax(imgs, 1)
-
-    imgs = label2rgb(imgs)
-
-    if imgs.ndim == 3:
-        imgs = imgs[np.newaxis]
-    return imgs
-
-def label2Image(imgs):
-    imgs = t2n(imgs).copy()
-
-    if imgs.ndim == 3:
-        imgs = imgs[:, np.newaxis]
-
-    imgs = l2f(imgs)
-
-    if imgs.ndim == 4 and imgs.shape[1] != 1:
-        imgs = np.argmax(imgs, 1)
-
-    imgs = label2rgb(imgs)
-
-    if imgs.ndim == 3:
-        imgs = imgs[np.newaxis]
-    return imgs
-
-
-def label2rgb(labels):
-    from skimage.color import label2rgb
-    return label2rgb(t2n(labels), bg_label=0, bg_color=(0.,0.,0.))  
-
-def bbox_yxyx_2_mask(bbox, h, w):
-    mask = np.zeros((h, w), int)
-    assert bbox.max() <= 1
-    bbox = t2n(bbox)
-    for i in range(bbox.shape[0]):
-        y1, x1, y2, x2 = bbox[i]
-        # print(y1, y2, x1, x2)
-        y1 = min(int(y1 * h), h - 1)
-        y2 = min(int(y2 * h), h - 1)
-        x1 = min(int(x1 * w), w - 1)
-        x2 = min(int(x2 * w), w - 1)
-        # print(y1, y2, x1, x2)
-        mask[y1:y2, x1] = i + 1
-        mask[y1:y2, x2] = i + 1
-
-        mask[y1, x1:x2] = i + 1
-        mask[y2, x1:x2] = i + 1
-
-    return mask
-
-def t2n(x):
-    if isinstance(x, (int, float)):
-        return x
-    if isinstance(x, torch.autograd.Variable):
-        x = x.cpu().data.numpy()
-
-    if isinstance(x, (torch.cuda.FloatTensor, torch.cuda.IntTensor,
-                      torch.cuda.LongTensor, torch.cuda.DoubleTensor)):
-        x = x.cpu().numpy()
-
-    if isinstance(x, (torch.FloatTensor, torch.IntTensor, torch.LongTensor,
-                      torch.DoubleTensor)):
-        x = x.numpy()
-
-    return x
-
-def scatter_plot(X, color, fig=None, title=""):
-    if fig is None:
-        fig = plt.figure(figsize=(6,6))
-        ax = fig.add_subplot(1, 1, 1) 
-
-    ax = fig.axes[0]
-
-    ax.grid(linestyle='dotted')
-    ax.scatter(X[:,0],X[:,1], alpha=0.6, c=color, edgecolors="black")
-    
-
-    # plt.axes().set_aspect('equal', 'datalim')
-    ax.set_title(title)
-    ax.set_xlabel("t-SNE Feature 2")
-    ax.set_ylabel("t-SNE Feature 1")
-   
-    fig.tight_layout(rect=[0, 0.03, 1, 0.95])
-
-    return fig 
-
-def maskOnImage(imgs, mask, enlarge=0):
-    imgs = l2f(t2n(imgs)).copy()
-    mask = l2f(label2Image(mask))
-
-    if enlarge:
-        mask = zoom(mask, 11)
-
-    if mask.max() > 1:
-        mask = mask / 255.
-
-    if imgs.max() > 1:
-        imgs = imgs / 255.
-
-    nz = mask.squeeze() != 0
-    imgs = imgs * 0.5 + mask * 0.5
-    imgs /= imgs.max()
-    # print(mask.max(), imgs.shape, mask.shape)
-    # ind = np.where(nz)
-
-    # if len(ind) == 3:
-    #     k, r, c = ind
-    #     imgs[:,k,r,c] = imgs[:,k,r,c]*0.5 + mask[:,k,r,c] * 0.5
-    #     imgs[:,k,r,c]  = imgs[:,k,r,c]/imgs[:,k,r,c].max()
-
-    # if len(ind) == 2:
-    #     r, c = ind
-    #     imgs[:,:,r,c] = imgs[:,:,r,c]*0.5 + mask[:,:,r,c] * 0.5
-    #     imgs[:,:,r,c]  = imgs[:,:,r,c]/imgs[:,:,r,c].max()
-
-    #print(imgs[nz])
-    #print(imgs.shape)
-    #print(mask.shape)
-    if mask.ndim == 4:
-        mask = mask.sum(1)
-
-    nz = mask != 0
-    mask[nz] = 1
-
-    mask = mask.astype(int)
-
-    #imgs = imgs*0.5 + mask[:, :, :, np.newaxis] * 0.5
-
-    segList = []
-    for i in range(imgs.shape[0]):
-        segList += [
-            l2f(
-                mark_boundaries(
-                    f2l(imgs[i]).copy(), f2l(mask[i]), mode="inner"))
-        ]
-        # segList += [l2f(imgs[i]).copy()]
-    imgs = np.stack(segList)
-
-    return l2f(imgs)
-    
-def l2f(X):
-    if X.ndim == 3 and (X.shape[0] == 3 or X.shape[0] == 1):
-        return X
-    if X.ndim == 4 and (X.shape[1] == 3 or X.shape[1] == 1):
-        return X
-
-    if X.ndim == 4 and (X.shape[1] < X.shape[3]):
-        return X
-
-    # CHANNELS LAST
-    if X.ndim == 3:
-        return np.transpose(X, (2, 0, 1))
-    if X.ndim == 4:
-        return np.transpose(X, (0, 3, 1, 2))
-
-    return X
-
-def _denorm(image, mu, var, bgr2rgb=False):
-    if image.ndim == 3:
-        result = image * var[:, None, None] + mu[:, None, None]
-        if bgr2rgb:
-            result = result[::-1]
-    else:
-        result = image * var[None, :, None, None] + mu[None, :, None, None]
-        if bgr2rgb:
-            result = result[:, ::-1]
-    return result
-
-
-def denormalize(img, mode=0):
-    # _img = t2n(img)
-    # _img = _img.copy()
-    image = t2n(img).copy().astype("float")
-
-    if mode in [1, "rgb"]:
-        mu = np.array([0.485, 0.456, 0.406])
-        var = np.array([0.229, 0.224, 0.225])
-        # (0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
-        image = _denorm(image, mu, var)
-
-    elif mode in [2, "bgr"]:
-        mu = np.array([102.9801, 115.9465, 122.7717])
-        var = np.array([1, 1, 1])
-        image = _denorm(image, mu, var, bgr2rgb=True).clip(0, 255).round()
-
-    elif mode in [3, "basic"]:
-        mu = np.array([0.5, 0.5, 0.5])
-        var = np.array([0.5, 0.5, 0.5])
-
-        image = _denorm(image, mu, var)
-    # else:
-
-    #     mu = np.array([0.,0.,0.])
-    #     var = np.array([1,1,1])
-
-    #     image = _denorm(image, mu, var)
-    # print(image)
-    return image
-
-
-
-def pretty_vis(image, annList, show_class=False, alpha=0.0, dpi=100, **options):
-    import cv2
-    from matplotlib.backends.backend_agg import FigureCanvasAgg as FigureCanvas
-    from matplotlib.patches import Polygon
-    from matplotlib.figure import Figure
-    from . import ann_utils as au
-    # print(image)
-    # if not image.as > 1:
-    #     image = image.astype(float)/255.
-    image = f2l(image).squeeze().clip(0, 255)
-    if image.max() > 1:
-        image /= 255.
-
-    # box_alpha = 0.5
-    # print(image.clip(0, 255).max())
-    color_list = colormap(rgb=True) / 255.
-
-    # fig = Figure()
-    fig = plt.figure(frameon=False)
-    canvas = FigureCanvas(fig)
-    fig.set_size_inches(image.shape[1] / dpi, image.shape[0] / dpi)
-    # ax = fig.gca()
-
-    ax = plt.Axes(fig, [0., 0., 1., 1.])
-    ax.axis('off')
-    fig.add_axes(ax)
-    # im = im.clip(0, 1)
-    # print(image)
-    ax.imshow(image)
-
-    # Display in largest to smallest order to reduce occlusion
-    # areas = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
-    # sorted_inds = np.argsort(-areas)
-
-    mask_color_id = 0
-    for i in range(len(annList)):
-        ann = annList[i]
-
-        # bbox = boxes[i, :4]
-        # score = boxes[i, -1]
-
-        # bbox = au.ann2bbox(ann)["shape"]
-        # score = ann["score"]
-
-        # if score < thresh:
-        #     continue
-
-        # show box (off by default, box_alpha=0.0)
-        if "bbox" in ann:
-            bbox = ann["bbox"]
-            ax.add_patch(
-                plt.Rectangle((bbox[0], bbox[1]),
-                              bbox[2],
-                              bbox[3],
-                              fill=False,
-                              edgecolor='r',
-                              linewidth=3.0,
-                              alpha=0.5))
-
-        # if show_class:
-        # if options.get("show_text") == True or options.get("show_text") is None:
-        #     score = ann["score"] or -1
-        #     ax.text(
-        #         bbox[0], bbox[1] - 2,
-        #         "%.1f" % score,
-        #         fontsize=14,
-        #         family='serif',
-        #         bbox=dict(facecolor='g', alpha=1.0, pad=0, edgecolor='none'),
-        #         color='white')
-
-        # show mask
-        if "segmentation" in ann:
-            mask = au.ann2mask(ann)["mask"]
-            img = np.ones(image.shape)
-            # category_id = ann["category_id"]
-            # mask_color_id = category_id - 1
-            # color_list = ["r", "g", "b","y", "w","orange","purple"]
-            # color_mask = color_list[mask_color_id % len(color_list)]
-            color_mask = color_list[mask_color_id % len(color_list), 0:3]
-            mask_color_id += 1
-            # print("color id: %d - category_id: %d - color mask: %s" 
-                        # %(mask_color_id, category_id, str(color_mask)))
-            w_ratio = .4
-            for c in range(3):
-                color_mask[c] = color_mask[c] * (1 - w_ratio) + w_ratio
-            for c in range(3):
-                img[:, :, c] = color_mask[c]
-            e = mask
-
-            contour, hier = cv2.findContours(e.copy(), 
-                                    cv2.RETR_CCOMP,
-                                    cv2.CHAIN_APPROX_NONE)
-
-            for c in contour:
-                polygon = Polygon(
-                    c.reshape((-1, 2)),
-                    fill=True,
-                    facecolor=color_mask,
-                    edgecolor="white",
-                    linewidth=1.5,
-                    alpha=0.7
-                    )
-                ax.add_patch(polygon)
-
-    canvas.draw()  # draw the canvas, cache the renderer
-    width, height = fig.get_size_inches() * fig.get_dpi()
-    # image = np.fromstring(canvas.tostring_rgb(), dtype='uint8')
-
-    fig_image = np.fromstring(
-        canvas.tostring_rgb(), dtype='uint8').reshape(
-            int(height), int(width), 3)
-    plt.close()
-    # print(fig_image)
-    return fig_image
-
-import os
-def save_image(fname, img):
-    os.makedirs(os.path.dirname(fname), exist_ok=True)
-    images = f2l(t2n(img))
-    imsave(fname , img)
-
-def f2l(X):
-    if X.ndim == 3 and (X.shape[2] == 3 or X.shape[2] == 1):
-        return X
-    if X.ndim == 4 and (X.shape[3] == 3 or X.shape[3] == 1):
-        return X
-
-    # CHANNELS FIRST
-    if X.ndim == 3:
-        return np.transpose(X, (1, 2, 0))
-    if X.ndim == 4:
-        return np.transpose(X, (0, 2, 3, 1))
-
-    return X
-
-def gray2cmap(gray, cmap="jet", thresh=0):
-    # Gray has values between 0 and 255 or 0 and 1
-    gray = t2n(gray)
-    gray = gray / max(1, gray.max())
-    gray = np.maximum(gray - thresh, 0)
-    gray = gray / max(1, gray.max())
-    gray = gray * 255
-
-    gray = gray.astype(int)
-    #print(gray)
-
-    from pylab import get_cmap
-    cmap = get_cmap(cmap)
-
-    output = np.zeros(gray.shape + (3, ), dtype=np.float64)
-
-    for c in np.unique(gray):
-        output[(gray == c).nonzero()] = cmap(c)[:3]
-
-    return l2f(output)
-
-def imsave(fname, arr, size=None):
-    from PIL import Image
-    arr = f2l(t2n(arr)).squeeze()
-    os.makedirs(os.path.dirname(fname), exist_ok=True)
-    #print(arr.shape)
-    if size is not None:
-        arr = Image.fromarray(arr)
-        arr = arr.resize(size)
-        arr = np.array(arr)
-    # scipy.misc.imsave(fname, arr)
-    img = PIL.Image.fromarray(np.uint8(arr * 255))
-    img.save(fname)
-
-
-# ========================================================
-# results
-import zipfile
-
-def fname_parent(filepath, levels=1):
-    common = filepath
-    for i in range(levels + 1):
-        common = os.path.dirname(common)
-    return os.path.relpath(filepath, common)
-    
-def zipdir(src_dirname, out_fname, include_list=None):
-    zipf = zipfile.ZipFile(out_fname, 'w', 
-                           zipfile.ZIP_DEFLATED)
-    # ziph is zipfile handle
-    for root, dirs, files in os.walk(src_dirname):
-        for file in files:
-            
-            if include_list is not None and file not in include_list:
-                continue
-            
-            abs_path = os.path.join(root, file)
-            rel_path = fname_parent(abs_path)
-            print(rel_path)
-            zipf.write(abs_path, rel_path)
-
-    zipf.close()
-
-
-def zip_score_list(exp_list, savedir_base, out_fname, include_list=None):
-    for exp_dict in exp_list:
-        exp_id = hash_dict(exp_dict)
-        zipdir("%s/%s" % (savedir_base, exp_id), 
-               out_fname, include_list=include_list)
-
-
-def get_exp_meta(exp_dict, savedir_base, mode=None, remove_keys=None,
-                 fname=None, workdir=None):
-    """Get experiment metadata."""
-    exp_dict_new = copy.deepcopy(exp_dict)
-
-    if remove_keys:
-        for k in remove_keys:
-            if k in exp_dict_new:
-                del exp_dict_new[k]
-
-    if mode is not None:
-        exp_dict_new["mode"] = mode
-
-    exp_id = hash_dict(exp_dict_new)
-    savedir = "%s/%s" % (savedir_base, exp_id)
-    if not fname:
-        fname = extract_fname(os.path.abspath(sys.argv[0]))
-    if not workdir:
-        workdir = sys.path[0]
-
-    # fname = extract_fname(getframeinfo(currentframe()).filename)
-    exp_meta = {}
-    exp_meta["exp_id"] = exp_id
-    exp_meta["command"] = ("python %s -s %s" % (fname, savedir))
-    exp_meta["workdir"] = workdir
-    exp_meta["savedir"] = savedir
-
-    return exp_meta
-
-# =========================================
-# Utils 
-# ========================================
-"""Haven utils."""
-import hashlib
-import yaml
-import pickle
-import os
-import torch
-import time
-from datetime import datetime
-import pytz
-import threading
-import subprocess
-import shlex
-import numpy as np
-import contextlib
-import json
-from importlib import reload
-
-
-# def load_json(fname, decode=None):
-#
-#     with open(fname, "r") as json_file:
-#         d = json.load(json_file)
-#
-#     return d
-
-def save_json(fname, data):
-    create_dirs(fname)
-    with open(fname, "w") as json_file:
-        json.dump(data, json_file, indent=4, sort_keys=True)
-
-
-import copy
-def filter_exp_list(exp_list, 
-                    regard_dict=None, 
-                    disregard_dict=None):
-    exp_list_new = []
-    for ep in exp_list:
-        exp_dict = flatten_dict(copy.deepcopy(ep))
-        select_flag = True
-        # regard dict
-        for k in exp_dict:
-            if isinstance(exp_dict.get(k), dict):
-                v = exp_dict.get(k)['name']
-            else:
-                v = exp_dict.get(k)
-
-            
-            # list regard dict
-            if (regard_dict and k in regard_dict and
-                isinstance(regard_dict[k], list) and
-                v not in regard_dict[k]):
-                select_flag = False
-                break
-                
-            # scalar regard dict
-            elif (regard_dict and k in regard_dict and
-                not isinstance(regard_dict[k], list) and
-                v != regard_dict[k]):
-                select_flag = False
-                break
-            
-            # list disregard dict
-            if (disregard_dict and k in disregard_dict and
-                isinstance(disregard_dict[k], list) and
-                v in disregard_dict[k]):
-                select_flag = False 
-                break
-            
-            # scalar disregard dict
-            if (disregard_dict and k in disregard_dict and
-                not isinstance(disregard_dict[k], list) and
-                v == disregard_dict[k]):
-                select_flag = False 
-                break
-
-        if select_flag:
-            exp_list_new += [ep]
-
-    return exp_list_new
-
-def flatten_dict(exp_dict):
-    result_dict = {}
-    for k in exp_dict:
-        # print(k, exp_dict)
-        if isinstance(exp_dict[k], dict):
-            for k2 in exp_dict[k]:
-                result_dict[k2] = exp_dict[k][k2]
-        else:
-            result_dict[k] = exp_dict[k]
-    return result_dict
-
-# TODO: Delete tmp files?
-def t2n(x):
-    if isinstance(x, (int, float)):
-        return x
-    if isinstance(x, torch.autograd.Variable):
-        x = x.cpu().data.numpy()
-
-    if isinstance(x, (torch.cuda.FloatTensor, torch.cuda.IntTensor,
-                      torch.cuda.LongTensor, torch.cuda.DoubleTensor)):
-        x = x.cpu().numpy()
-
-    if isinstance(x, (torch.FloatTensor, torch.IntTensor, torch.LongTensor,
-                      torch.DoubleTensor)):
-        x = x.numpy()
-
-    return x
-
-# def read_text(fname):
-#     # READS LINES
-#     with open(fname, "r") as f:
-#         lines = f.readlines()
-#     return lines
 
 def shrink2roi(img, roi):
+    """[summary]
+
+    Parameters
+    ----------
+    img : [type]
+        [description]
+    roi : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
     ind = np.where(roi != 0)
 
     y_min = min(ind[0])
@@ -951,244 +828,16 @@ def shrink2roi(img, roi):
 
     return img[y_min:y_max, x_min:x_max]
 
-def hash_dict(dictionary):
-    """Create a hash for a dictionary."""
-    dict2hash = ""
-
-    for k in sorted(dictionary.keys()):
-        if isinstance(dictionary[k], dict):
-            v = hash_dict(dictionary[k])
-        else:
-            v = dictionary[k]
-
-        dict2hash += "%s_%s_" % (str(k), str(v))
-
-    return hashlib.md5(dict2hash.encode()).hexdigest()
-
-def hash_str(str):
-    return hashlib.md5(str.encode()).hexdigest()
-
-
-def create_dirs(fname):
-    """Create folders."""
-    # If it is a filename do nothing
-    if "/" not in fname:
-        return
-
-    # If the folder do not exist, create it
-    if not os.path.exists(os.path.dirname(fname)):
-        print(os.path.dirname(fname))
-        os.makedirs(os.path.dirname(fname))
-
-
-def wait_until_safe2load(path, patience=10):
-    """Wait until safe to load."""
-    # Check if someone is writting in the file
-    writing_flag = False
-    if os.path.exists(path):
-        writing_flag = load_json(path).get("writing")
-
-    # Keep checking until noone is writting there
-    waiting = 0
-    while writing_flag and waiting < patience:
-        time.sleep(.5)
-        waiting += 1
-        if os.path.exists(path):
-            writing_flag = load_json(path).get("writing")
-
-    return writing_flag
-
-
-def wait_until_safe2save(path, patience=10):
-    # Check if someone is reading the file
-    reading_flag = False
-    if os.path.exists(path):
-        reading_flag = load_json(path).get("reading")
-
-    # Keep trying until noone is reading the file
-    reading = 0
-    while reading_flag and reading < patience:
-        time.sleep(.5)
-        reading += 1
-        if os.path.exists(path):
-            reading_flag = load_json(path).get("reading")
-
-    return reading_flag
-
-
-def load_yaml(fname):
-    """Load the content of a yaml file."""
-    with open(fname, 'r') as outfile:
-        yaml_file = yaml.load(outfile)  # Loader=yaml.FullLoader
-    return yaml_file
-
-
-def save_yaml(fname, data):  # TODO: Safe???
-    """Save data into a yaml file"""
-    create_dirs(fname)
-    with open(fname, 'w') as outfile:
-        yaml.dump(data, outfile, default_flow_style=False)
-
-
-def load_txt(fname):
-    """Load the content of a txt file."""
-    with open(fname, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-    return lines
-
-
-# def save_pkl(fname, data, with_rename=True):
-#     """Save data in pkl format."""
-#     # Create folder
-#     create_dirs(fname)
-#
-#     # Save file
-#     if with_rename:
-#         fname_tmp = fname + "_tmp.pth"
-#         with open(fname_tmp, "wb") as f:
-#             pickle.dump(data, f)
-#         os.rename(fname_tmp, fname)
-#     else:
-#         with open(fname, "wb") as f:
-#             pickle.dump(data, f)
-
-
-# def load_pkl(fname):
-#     """Load the content of a pkl file."""
-#     with open(fname, "rb") as f:
-#         return pickle.load(f)
-
-
-def torch_load(fname, map_location=None, safe_flag=False):
-    """Load the content of a torch file."""
-    fname_writing = fname + "_writing_dict.json.tmp"
-    fname_reading = fname + "_reading_dict.json.tmp"
-
-    if safe_flag:
-        wait_until_safe2load(fname_writing)
-        save_json(fname_reading, {"reading": 1})
-
-    obj = torch.load(fname, map_location=map_location)
-
-    if safe_flag:
-        save_json(fname_reading, {"reading": 0})
-
-    return obj
-
-
-def torch_save(fname, obj, safe_flag=True):
-    """"Save data in torch format."""
-    # Create folder
-    create_dirs(fname)
-
-    # Define names of temporal files
-    fname_tmp = fname + ".tmp"
-    fname_writing = fname + "_writing_dict.json.tmp"
-    fname_reading = fname + "_reading_dict.json.tmp"
-
-    if safe_flag:
-        wait_until_safe2save(fname_reading)
-        save_json(fname_writing, {"writing": 1})
-
-    torch.save(obj, fname_tmp)
-    if os.path.exists(fname):
-        os.remove(fname)
-    os.rename(fname_tmp, fname)
-
-    if safe_flag:
-        save_json(fname_writing, {"writing": 0})
-
-
-# def fname_parent(filepath, levels=1):
-#     """Get the parent directory at x levels above."""
-#     common = filepath
-#     for i in range(levels + 1):
-#         common = os.path.dirname(common)
-#     return os.path.relpath(filepath, common)
-
-
-
-def time2mins(time_taken):
-    """Convert time into minutes."""
-    return time_taken / 60.
-
-
-# def time_to_montreal():  # TODO: Remove commented code
-#     """Get time in Montreal zone."""
-#     # Get time
-#     ts = time.time()
-#
-#     # Convert to utc time
-#     # utc_dt = datetime.utcfromtimestamp(ts)
-#
-#     # aware_utc_dt = utc_dt.replace(tzinfo=pytz.utc)
-#
-#     tz = pytz.timezone('America/Montreal')
-#     # dt = aware_utc_dt.astimezone(tz)
-#     dt = datetime.fromtimestamp(ts, tz)
-#
-#     return dt.strftime("%I:%M %p (%b %d)")
-
-
-class Parallel:
-    """Class for run a function in parallel."""
-
-    def __init__(self):
-        self.threadList = []
-        self.count = 0
-
-    def add(self, func,  *args):
-        """Add a funtion."""
-        self.threadList += [
-            threading.Thread(target=func, name="thread-%d"%self.count,
-                             args=args)]
-        self.count += 1
-
-    def run(self):
-        for thread in self.threadList:
-            thread.daemon = True
-            print("  > Starting thread %s" % thread.name)
-            thread.start()
-
-    def close(self):
-        for thread in self.threadList:
-            print("  > Joining thread %s" % thread.name)
-            thread.join()
-
-
-def subprocess_call(cmd_string):
-    return subprocess.check_output(
-        shlex.split(cmd_string), shell=False).decode("utf-8")
-
-def extract_fname(directory):
-    import ntpath
-    return ntpath.basename(directory)
-
-
-def copy_code(src_path, dst_path, verbose=1):
-    """Copy code."""
-    assert src_path[-1] == "/"
-    time.sleep(.5)  # TODO: Why?
-
-    if verbose:
-        print("  > Copying code from %s to %s" % (src_path, dst_path))
-    # Create destination folder
-    create_dirs(dst_path + "/tmp")  # TODO: Why?
-
-    rsync_code = "rsync -av -r -q  --delete-before --exclude='.git/' " \
-                 " --exclude='*.pyc' --exclude='__pycache__/' %s %s" % (
-                    src_path, dst_path)
-
-    try:
-        subprocess_call(rsync_code)
-    except subprocess.CalledProcessError as e:
-        raise ValueError("Ping stdout output:\n", e.output)  # TODO: Through an error?
-
-    # print("  > Code copied\n")
-    time.sleep(.5)  # TODO: Delete?
 
 @contextlib.contextmanager
 def random_seed(seed):
+    """[summary]
+
+    Parameters
+    ----------
+    seed : [type]
+        [description]
+    """
     state = np.random.get_state()
     np.random.seed(seed)
     try:
@@ -1197,166 +846,75 @@ def random_seed(seed):
         np.random.set_state(state)
 
 
-# =====================================
-# results manager
-# =====================================
-# This file should be made to view and aggregate results
+def is_subset(d1, d2, strict=False):
+    """[summary]
 
-# ==========================================
-# Utils
-# ==========================================
+    Parameters
+    ----------
+    d1 : [type]
+        [description]
+    d2 : [type]
+        [description]
 
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    flag = True
+    for k in d1:
+        v1, v2 = d1.get(k), d2.get(k)
 
+        # if both are values
+        if not isinstance(v2, dict) and not isinstance(v1, dict):
+            if v1 != v2:
+                flag = False
 
-def get_dataframe_exp_list(exp_list,  col_list=None, savedir_base=""):
-    
-    meta_list = []
-    for exp_dict in exp_list:
-        exp_meta = get_exp_meta(exp_dict, savedir_base)
-        meta_dict = copy.deepcopy(flatten_dict(exp_dict))
+        # if both are dicts
+        elif isinstance(v2, dict) and isinstance(v1, dict):
+            flag = is_subset(v1, v2)
 
-        meta_dict["exp_id"] = exp_meta["exp_id"]
-        # meta_dict["savedir"] = exp_meta["savedir"]
-        # meta_dict["command"] = exp_meta["command"]
-        
-        if meta_dict == {}:
-            continue
+        # if d1 is dict and not d2
+        elif isinstance(v1, dict) and not isinstance(v2, dict):
+            flag = False
 
-        meta_list += [meta_dict]
-    df =  pd.DataFrame(meta_list).set_index("exp_id")
+        # if d1 is not and d2 is dict
+        elif not isinstance(v1, dict) and isinstance(v2, dict):
+            flag = False
 
-    if col_list:
-        df = df[[c for c in col_list if c in df.columns]]
+        if flag is False:
+            break
 
-    return df
-
-def get_dataframe_score_list(exp_list, col_list=None, savedir_base=None):
-    score_list_list = []
-
-    # aggregate results
-    for exp_dict in exp_list:
-        result_dict = {}
-
-        exp_meta = get_exp_meta(exp_dict, savedir_base=savedir_base)
-        result_dict["exp_id"] = exp_meta["exp_id"]
-        if not os.path.exists(exp_meta["savedir"]+"/score_list.pkl"):
-            score_list_list += [result_dict]
-            continue
-
-        score_list_fname = os.path.join(exp_meta["savedir"], "score_list.pkl")
-
-        if os.path.exists(score_list_fname):
-            score_list = load_pkl(score_list_fname)
-            score_df = pd.DataFrame(score_list)
-            if len(score_list):
-                score_dict_last = score_list[-1]
-                for k, v in score_dict_last.items():
-                    if "float" not  in str(score_df[k].dtype):
-                        result_dict[k] = v
-                    else:
-                        # result_dict[k] = "%.3f (%.3f-%.3f)" % (v, score_df[k].min(), score_df[k].max())
-                        result_dict[k] = "%.3f" % (score_df[k].min())
-            
-        score_list_list += [result_dict]
-
-    df = pd.DataFrame(score_list_list).set_index("exp_id")
-    
-    # join with exp_dict df
-    df_exp_list = get_dataframe_exp_list(exp_list, col_list=col_list)
-    df = join_df_list([df, df_exp_list])
-    
-    # filter columns
-    if col_list:
-        df = df[[c for c in col_list if c in df.columns]]
-
-    return df
+    return flag
 
 
-def loadmat(fname):
-    return io.loadmat(fname)
+def as_double_list(v):
+    """[summary]
 
+    Parameters
+    ----------
+    v : [type]
+        [description]
 
-# ===========================================
-# helpers
-def join_df_list(df_list):
-    result_df = df_list[0]
-    for i in range(1, len(df_list)):
-        result_df = result_df.join(df_list[i], how="outer", lsuffix='_%d'%i, rsuffix='')
-    return result_df
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    if not isinstance(v, list) and not isinstance(v, np.ndarray):
+        v = [v]
 
-# def load_pkl(fname):
-#     """Load the content of a pkl file."""
-#     with open(fname, "rb") as f:
-#         return pickle.load(f)
+    if not isinstance(v[0], list) and not isinstance(v[0], np.ndarray):
+        v = [v]
 
-def load_json(fname, decode=None):
-    with open(fname, "r") as json_file:
-        d = json.load(json_file)
+    return v
 
-    return d
-
-def read_text(fname):
-    # READS LINES
-    with open(fname, "r", encoding="utf-8") as f:
-        lines = f.readlines()
-        # lines = [line.decode('utf-8').strip() for line in f.readlines()]
-    return lines
-
-# def extract_fname(directory):
-#     import ntpath
-#     return ntpath.basename(directory)
-
-# def flatten_dict(exp_dict):
-#     result_dict = {}
-#     for k in exp_dict:
-#         # print(k, exp_dict)
-#         if isinstance(exp_dict[k], dict):
-#             for k2 in exp_dict[k]:
-#                 result_dict[k2] = exp_dict[k][k2]
-#         else:
-#             result_dict[k] = exp_dict[k]
-#     return result_dict
-
-def filter_flag(exp_dict, regard_dict=None, disregard_dict=None):
-    # regard dict
-    flag_filter = False
-    flattened = flatten_dict(exp_dict)
-    if regard_dict:
-        for k in regard_dict:
-            if flattened.get(k) != regard_dict[k]:
-                flag_filter = True
-                break
-
-    # disregard dict
-    if disregard_dict:
-        for k in disregard_dict:
-            if flattened.get(k) == disregard_dict[k]:
-                flag_filter = True
-                break
-
-    return flag_filter
-
-
-def get_filtered_exp_list(exp_list, regard_dict=None, disregard_dict=None):
-    fname_list = glob.glob(savedir_base + "/*/exp_dict.json")
-
-    exp_list_new = []
-    for exp_dict in exp_list:
-        if filter_flag(exp_dict, regard_dict, disregard_dict):
-            continue
-        exp_list_new += [exp_dict]
-
-    return exp_list_new
-
-def get_filtered_exp_list_savedir(savedir_base, regard_dict=None, disregard_dict=None):
-    fname_list = glob.glob(savedir_base + "/*/exp_dict.json")
-
-    exp_list_new = []
-    for fname in fname_list:
-        exp_dict = load_json(fname)
-        if filter_flag(exp_dict, regard_dict, disregard_dict):
-            continue
-        exp_list_new += [exp_dict]
-
-    return exp_list_new
-
+def check_duplicates(list_of_dicts):
+    # ensure no duplicates in exp_list
+    hash_list = set()
+    for data_dict in list_of_dicts:
+        dict_id = hash_dict(data_dict)
+        if dict_id in hash_list:
+            raise ValueError('duplicate experiments detected...')
+        else:
+            hash_list.add(dict_id)

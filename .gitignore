@@ -6,8 +6,13 @@ __pycache__/
 .idea
 # C extensions
 *.so
+user_config.py
+.jupyter_server/
 .vscode
-results/
+.tmp/
+tests_jobs.py
+.tmp_plots/
+cp_job_utils.sh
 # Distribution / packaging
 .Python
 build/

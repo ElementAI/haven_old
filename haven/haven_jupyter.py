@@ -1,141 +1,126 @@
 import pandas as pd 
-import pylab as plt 
 from . import haven_utils
-import glob 
 import os
 
-
-def create_jupyter(exp_group_list, savedir_base, 
-                   workdir,
-                   fname=None,
-                   legend_list=None, 
-                   score_list=None,
-                   groupby_list=None,
-                   regard_dict=None,
-                   disregard_dict=None,
-                   extra_cells=None
-                   ):
+def launch_jupyter():
+    """
+    virtualenv -p python3 .
+    source bin/activate
+    pip install jupyter notebook
+    jupyter notebook --ip 0.0.0.0 --port 2222 --NotebookApp.token='abcdefg'
+    """
+    print()
     
-    if fname is None:
-        fname = workdir+"/view_results.ipynb"
+
+def view_jupyter(exp_group_list=[],
+                 savedir_base='<savedir_base>', 
+                 fname='results/example.ipynb', 
+                 workdir='<workdir>',
+                 install_flag=False,
+                 run_flag=False,
+                 job_flag=False):
+    cells = [header_cell(), 
+             exp_list_cell(savedir_base, workdir, exp_group_list)]
+
+    if job_flag:
+        cells += [job_cell()]
+        
+    if install_flag:
+        cells += [install_cell()]
+
     os.makedirs(os.path.dirname(fname), exist_ok=True)
-    script_header = generate_header_script(savedir_base, workdir)
-    script_exp_list = generate_exp_list_script(
-                            exp_group_list, 
-                            regard_dict=regard_dict, 
-                            disregard_dict=disregard_dict,
-                            groupby_list=groupby_list)
-
-    script_results = generate_results_script_basic(legend_list, score_list, groupby_list)
-    
-    cells = [script_header, 
-                       script_exp_list,
-                       script_results,
-                       ]
-
-    if extra_cells is not None:
-        cells += extra_cells
     save_ipynb(fname, cells)
-    print("saved: %s" % fname)
+
+    if run_flag:
+        run_notebook(fname)
+        
+    print('Saved Jupyter: %s' % fname)
+
+def run_notebook(fname):
+    import nbformat
+    from nbconvert.preprocessors import ExecutePreprocessor
+    from nbconvert import PDFExporter
+
+    with open(fname) as f:
+        nb = nbformat.read(f, as_version=4)
+    ep = ExecutePreprocessor(timeout=600, kernel_name='python3')
+    ep.preprocess(nb, {'metadata': {'path': 'results/'}})
+    with open(fname, 'w', encoding='utf-8') as f:
+        nbformat.write(nb, f)
+
     
-    # print('link: %s' % )
-
-def generate_header_script(savedir_base, workdir):
+def header_cell():
     script = ("""
-import itertools
-import pprint
-import argparse
-import sys
-import os
-import pylab as plt
-import pandas as pd
-import sys
-import numpy as np
-import hashlib 
-import pickle
-import json
-import glob
-import copy
-from itertools import groupby
-
-savedir_base = '%s'
-workdir = '%s'
-sys.path.append(workdir)
-
 from haven import haven_jupyter as hj
 from haven import haven_results as hr
+from haven import haven_dropbox as hd
+from haven import haven_utils as hu
 
 hj.init_datatable_mode()
 from IPython.core.display import display, HTML
-display(HTML("<style>.container { width:100%% !important; }</style>"))
-
-          """ % (savedir_base, workdir))
+display(HTML("<style>.container { width:100% !important; }</style>"))
+          """)
     return script
 
-def generate_exp_list_script(exp_group_list, 
-                             regard_dict=None, disregard_dict=None,
-                             groupby_list=None):
+def install_cell():
     script = ("""
-from haven import haven_utils as hu
-import exp_configs
+import sys
+from importlib import reload
 
-# get exp list
-exp_list = []
-for exp_group_name in %s:
-    exp_list += exp_configs.EXP_GROUPS[exp_group_name]
+# !{sys.executable} -m pip install --upgrade --no-dependencies   git+https://github.com/ElementAI/haven --user
+!{sys.executable} -m pip install --upgrade --no-dependencies  '/home/issam/Research_Ground/haven/' --user
 
-# filter 
-exp_list = hu.filter_exp_list(exp_list, 
-                            regard_dict=%s,
-                            disregard_dict=%s) 
-print("%%s experiments" %% len(exp_list))
-
-# group experiments
-groupby_key_list = %s
-
-exp_subsets = hr.group_exp_list(exp_list, groupby_key_list)
-
-print('Grouping by', groupby_key_list)
-for exp_subset in exp_subsets:
-    print('%%d experiments' %% (len(exp_subset)) )
-          """ % (exp_group_list, regard_dict, disregard_dict, groupby_list))
+reload(hj)
+reload(hr)
+reload(hd)
+reload(hu)
+          """)
     return script
 
-
-def generate_results_script_basic(legend_list, score_list, groupby_list):
+def exp_list_cell(savedir_base, workdir, exp_group_list):
     script = ("""
-for i, exp_subset in enumerate(exp_subsets):
-    # exp_subset = hr.filter_best_results(exp_subset, savedir_base=savedir_base, groupby_key_list=['model'], score_key='val_mae')
-    
-    # score df
-    df = hr.get_dataframe_score_list(exp_subset, savedir_base=savedir_base)
+# create result manager
+rm = hr.ResultManager(savedir_base='%s', workdir='%s', exp_group_list=%s)
+
+# filter experiments
+rm.filter(regard_dict_list=None,
+                    groupby_list=None,
+                    has_score_list=False)
+
+# get scores
+df_list = rm.get_scores(columns=None)
+for df in df_list:
     display(df)
 
-    # plot
-    fig = hr.get_plot(exp_subset, %s, savedir_base, 
-    title_list=%s,
-    avg_runs=0,
-    legend_list=%s,
-    )
-    # plt.savefig('%%s/results/%%s_%%d.jpg' %% (workdir, exp_group_name, i))
-    plt.show()
+# plot
+rm.get_plots(y_list=['train_loss', 'val_acc'], transpose=True, 
+             x_name='epoch', legend_list=['model'], 
+             title_list=['dataset'])
 
-    # qualitative
-    hr.get_images(exp_subset, savedir_base, n_exps=3, split="row")
-          """% (score_list, groupby_list, legend_list))
+# show images
+rm.get_images(legend_list=['model'], dirname='images')
+          """ % (savedir_base, workdir, exp_group_list))
     return script
 
-def generate_zip_script():
+def job_cell():
+    script = ("""
+# get job status
+rm.get_job_logs()
+rm.get_job_stats()
+          """)
+    return script
+
+def generate_zip_script(outdir):
     script = ("""
 exp_id_list = [hu.hash_dict(exp_dict) for exp_dict in exp_list]
+results_fname = '%%s_%%s.zip'%% (exp_group_name, len(exp_list))
+src_fname = os.path.join('%s', results_fname)
+print('save in:', src_fname)
+stop
+hd.zipdir(exp_id_list, savedir_base, src_fname)
 
-results_fname = 'results.zip'
-src_fname = savedir_base + '/%s' % results_fname
-hr.zipdir(exp_id_list, savedir_base, src_fname)
-print('Zipped %d experiments in %s' % (len(exp_id_list), src_fname))
 
-
-          """)
+          """ % outdir)
     return script
 
 def save_ipynb(fname, script_list):
@@ -188,39 +173,4 @@ def init_datatable_mode():
 
     pd.DataFrame._repr_javascript_ = _repr_datatable_
 
-
-def get_images(exp_list, savedir_base, n_exps=3):
-    from IPython.core.display import display
-    
-    for k, exp_dict in enumerate(exp_list):
-        if k >= n_exps:
-            return
-        result_dict = {}
-
-        exp_id = haven_utils.hash_dict(exp_dict)
-        result_dict["exp_id"] = exp_id
-        savedir = savedir_base + "/%s/" % exp_id 
-        img_list = glob.glob(savedir + "/images/images/*.jpg")
-        
-        ncols = len(img_list)
-        # ncols = len(exp_configs)
-        nrows = 1
-        fig, axs = plt.subplots(nrows=nrows, ncols=ncols, 
-                                figsize=(ncols*12, nrows*3))
-        
-        if not isinstance(axs, list):
-            axs = [axs]
-   
-        for i in range(ncols):
-            img = plt.imread(img_list[i])
-            axs[0][i].imshow(img)
-            axs[0][i].set_axis_off()
-            axs[0][i].set_title(haven_utils.extract_fname(img_list[i]))
-#         fig.suptitle(exp_id)
-        plt.axis('off')
-        plt.tight_layout()
-        display("Experiment %s %s" % (exp_id,"="*100))
-        display(pd.DataFrame([exp_dict]))
-        plt.show()
-#         display("="*100)
         
