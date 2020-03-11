@@ -240,6 +240,43 @@ Shown in example.ipynb.
 Add the following cells to a Jupyter
 
 ##### Cell 1
+```
+# Setup variables
+# ===============
+
+savedir_base = '/mnt/datasets/public/issam/prototypes/isps/borgy/'
+workdir='/mnt/home/issam/Research_Ground/isps'
+exp_group_list=['pascal_full']
+
+
+# exp vars
+filterby_list = None
+groupby_list = None
+verbose = 1
+
+# table vars
+columns = None
+
+# plot vars
+y_metric='val_score'
+x_metric='epoch'
+map_exp_list = []
+figsize=(10,5)
+title_list=['dataset']
+legend_list=['model']
+mode='line'
+
+# image vars
+image_legend_list = []
+n_images=5
+
+# job vars
+username = 'anonymous'
+columns = None
+```
+
+
+##### Cell 2
 
 ```python
 # Create vizualizations
@@ -312,67 +349,31 @@ with images:
     show_inline_matplotlib_plots()
 
 # Display job states
-with job_states:
-    table_dict = rm.get_job_summary(username=username)[0]
-    display(table_dict['status'])
-    display(table_dict['table'])
+# with job_states:
+#     table_dict = rm.get_job_summary(username=username)[0]
+#     display(table_dict['status'])
+#     display(table_dict['table'])
 
-# Display job failed
-with job_logs:
-    table_dict = rm.get_job_summary(username=username)[0]
+# # Display job failed
+# with job_logs:
+#     table_dict = rm.get_job_summary(username=username)[0]
  
-    display(table_dict['status'])
-    display(table_dict['table'])
-    for logs in table_dict['logs']:
-         pprint.pprint(logs)
+#     display(table_dict['status'])
+#     display(table_dict['table'])
+#     for logs in table_dict['logs']:
+#          pprint.pprint(logs)
                 
-# Display job failed
-with job_failed:
-    table_dict = rm.get_job_summary(username=username)[0]
-    if len(table_dict['failed']) == 0:
-        display('no failed experiments')
-    else:
-        display(table_dict['failed'])
-        for failed in table_dict['logs_failed']:
-             pprint.pprint(failed)
+# # Display job failed
+# with job_failed:
+#     table_dict = rm.get_job_summary(username=username)[0]
+#     if len(table_dict['failed']) == 0:
+#         display('no failed experiments')
+#     else:
+#         display(table_dict['failed'])
+#         for failed in table_dict['logs_failed']:
+#              pprint.pprint(failed)
 ```
 
-##### Cell 2
-
-```
-# Setup variables
-# ===============
-
-savedir_base = '/mnt/datasets/public/issam/prototypes/isps/borgy/'
-workdir='/mnt/home/issam/Research_Ground/isps'
-exp_group_list=['pascal_full']
-
-
-# exp vars
-filterby_list = None
-groupby_list = None
-verbose = 1
-
-# table vars
-columns = None
-
-# plot vars
-y_metric='val_score'
-x_metric='epoch'
-map_exp_list = []
-figsize=(10,5)
-title_list=['dataset']
-legend_list=['model']
-mode='line'
-
-# image vars
-image_legend_list = []
-n_images=5
-
-# job vars
-username = 'issam'
-columns = None
-```
 
 
 
