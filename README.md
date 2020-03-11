@@ -246,6 +246,15 @@ See also example.ipynb to display the results:
 $ pip install --upgrade git+https://github.com/ElementAI/haven
 ```
 
+To install from a jupyter cell,
+
+```python
+import sys
+!{sys.executable} -m pip install --upgrade  --no-dependencies 'git+https://github.com/ElementAI/haven' --user
+```
+
+<!-- /home/issam/Research_Ground/haven/ -->
+
 ### Contributing
 
 We love contributions!
