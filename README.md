@@ -27,7 +27,7 @@ To setup a machine learning project for large-scale experimentation, we can foll
 
 1. [Write the codebase;](#1.-writing-the-codebase)
 2. [define the hyperparameters;](#2.-defining-the-hyperparameters)
-3. [run and manage the experiments; and](#3.-running-the-experiments)
+3. [run the experiments; and](#3.-running-the-experiments)
 4. [visualize the results.](#4.-visualizing-the-results)
 
 ### Examples
@@ -140,6 +140,15 @@ def trainval(exp_dict, savedir_base, reset=False):
 
     print('experiment completed')
 
+
+```
+
+
+
+#### 2. Defining the Hyperparameters
+Define an experiment group `mnist` as a list of hyperparameters
+
+```python
 from haven import haven_utils as hu
 
 # Define exp groups for parameter search
@@ -148,7 +157,13 @@ EXP_GROUPS = {'mnist':
                     'lr':[1e-3, 1e-4],
                     'batch_size':[32, 64]})
                 }
+```
 
+#### 3. Running the Experiments
+
+##### 1. Script Setup
+
+```python
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
@@ -176,52 +191,48 @@ if __name__ == "__main__":
         for exp_group_name in args.exp_group_list:
             exp_list += exp_configs.EXP_GROUPS[exp_group_name]
 
-
-    # Run experiments or View them
-    # ----------------------------
-    if args.view_experiments:
-        # view experiments
-        hr.view_experiments(exp_list, savedir_base=args.savedir_base)
-
-    elif args.run_jobs:
-        # launch jobs
-        from haven import haven_jobs as hj
-        hj.run_exp_list_jobs(exp_list, 
-                       savedir_base=args.savedir_base, 
-                       workdir=os.path.dirname(os.path.realpath(__file__)))
-
-    else:
-        # run experiments
-        for exp_dict in exp_list:
-            # do trainval
-            trainval(exp_dict=exp_dict,
-                    savedir_base=args.savedir_base,
-                    datadir_base=args.datadir_base,
-                    reset=args.reset)
+    # run experiments
+    for exp_dict in exp_list:
+        # do trainval
+        trainval(exp_dict=exp_dict,
+                savedir_base=args.savedir_base,
+                datadir_base=args.datadir_base,
+                reset=args.reset)
 ```
 
 
 
-#### 2. Defining the Hyperparameters
-Define an experiment group `mnist` as a list of hyperparameters
-
-```
-EXP_GROUPS = {'mnist':
-                hu.cartesian_exp_group({
-                    'dataset':'mnist',
-                    'model':'mlp',
-                    'max_epoch':20,
-                    'lr':[1e-3, 1e-4],
-                    'batch_size':[32, 64]})
-                }
-```
-
-#### 3. Running the Experiments
+##### 2. Command Line
 
 Trains a model on mnist across a set of hyperparameters:
 
 ```
 python example.py -e mnist -sb ../results -r 1
+```
+
+##### 3. Using a job manager
+
+```python
+# launch jobs
+elif args.run_jobs:
+        # launch jobs
+        # launch jobs
+        from haven import haven_jobs as hjb
+        run_command = ('python trainval.py -ei <exp_id> -sb %s -d %s -nw 1' %  (args.savedir_base, args.datadir_base))
+        job_config = {'volume': <volume>,
+                    'image': <docker image>,
+                    'bid': '1',
+                    'restartable': '1',
+                    'gpu': '4',
+                    'mem': '30',
+                    'cpu': '2'}
+        workdir = os.path.dirname(os.path.realpath(__file__))
+        
+        hjb.run_exp_list_jobs(exp_list, 
+                            savedir_base=args.savedir_base, 
+                            workdir=workdir,
+                            run_command=run_command,
+                            job_config=job_config)
 ```
 
 #### 4. Visualizing the Results

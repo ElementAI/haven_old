@@ -918,3 +918,28 @@ def check_duplicates(list_of_dicts):
             raise ValueError('duplicate experiments detected...')
         else:
             hash_list.add(dict_id)
+
+def load_py(fname):
+    """[summary]
+
+    Parameters
+    ----------
+    fname : [type]
+        [description]
+
+    Returns
+    -------
+    [type]
+        [description]
+    """
+    from importlib import reload
+    from importlib import import_module
+
+    sys.path.append(os.path.dirname(fname))
+
+    name = os.path.split(fname)[-1].replace('.py','')
+    module = import_module(name) 
+    reload(module)
+    sys.path.pop()
+
+    return module
