@@ -14,7 +14,7 @@ Most machine learning projects require a codebase and a workflow to  create, man
 * [Install](#install)
 * [Getting Started](#getting-started)
 * [Examples](#examples)
-* [Features](#features)
+* [Extras](#extras)
 * [Contributing](#contributing)
 
 ### Install
@@ -38,18 +38,6 @@ The following folders contain example projects built on this framework.
 - [Active Learning](https://github.com/ElementAI/haven/tree/master/examples/active_learning)
 - [Generative Adversarial Networks](https://github.com/ElementAI/haven/tree/master/examples/gans)
 - [Object Counting](https://github.com/ElementAI/haven/tree/master/examples/object_counting)
-
-### Features
-
-- Create a list of hyperparameters.
-- Save a score dictionary at each epoch.
-- Launch a score dictionary at each epoch.
-- Create and Launch Jupyter.
-- View experiment configurations.
-- View scores as a table.
-- View scores as a plot.
-- View scores as a barchart.
-
 
 
 
@@ -405,6 +393,20 @@ import sys
 !{sys.executable} -m pip install --upgrade  --no-dependencies 'git+https://github.com/ElementAI/haven' --user
 ```
 <!-- /home/issam/Research_Ground/haven/ -->
+
+### Extras
+
+- Create a list of hyperparameters.
+- Save a score dictionary at each epoch.
+- Launch a score dictionary at each epoch.
+- Create and Launch Jupyter.
+- View experiment configurations.
+- Debug a single experiment
+- View scores as a table.
+- View scores as a plot.
+- View scores as a barchart.
+
+
 
 
 ### Contributing
