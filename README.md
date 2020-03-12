@@ -227,7 +227,7 @@ elif args.run_jobs:
                     'mem': '30',
                     'cpu': '2'}
         workdir = os.path.dirname(os.path.realpath(__file__))
-        
+
         hjb.run_exp_list_jobs(exp_list, 
                             savedir_base=args.savedir_base, 
                             workdir=workdir,
@@ -265,8 +265,8 @@ Add the following two cells to a Jupyter notebook.
 # ===============
 
 savedir_base = <savedir_base>
-workdir = <workdir>
-exp_group_list = ['default']
+exp_config_name = <exp_config_name>
+exp_list = hu.load_py(exp_config_name).EXP_GROUPS['mnist']
 
 
 # exp vars
@@ -317,8 +317,7 @@ from haven import haven_jupyter as hj
 hj.init_datatable_mode()
 
 # Get experiments
-rm = hr.ResultManager(workdir=workdir, 
-                      exp_group_list=exp_group_list,
+rm = hr.ResultManager(exp_list=exp_list, 
                       savedir_base=savedir_base, 
                       filterby_list=filterby_list,
                       groupby_list=groupby_list,

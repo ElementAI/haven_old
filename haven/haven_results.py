@@ -818,8 +818,6 @@ class ResultManager:
     def __init__(self, 
                  savedir_base,
                  exp_list=None,
-                 exp_group_list=None,
-                 workdir=None,
                  filterby_list=None,
                  groupby_list=None, 
                  verbose=True):
@@ -830,10 +828,6 @@ class ResultManager:
         savedir_base : [type]
             A directory where experiments are saved
         exp_list : [type], optional
-            [description], by default None
-        exp_group_list : [type], optional
-            [description], by default None
-        workdir : [type], optional
             [description], by default None
         filterby_list : [type], optional
             [description], by default None
@@ -860,10 +854,7 @@ class ResultManager:
                                     title_list=['dataset'],
                                     legend_list=['model']) 
         """
-        if exp_group_list is not None:
-            exp_list = get_exp_list_from_exp_configs(exp_group_list=exp_group_list, workdir=workdir, verbose=verbose)
-
-        elif exp_list is None:
+        if exp_list is None:
             exp_list = get_exp_list(savedir_base=savedir_base, verbose=verbose)
 
         else:

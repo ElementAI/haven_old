@@ -932,6 +932,7 @@ def load_py(fname):
     [type]
         [description]
     """
+    import sys
     from importlib import reload
     from importlib import import_module
 
