@@ -43,7 +43,7 @@ The following folders contain example projects built on this framework.
 
 #### 1. Writing the Codebase
 
-Create a file `main.py` with the template below: 
+Create a file `trainval.py` with the template below: 
 
 ```python
 import os
@@ -134,7 +134,8 @@ def trainval(exp_dict, savedir_base, reset=False):
 
 
 #### 2. Defining the Hyperparameters
-Define an experiment group `mnist` as a list of hyperparameters
+
+Add to `trainval.py` the following dictionary which defines a set of hyperparameters for Mnist. This dictionary defines a `mnist` experiment group.
 
 ```python
 from haven import haven_utils as hu
@@ -149,7 +150,11 @@ EXP_GROUPS = {'mnist':
 
 #### 3. Running the Experiments
 
-##### 1. Script Setup
+To run `trainval.py` with the `mnist` experiment group, follow the two steps below.
+
+##### 3.1 Create the 'Main' Script
+
+Add the following script to `trainval.py`. This script allows the user to use the command line to select between experiment groups in order to run them.
 
 ```python
 if __name__ == "__main__":
@@ -190,15 +195,17 @@ if __name__ == "__main__":
 
 
 
-##### 2. Command Line
+##### 3.2 Run trainval.py in Command Line
 
-Trains a model on mnist across a set of hyperparameters:
+Run the following command in order to launch the mnist experiments and save them under the folder `../results/`.
 
 ```
-python example.py -e mnist -sb ../results -r 1
+python trainval.py -e mnist -sb ../results -r 1
 ```
 
-##### 3. Using a job manager
+##### 3.3 Using a job manager
+
+You can run all the experiments in parallel using a job scheduler such as the orkestrator. The job scheduler can be used with the following script.
 
 ```python
 # launch jobs
