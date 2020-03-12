@@ -9,10 +9,10 @@
 </table> -->
 # Haven 
 
+Most machine learning projects require a codebase and a workflow to  create, manage, and visualize experiments. This framework helps in achieving this setup while focusing on simplicity, readability, reliability, and flexibility. 
 
-A style-guide for creating, managing, and visualizing experiments. 
 * [Install](#install)
-* [Overview](#overview)
+* [Getting Started](#getting-started)
 * [Examples](#examples)
 * [Features](#features)
 * [Contributing](#contributing)
@@ -21,16 +21,18 @@ A style-guide for creating, managing, and visualizing experiments.
 ```
 $ pip install --upgrade git+https://github.com/ElementAI/haven
 ```
-### Overview
+### Getting Started
 
-This guide focuses on readability, reliability, and flexibility. It consists of 4 main steps:
+To setup a machine learning project for large-scale experimentation, we can follow these 4 steps.
 
-1. [Codebase](#codebase): write code for a machine learning project.
-2. [Hyperparameters](#hyperparameters): define a list of experiments.
-3. [Experiments](#experiments): run  and manage thousands of experiments.
-4. [Visualization](#visualization): aggregate through thousands of results.
+1. [Write the codebase;](#1.-writing-the-codebase)
+2. [define the hyperparameters;](#2.-defining-the-hyperparameters)
+3. [run and manage the experiments; and](#3.-running-the-experiments)
+4. [visualize the results.](#4.-visualizing-the-results)
 
 ### Examples
+
+The following folders contain example projects built on this framework.
 
 - [Classification](https://github.com/ElementAI/haven/tree/master/examples/classification)
 - [Active Learning](https://github.com/ElementAI/haven/tree/master/examples/active_learning)
@@ -51,7 +53,7 @@ This guide focuses on readability, reliability, and flexibility. It consists of 
 
 
 
-#### Codebase
+#### 1. Writing the Codebase
 
 Create a file `main.py` with the template below: 
 
@@ -200,7 +202,7 @@ if __name__ == "__main__":
 
 
 
-#### Hyperparameters
+#### 2. Defining the Hyperparameters
 Define an experiment group `mnist` as a list of hyperparameters
 
 ```
@@ -214,7 +216,7 @@ EXP_GROUPS = {'mnist':
                 }
 ```
 
-#### Experiments
+#### 3. Running the Experiments
 
 Trains a model on mnist across a set of hyperparameters:
 
@@ -222,7 +224,7 @@ Trains a model on mnist across a set of hyperparameters:
 python example.py -e mnist -sb ../results -r 1
 ```
 
-#### Visualization
+#### 4. Visualizing the Results
 
 The following two steps will setup the visualization environment.
 
@@ -237,7 +239,7 @@ pip install jupyter notebook
 pip install ipywidgets
 jupyter nbextension enable --py widgetsnbextension --sys-prefix
 jupyter notebook --ip 0.0.0.0 --port 9123 \
-      --notebook-dir="/home/$USER" --NotebookApp.token=<password>
+      --notebook-dir="/home/$USER" --NotebookApp.token="password"
 ```
 
 ##### 2. Create Jupyter
@@ -334,7 +336,6 @@ with tables:
     exp_table = rm.get_exp_table()
     # Get score table 
     score_table = rm.get_score_table()
-    output.clear_output()
     
     display(exp_table)
     display(score_table)
