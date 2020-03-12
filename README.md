@@ -236,6 +236,7 @@ elif args.run_jobs:
 ```
 
 #### 4. Visualizing the Results
+![](examples/jupyter.png)
 
 The following two steps will setup the visualization environment.
 
