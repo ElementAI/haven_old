@@ -216,7 +216,6 @@ python example.py -e mnist -sb ../results -r 1
 # launch jobs
 elif args.run_jobs:
         # launch jobs
-        # launch jobs
         from haven import haven_jobs as hjb
         run_command = ('python trainval.py -ei <exp_id> -sb %s -d %s -nw 1' %  (args.savedir_base, args.datadir_base))
         job_config = {'volume': <volume>,
@@ -236,19 +235,24 @@ elif args.run_jobs:
 ```
 
 #### 4. Visualizing the Results
-![](examples/jupyter.png)
+![](examples/4_vis_tables.png)
 
 The following two steps will setup the visualization environment.
 
 ##### 1. Install Jupyter
 
+Run the following in command line to install a Jupyter server
 ```bash
 mkdir .jupyter_server
 cd .jupyter_server
+
 virtualenv -p python3 .
 source bin/activate
+
 pip install jupyter notebook
 pip install ipywidgets
+pip install --upgrade git+https://github.com/ElementAI/haven
+
 jupyter nbextension enable --py widgetsnbextension --sys-prefix
 jupyter notebook --ip 0.0.0.0 --port 9123 \
       --notebook-dir="/home/$USER" --NotebookApp.token="password"
@@ -256,16 +260,16 @@ jupyter notebook --ip 0.0.0.0 --port 9123 \
 
 ##### 2. Create Jupyter
 
-Shown in example.ipynb.
-Add the following two cells to a Jupyter notebook.
+Shown in example.ipynb, run the following two cells to a Jupyter notebook.
 
-##### Cell 1
+##### Cell 1 - setting up the metrics to visualize
 
 ```python
 # Setup variables
 # ===============
+from haven import haven_utils as hu
 
-savedir_base = <savedir_base>
+savedir_base = <path_to_saved_experiments>
 exp_list = None
 # exp_config_name = <exp_config_name>
 # exp_list = hu.load_py(exp_config_name).EXP_GROUPS['mnist']
@@ -298,7 +302,7 @@ columns = None
 ```
 
 
-##### Cell 2
+##### Cell 2 - plotting the results
 
 ```python
 # Create vizualizations

@@ -936,6 +936,9 @@ def load_py(fname):
     from importlib import reload
     from importlib import import_module
 
+    if not os.path.exists(fname):
+        raise ValueError('%s not found...' % fname)
+    
     sys.path.append(os.path.dirname(fname))
 
     name = os.path.split(fname)[-1].replace('.py','')
