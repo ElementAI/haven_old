@@ -265,8 +265,9 @@ Add the following two cells to a Jupyter notebook.
 # ===============
 
 savedir_base = <savedir_base>
-exp_config_name = <exp_config_name>
-exp_list = hu.load_py(exp_config_name).EXP_GROUPS['mnist']
+exp_list = None
+# exp_config_name = <exp_config_name>
+# exp_list = hu.load_py(exp_config_name).EXP_GROUPS['mnist']
 
 
 # exp vars
