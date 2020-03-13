@@ -229,7 +229,7 @@ elif args.run_jobs:
 ```
 
 #### 4. Visualizing the Results
-![](examples/4_vis_tables.png)
+![](examples/4_results.png)
 
 The following two steps will setup the visualization environment.
 
