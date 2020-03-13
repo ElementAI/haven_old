@@ -234,17 +234,17 @@ def save_image(fname, img, size=None, makedirs=True):
     makedirs : bool, optional
         If enabled creates the folder for saving the file, by default True
     """
+    dirname = os.path.dirname(fname)
+    if makedirs and dirname != '':
+        os.makedirs(dirname, exist_ok=True)
+
     if img.dtype == 'uint8':
         img_pil = Image.fromarray(img)
         img_pil.save(fname)
     else:
-        if makedirs:  # TODO: Shouldn't this be before the PIL if?
-            os.makedirs(os.path.dirname(fname), exist_ok=True)
-
         arr = f2l(t2n(img)).squeeze()
-        os.makedirs(os.path.dirname(fname), exist_ok=True) # TODO: This is repeated
         # print(arr.shape)
-        if size is not None:  #TODO: This does not have effect if the image is in PIL
+        if size is not None:  
             arr = Image.fromarray(arr)
             arr = arr.resize(size)
             arr = np.array(arr)
@@ -938,7 +938,7 @@ def load_py(fname):
 
     if not os.path.exists(fname):
         raise ValueError('%s not found...' % fname)
-    
+
     sys.path.append(os.path.dirname(fname))
 
     name = os.path.split(fname)[-1].replace('.py','')

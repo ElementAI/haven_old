@@ -899,7 +899,10 @@ class ResultManager:
         figsize = kwargs.get('figsize') or None
         
         fig_list = []
-        
+
+        if not isinstance(y_metric_list, list):
+            y_metric_list = [y_metric_list]
+
         if order == 'groups_by_metrics':
             for exp_list in self.exp_groups:   
                 fig, ax_list = plt.subplots(nrows=1, ncols=len(y_metric_list), figsize=figsize)
