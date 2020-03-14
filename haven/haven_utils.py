@@ -9,11 +9,11 @@ import shlex
 import subprocess
 import threading
 import time
-from datetime import datetime
-
 import numpy as np
 import pylab as plt
 import torch
+
+from datetime import datetime
 from PIL import Image
 
 
@@ -467,7 +467,7 @@ def zip_score_list(exp_list, savedir_base, out_fname, include_list=None):
                out_fname, include_list=include_list)
 
 
-def time_to_montreal():
+def time_to_montreal(fname=None):
     """Get time in Montreal zone.
 
     Returns
@@ -476,13 +476,16 @@ def time_to_montreal():
         Current date at the selected timezone in string format
     """
     # Get time
-    ts = time.time()
-
-    import pytz
-    tz = pytz.timezone('America/Montreal')
-    dt = datetime.fromtimestamp(ts, tz)
-
-    return dt.strftime("%I:%M %p (%b %d)")
+    os.environ['TZ'] = 'US/Eastern'
+    time.tzset()
+    if fname:
+        tstamp = os.path.getctime(fname)
+    else:
+        tstamp = time.time()
+        
+    time_str = datetime.fromtimestamp(tstamp).strftime('%I:%M %p (%b %d)')
+    
+    return time_str
 
 
 def time2mins(time_taken):
@@ -947,3 +950,11 @@ def load_py(fname):
     sys.path.pop()
 
     return module
+
+
+def get_exp_list_from_ids(exp_id_list, savedir_base):
+    exp_list = [] 
+    for exp_id in exp_id_list:
+        exp_list += [load_json(os.path.join(savedir_base, exp_id, 
+                        'exp_dict.json'))]
+    return exp_list

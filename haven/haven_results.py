@@ -2,6 +2,7 @@ import copy
 import glob
 import os
 import sys
+import pprint
 from itertools import groupby
 from textwrap import wrap
 import numpy as np
@@ -42,7 +43,11 @@ def group_exp_list(exp_list, groupby_list):
         for split_hparam in groupby_list:
             val = x.get(split_hparam)
             if isinstance(val, dict):
-                val = val['name']
+                if 'name' in val:
+                    val = val['name']
+                else:
+                    # print(split_hparam, val)
+                    val = str(val[list(val.keys())[0]])
             x_list += [val]
 
         return x_list
@@ -348,7 +353,8 @@ def get_exp_list_df(exp_list, filterby_list=None, columns=None, verbose=True):
 
     return df
 
-def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None, stats=True, verbose=True):
+def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None, 
+                 stats=True, verbose=True, wrap_size=8):
     """Get a table showing the scores for the given list of experiments 
 
     Parameters
@@ -383,20 +389,26 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None, stats
     # aggregate results
     result_list = []
     for exp_dict in exp_list:
-        result_dict = {}
+        result_dict = {'creation_time':-1}
 
         exp_id = hu.hash_dict(exp_dict)
-        result_dict["exp_id"] = exp_id
+        result_dict["exp_id"] = '\n'.join(wrap(exp_id, wrap_size))
         savedir = os.path.join(savedir_base, exp_id)
         score_list_fname = os.path.join(savedir, "score_list.pkl")
+        exp_dict_fname = os.path.join(savedir, "exp_dict.json")
 
         for k in exp_dict:
             result_dict[k] = exp_dict[k]
 
+        if os.path.exists(score_list_fname):
+            result_dict['started at (EST)'] = hu.time_to_montreal(exp_dict_fname)
+            result_dict['creation_time'] = os.path.getctime(exp_dict_fname)
+
         if not os.path.exists(score_list_fname):
             if verbose:
                 print('%s: score_list.pkl is missing' % exp_id)
-            continue
+            
+            result_list += [result_dict]
         else:
             score_list = hu.load_pkl(score_list_fname)
             score_df = pd.DataFrame(score_list)
@@ -415,12 +427,21 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None, stats
                     else:
                         result_dict[k] = v[-1]
 
-        result_list += [result_dict]
+            result_list += [result_dict]
 
+    # create table
     df = pd.DataFrame(result_list)
-    # df['*exp_id'] = df["exp_id"]
-    # df = df.set_index('exp_id')
-    # filter columns
+
+    df = df.sort_values(by='creation_time' )
+    del df['creation_time']
+
+    # wrap text for prettiness
+    for c in df.columns:
+        if df[c].dtype == 'O':
+            # df[c] = df[c].str.wrap(wrap_size)
+            df[c] = df[c].apply(pprint.pformat)
+
+    # modify columns
     if columns:
         df = df[[c for c in columns if c in df.columns]]
 
@@ -652,7 +673,7 @@ def get_plot(exp_list, savedir_base,
                             color = color,  
                             alpha=0.1)
 
-            if mode == 'bar':
+            elif mode == 'bar':
                 # plot the mean in a line
                 if bar_agg == 'max':
                     y_agg = np.max(y_list)    
@@ -672,6 +693,8 @@ def get_plot(exp_list, savedir_base,
                     bar_color = 'black'
                 axis.text(bar_count, y_agg + .01, "%.3f"%y_agg, color=bar_color, fontweight='bold')
                 bar_count += 1
+            else:
+                raise ValueError('mode %s does not exist. Options: (line, bar)' % mode)
 
     # default properties
     if title_list is not None:
@@ -819,8 +842,8 @@ class ResultManager:
                  savedir_base,
                  exp_list=None,
                  filterby_list=None,
-                 groupby_list=None, 
-                 verbose=True):
+                 verbose=True,
+                 has_score_list=False):
         """[summary]
         
         Parameters
@@ -831,10 +854,8 @@ class ResultManager:
             [description], by default None
         filterby_list : [type], optional
             [description], by default None
-        groupby_list : [type], optional
-            [description], by default None
         has_score_list : [type], optional
-            [description], by default None
+            [description], by default False
         
         Example
         -------
@@ -842,7 +863,6 @@ class ResultManager:
         >>> savedir_base='../results'
         >>> rm = hr.ResultManager(savedir_base=savedir_base,
                                 filterby_list=[{'dataset':'mnist'}],
-                                groupby_list=['dataset'],
                                 verbose=1)
         >>> for df in rm.get_score_df():
         >>>     display(df)
@@ -860,16 +880,26 @@ class ResultManager:
         else:
             exp_list = exp_list
 
+        if has_score_list:
+            exp_list = [e for e in exp_list if 
+                            os.path.exists(os.path.join(savedir_base, 
+                                                        hu.hash_dict(e),
+                                                        'score_list.pkl'))]
         self.savedir_base = savedir_base
         self.filterby_list = filterby_list
         self.verbose = verbose
 
-        exp_list = filter_exp_list(exp_list, filterby_list=filterby_list, verbose=verbose)
-        self.exp_groups = group_exp_list(exp_list, groupby_list)
+        self.n_exp_all = len(exp_list)
+        self.exp_list_all = exp_list
+        self.exp_list = filter_exp_list(exp_list, 
+                            filterby_list=filterby_list, verbose=verbose)
+        
     
-    def get_plot(self, **kwargs):
+    def get_plot(self, groupby_list=None, **kwargs):
         fig_list = []
-        for exp_list in self.exp_groups:
+        exp_groups = group_exp_list(self.exp_list, groupby_list)
+        
+        for exp_list in exp_groups:
             fig, ax = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, filterby_list=self.filterby_list, 
                         verbose=self.verbose,
                                **kwargs)
@@ -877,7 +907,9 @@ class ResultManager:
 
         return fig_list
 
-    def get_plot_all(self, y_metric_list, order='groups_by_metrics', **kwargs):
+    def get_plot_all(self, y_metric_list, order='groups_by_metrics', 
+                     groupby_list=None,
+                     **kwargs):
         """[summary]
         
         Parameters
@@ -895,7 +927,7 @@ class ResultManager:
         """
         if order not in ['groups_by_metrics', 'metrics_by_groups']:
             raise ValueError('%s order is not defined, choose between %s' % (order, ['groups_by_metrics', 'metrics_by_groups']))
-        
+        exp_groups = group_exp_list(self.exp_list, groupby_list)
         figsize = kwargs.get('figsize') or None
         
         fig_list = []
@@ -904,7 +936,7 @@ class ResultManager:
             y_metric_list = [y_metric_list]
 
         if order == 'groups_by_metrics':
-            for exp_list in self.exp_groups:   
+            for exp_list in exp_groups:   
                 fig, ax_list = plt.subplots(nrows=1, ncols=len(y_metric_list), figsize=figsize)
                 if not hasattr(ax_list, 'size'):
                     ax_list = [ax_list]
@@ -917,10 +949,10 @@ class ResultManager:
         elif order == 'metrics_by_groups':
 
             for y_metric in y_metric_list:   
-                fig, ax_list = plt.subplots(nrows=1, ncols=len(self.exp_groups) , figsize=figsize)
+                fig, ax_list = plt.subplots(nrows=1, ncols=len(exp_groups) , figsize=figsize)
                 if not hasattr(ax_list, 'size'):
                     ax_list = [ax_list]
-                for i, exp_list in enumerate(self.exp_groups): 
+                for i, exp_list in enumerate(exp_groups): 
                     fig, _ = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, y_metric=y_metric, 
                                     fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
                                     **kwargs)
@@ -938,16 +970,15 @@ class ResultManager:
         [type]
             [description]
         """
-        df_list = []
-        for exp_list in self.exp_groups:
-            df_list += [get_score_df(exp_list=exp_list, savedir_base=self.savedir_base, verbose=self.verbose, **kwargs)]
+        df_list = get_score_df(exp_list=self.exp_list, 
+                    savedir_base=self.savedir_base, verbose=self.verbose, 
+                    **kwargs)
         return df_list 
 
     def to_dropbox(self, outdir_base, access_token):
         """[summary]
         """ 
-        for exp_list in self.exp_groups:
-            hd.to_dropbox(exp_list, savedir_base=self.savedir_base, 
+        hd.to_dropbox(self.exp_list, savedir_base=self.savedir_base, 
                           outdir_base=outdir_base,
                           access_token=access_token)
 
@@ -959,9 +990,9 @@ class ResultManager:
         [type]
             [description]
         """
-        df_list = []
-        for exp_list in self.exp_groups:
-            df_list += [get_exp_list_df(exp_list=exp_list, verbose=self.verbose, **kwargs)]
+        df_list = get_exp_list_df(exp_list=self.exp_list,
+                     verbose=self.verbose, **kwargs)
+        
         return df_list 
 
     def get_exp_table(self, **kwargs):
@@ -972,11 +1003,7 @@ class ResultManager:
         [type]
             [description]
         """
-        exp_list_all = []
-        for exp_list in self.exp_groups:
-            exp_list_all += exp_list
-
-        table = get_exp_list_df(exp_list=exp_list_all, verbose=self.verbose, **kwargs)
+        table = get_exp_list_df(exp_list=self.exp_list, verbose=self.verbose, **kwargs)
         return table 
 
     def get_score_table(self, **kwargs):
@@ -987,11 +1014,7 @@ class ResultManager:
         [type]
             [description]
         """
-        exp_list_all = []
-        for exp_list in self.exp_groups:
-            exp_list_all += exp_list
-
-        table = get_score_df(exp_list=exp_list_all, 
+        table = get_score_df(exp_list=self.exp_list, 
                     savedir_base=self.savedir_base, 
                     verbose=self.verbose, **kwargs)
         return table 
@@ -1004,11 +1027,11 @@ class ResultManager:
         [type]
             [description]
         """
-        score_groups = []
-        for exp_list in self.exp_groups:
-            score_groups += [get_score_lists(exp_list=exp_list, savedir_base=self.savedir_base, 
-                             filterby_list=self.filterby_list, verbose=self.verbose, **kwargs)]
-        return score_groups
+        score_lists = get_score_lists(exp_list=self.exp_list, 
+                                savedir_base=self.savedir_base, 
+                             filterby_list=self.filterby_list,
+                              verbose=self.verbose, **kwargs)
+        return score_lists
 
     def get_images(self, **kwargs):
         """[summary]
@@ -1018,16 +1041,13 @@ class ResultManager:
         [type]
             [description]
         """
-        for exp_list in self.exp_groups:
-            return get_images(exp_list=exp_list, savedir_base=self.savedir_base, verbose=self.verbose, **kwargs)
+        return get_images(exp_list=self.exp_list, savedir_base=self.savedir_base, verbose=self.verbose, **kwargs)
 
     def get_job_summary(self, columns=None, **kwargs):
         """[summary]
         """
-        summary_list = [] 
-        for exp_list in self.exp_groups:
-            jm = hjb.JobManager(exp_list, self.savedir_base, **kwargs)
-            summary_list += [jm.get_summary(columns=columns)]
+        jm = hjb.JobManager(self.exp_list, self.savedir_base, **kwargs)
+        summary_list = jm.get_summary(columns=columns)
         return summary_list
             
     def to_zip(self, fname):

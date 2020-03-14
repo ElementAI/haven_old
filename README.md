@@ -291,6 +291,7 @@ mode='line'
 # image vars
 image_legend_list = []
 n_images=5
+n_exps=3
 
 # job vars
 username = 'anonymous'

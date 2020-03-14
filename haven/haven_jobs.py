@@ -5,7 +5,7 @@ import subprocess
 from haven import haven_utils as hu
 from haven import haven_chk as hc
 import os
-
+from textwrap import wrap
 import time
 import copy
 import pandas as pd
@@ -256,7 +256,8 @@ class JobManager:
         if job is not None:
             assert self._assert_no_duplicates(job)
 
-        hu.save_json(os.path.join(savedir, "exp_dict.json"), exp_dict)
+        fname_exp_dict = os.path.join(savedir, "exp_dict.json")
+        hu.save_json(fname_exp_dict, exp_dict)
 
         # Define paths
         workdir_job = os.path.join(savedir, "code")
@@ -273,14 +274,13 @@ class JobManager:
             print("Job_id: %s command: %s" % (job_id, command))
 
         job_dict = {"job_id": job_id, 
-                      "started at (Montreal)":hu.time_to_montreal(),
-                      "command":command}
+                    "command":command}
 
         hu.save_json(hju.get_job_fname(savedir), job_dict)
 
         return job_dict
 
-    def get_summary(self, failed_only=False, columns=None, max_lines=200):
+    def get_summary(self, failed_only=False, columns=None, max_lines=10):
         """[summary]
         
         Returns
@@ -309,7 +309,7 @@ class JobManager:
             
             exp_id = hu.hash_dict(exp_dict)
             savedir = os.path.join(self.savedir_base, exp_id)
-            result_dict["exp_id"] = exp_id
+            result_dict["exp_id"] = '\n'.join(wrap(exp_id, 8))
             
             fname = hju.get_job_fname(savedir)
 
@@ -322,9 +322,10 @@ class JobManager:
                 job_id = job_dict["job_id"]
                 if job_id not in jobs_dict:
                     continue
-
+                
+                fname_exp_dict = os.path.join(savedir, "exp_dict.json")
                 job = jobs_dict[job_id]
-                result_dict['started at (Montreal)'] = job_dict["started at (Montreal)"]
+                result_dict['started at (EST)'] = hu.time_to_montreal(fname_exp_dict)
                 result_dict["job_id"] = job_id
                 result_dict["job_state"] = job.state
                 
@@ -352,7 +353,7 @@ class JobManager:
                 summary_dict['table'] += [copy.deepcopy(result_dict)]
         # get info
         df = pd.DataFrame(summary_dict['table'])
-        df = df.set_index('exp_id')
+    
         if columns:
             df = df[[c for c in columns if (c in df.columns and c not in ['err'])]]
 

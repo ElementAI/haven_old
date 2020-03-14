@@ -1,6 +1,9 @@
 import pandas as pd 
 from . import haven_utils
 import os
+import pprint, json
+from haven import haven_utils as hu 
+
 
 def launch_jupyter():
     """
@@ -11,56 +14,6 @@ def launch_jupyter():
     """
     print()
     
-
-def view_jupyter(exp_group_list=[],
-                 savedir_base='<savedir_base>', 
-                 fname='results/example.ipynb', 
-                 workdir='<workdir>',
-                 install_flag=False,
-                 run_flag=False,
-                 job_flag=False):
-    cells = [header_cell(), 
-             exp_list_cell(savedir_base, workdir, exp_group_list)]
-
-    if job_flag:
-        cells += [job_cell()]
-        
-    if install_flag:
-        cells += [install_cell()]
-
-    os.makedirs(os.path.dirname(fname), exist_ok=True)
-    save_ipynb(fname, cells)
-
-    if run_flag:
-        run_notebook(fname)
-        
-    print('Saved Jupyter: %s' % fname)
-
-def run_notebook(fname):
-    import nbformat
-    from nbconvert.preprocessors import ExecutePreprocessor
-    from nbconvert import PDFExporter
-
-    with open(fname) as f:
-        nb = nbformat.read(f, as_version=4)
-    ep = ExecutePreprocessor(timeout=600, kernel_name='python3')
-    ep.preprocess(nb, {'metadata': {'path': 'results/'}})
-    with open(fname, 'w', encoding='utf-8') as f:
-        nbformat.write(nb, f)
-
-    
-def header_cell():
-    script = ("""
-from haven import haven_jupyter as hj
-from haven import haven_results as hr
-from haven import haven_dropbox as hd
-from haven import haven_utils as hu
-
-hj.init_datatable_mode()
-from IPython.core.display import display, HTML
-display(HTML("<style>.container { width:100% !important; }</style>"))
-          """)
-    return script
 
 def install_cell():
     script = ("""
@@ -77,30 +30,6 @@ reload(hu)
           """)
     return script
 
-def exp_list_cell(savedir_base, workdir, exp_group_list):
-    script = ("""
-# create result manager
-rm = hr.ResultManager(savedir_base='%s', workdir='%s', exp_group_list=%s)
-
-# filter experiments
-rm.filter(regard_dict_list=None,
-                    groupby_list=None,
-                    has_score_list=False)
-
-# get scores
-df_list = rm.get_scores(columns=None)
-for df in df_list:
-    display(df)
-
-# plot
-rm.get_plots(y_list=['train_loss', 'val_acc'], transpose=True, 
-             x_name='epoch', legend_list=['model'], 
-             title_list=['dataset'])
-
-# show images
-rm.get_images(legend_list=['model'], dirname='images')
-          """ % (savedir_base, workdir, exp_group_list))
-    return script
 
 
 def create_jupyter(fname='example.ipynb'):
@@ -167,18 +96,6 @@ hj.get_dashboard(rm, vars())
           """)
     return script
 
-def generate_zip_script(outdir):
-    script = ("""
-exp_id_list = [hu.hash_dict(exp_dict) for exp_dict in exp_list]
-results_fname = '%%s_%%s.zip'%% (exp_group_name, len(exp_list))
-src_fname = os.path.join('%s', results_fname)
-print('save in:', src_fname)
-stop
-hd.zipdir(exp_id_list, savedir_base, src_fname)
-
-
-          """ % outdir)
-    return script
 
 def save_ipynb(fname, script_list):
     import nbformat as nbf
@@ -213,7 +130,7 @@ def init_datatable_mode():
 
         # create table DOM
         script = (
-            f'$(element).html(`{self.to_html(index=False, classes=classes)}`);\n'
+            f'$(element).html(`{self.to_html(index=True, classes=classes)}`);\n'
         )
 
         # execute jQuery to turn table into DataTable
@@ -231,113 +148,332 @@ def init_datatable_mode():
     pd.DataFrame._repr_javascript_ = _repr_datatable_
 
         
-def get_dashboard(rm, vars, show_jobs=True):
-    import pprint 
-
+def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
+    if len(rm.exp_list) == 0:
+        if rm.n_exp_all > 0:
+            print('no experiments selected out of %d '
+                  'for filtrby_list %s' % (rm.n_exp_all, rm.filterby_list))
+            print('Example existing exp_dict:\n%s'%
+              pprint.pformat(rm.exp_list_all[0]))
+        else:
+            print('no experiments exist...')
+        return
+    
     from ipywidgets import Button, HBox, VBox
     from ipywidgets import widgets
-    from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
 
     from IPython.display import display
-    from IPython.core.display import Javascript, display
+    from IPython.core.display import Javascript, display, HTML
 
     from haven import haven_results as hr
     from haven import haven_jupyter as hj
-    from haven import haven_dropbox as hd
+
+    display('Acquiring %d Experiments From: %s' % (len(rm.exp_list), 
+                rm.savedir_base))
+
+    t_filterby_list = widgets.Text(
+        value=str(vars['filterby_list']),
+        description='filterby_list:',
+        disabled=False
+            )
+    bset = widgets.Button(description="set")
+    display(widgets.HBox([t_filterby_list, bset]))
 
     hj.init_datatable_mode()
-
 
     dropbox = widgets.Output()
     tables = widgets.Output()
     plots = widgets.Output()
     images = widgets.Output()
-    job_states = widgets.Output()
-    job_logs = widgets.Output()
-    job_failed = widgets.Output()
+    jobs = widgets.Output()
 
+    main_out = widgets.Output()
     # Display tabs
-    tab = widgets.Tab(children = [tables, plots, images, job_states, job_logs, job_failed, dropbox])
+    tab = widgets.Tab(children = [tables, plots, images, jobs,
+                                 dropbox])
     tab.set_title(0, 'Tables')
     tab.set_title(1, 'Plots')
     tab.set_title(2, 'Images')
-    tab.set_title(3, 'Job States')
-    tab.set_title(4, 'Job Logs')
-    tab.set_title(5, 'Job Failed')
-    tab.set_title(6, 'Dropbox')
+    tab.set_title(3, 'Jobs')
+    tab.set_title(4, 'Dropbox')
     display(tab)
 
-    # Display tables
-    with tables:
-        exp_table = rm.get_exp_table()
-        # Get score table 
-        score_table = rm.get_score_table()
-        
-        display(exp_table)
-        display(score_table)
+    
+    def on_button_clicked(sender):
+        rm.filterby_list =  json.loads('"%s"' %t_filterby_list.value)
+        # Display tables
+        with main_out:
+            with tables:
+                # Get score table 
+                score_table = rm.get_score_table()
+                display(score_table)
 
-    # Display plots
-    with plots:
-        rm.get_plot_all(y_metric_list=vars['y_metric'], 
+    
+            bset.on_click(on_button_clicked)
+
+            plot_tab(plots, rm, vars)
+
+            # Display images
+            images_tab(images, rm, vars)
+
+            # Display job states
+            job_tab(jobs, rm, vars)
+            
+            # Dropbox tab
+            dropbox_tab(dropbox, rm, vars)
+
+    if wide_display:
+        display(HTML("<style>.container { width:100% !important; }</style>"))
+        # display(HTML("<style>.output_result { max-width:100% !important; }</style>"))
+        # display(HTML("<style>.prompt { display:none !important; }</style>"))
+
+    # This makes cell show full height display
+    style = """
+    <style>
+        .output_scroll {
+            height: unset !important;
+            border-radius: unset !important;
+            -webkit-box-shadow: unset !important;
+            box-shadow: unset !important;
+        }
+    </style>
+    """
+    display(HTML(style))
+
+
+def job_tab(output, rm, vars):
+    # plot tab
+    from IPython.display import display
+    from ipywidgets import widgets
+    from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
+    
+    btable = widgets.Button(description="table")
+    blogs = widgets.Button(description="logs")
+    bfailed = widgets.Button(description="failed")
+
+    button = widgets.HBox([btable, blogs, bfailed])
+    output_plot = widgets.Output()
+
+    with output:
+        display(button)
+        display(output_plot)
+    
+    def on_table_clicked(b):
+        table_dict = rm.get_job_summary(verbose=rm.verbose,
+                                        username=vars.get('username'))
+
+        output_plot.clear_output()
+        with output_plot:
+            display(table_dict['status'])
+            display(table_dict['table'])   
+
+    btable.on_click(on_table_clicked)
+
+    def on_logs_clicked(b):
+        table_dict = rm.get_job_summary(verbose=rm.verbose,
+                                        username=vars.get('username'))
+        output_plot.clear_output()
+        with output_plot:
+            for logs in table_dict['logs']:
+                pprint.pprint(logs)        
+    blogs.on_click(on_logs_clicked)
+
+    def on_failed_clicked(b):
+        table_dict = rm.get_job_summary(verbose=rm.verbose,
+                                        username=vars.get('username'))
+        output_plot.clear_output()
+        with output_plot:
+            if len(table_dict['failed']) == 0:
+                display('no failed experiments')
+            else:
+                display(table_dict['failed'])
+                for failed in table_dict['logs_failed']:
+                    pprint.pprint(failed)
+
+    bfailed.on_click(on_failed_clicked)
+
+def plot_tab(output, rm, vars):
+    # plot tab
+    from IPython.display import display
+    from ipywidgets import widgets
+    from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
+    
+    ## add stuff
+    tfigsize = widgets.Text(
+        value=str(vars['figsize']),
+        description='figsize:',
+        disabled=False
+            )
+    llegend_list = widgets.Text(
+        value=str(vars['legend_list']),
+        description='legend_list:',
+        disabled=False
+            )
+    
+    t_y_metric = widgets.Text(
+        value=str(vars['y_metric']),
+        description='y_metrics:',
+        disabled=False
+            )
+
+    t_x_metric = widgets.Text(
+        value=str(vars['x_metric']),
+        description='x_metric:',
+        disabled=False
+            )
+
+    t_groupby_list = widgets.Text(
+        value=str(vars.get('groupby_list')),
+        description='groupby_list:',
+        disabled=False
+            )
+
+    t_mode = widgets.Text(
+        value=str(vars.get('mode')),
+        description='mode:',
+        disabled=False
+            )
+
+    t_title_list = widgets.Text(
+        value=str(vars.get('title_list')),
+        description='title_list:',
+        disabled=False
+            )
+
+    brefresh = widgets.Button(description="Refresh")
+    button = widgets.VBox([brefresh,
+            widgets.HBox([t_y_metric, t_x_metric,
+                        t_groupby_list, llegend_list, tfigsize]),
+            widgets.HBox([t_title_list, t_mode]) ])
+    output_plot = widgets.Output()
+
+    def on_clicked(b):
+        output_plot.clear_output()
+        with output_plot:
+            w, h = tfigsize.value.strip('(').strip(')').split(',')
+            vars['figsize'] = (int(w), int(h))
+
+
+            vars['legend_list'] = get_list_from_str(llegend_list.value)
+            
+            vars['y_metric'] = get_list_from_str(t_y_metric.value)
+
+            vars['x_metric'] = t_x_metric.value
+            vars['groupby_list'] = get_list_from_str(t_groupby_list.value)
+
+            vars['mode'] = t_mode.value
+            vars['title_list'] = get_list_from_str(t_title_list.value)
+
+            rm.get_plot_all(y_metric_list=vars['y_metric'], 
                 x_metric=vars['x_metric'], 
+                groupby_list=vars['groupby_list'],
                 legend_list=vars['legend_list'], 
                 map_exp_list=vars['map_exp_list'], 
                 log_metric_list=vars['log_metric_list'],
                 mode=vars['mode'],
-    #                 xlim=(10, 100),
-    #                 ylim=(0.5, 0.8),
                 figsize=vars['figsize'],
                 title_list=vars['title_list'])
-        show_inline_matplotlib_plots()
 
-    # Display images
-    with images:
-        rm.get_images(legend_list=vars['image_legend_list'], 
-                      n_images=vars['n_images'])
-        show_inline_matplotlib_plots()
+            show_inline_matplotlib_plots()
+            
+    brefresh.on_click(on_clicked)
 
-    # Display job states
-    with job_states:
-        table_dict = rm.get_job_summary(username=vars['username'])[0]
-        display(table_dict['status'])
-        display(table_dict['table'])
-
-    # Display job failed
-    with job_logs:
-        table_dict = rm.get_job_summary(username=vars['username'])[0]
+    with output:
+        display(button)
+        display(output_plot)
     
-        display(table_dict['status'])
-        display(table_dict['table'])
-        for logs in table_dict['logs']:
-            pprint.pprint(logs)
-                    
-    # Display job failed
-    with job_failed:
-        table_dict = rm.get_job_summary(username=vars['username'])[0]
-        if len(table_dict['failed']) == 0:
-            display('no failed experiments')
-        else:
-            display(table_dict['failed'])
-            for failed in table_dict['logs_failed']:
-                pprint.pprint(failed)
+def images_tab(output, rm, vars):
+    # plot tab
+    from IPython.display import display
+    from ipywidgets import widgets
+    from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
 
-    button = widgets.Button(description="Dropbox")
+    button = widgets.Button(description="Refresh")
+    output_plot = widgets.Output()
 
-    with dropbox:
+    
+    with output:
+        display(button)
+        display(output_plot)
+
+    def on_clicked(b):
+        output_plot.clear_output()
+        with output_plot:
+            rm.get_images(legend_list=vars['image_legend_list'], 
+                      n_images=vars['n_images'],
+                      n_exps=vars.get('n_exps', 100))
+            show_inline_matplotlib_plots()
+            
+    button.on_click(on_clicked)
+
+
+def dropbox_tab(output, rm, vars):
+    from haven import haven_dropbox as hd
+    from IPython.display import display
+    from ipywidgets import widgets
+
+    t_config = widgets.Text(
+        value=vars.get('exp_config_fname','exp_config.py'),
+        description='exp_config_fname:',
+        disabled=False,
+        width='auto'
+            )
+    t_groups = widgets.Text(
+        value=str(vars.get('exp_groups','')),
+        description='exp_groups:',
+        disabled=False
+            )
+
+    t_dropbox_path = widgets.Text(
+        value=vars.get('dropbox_path',''),
+        description='dropbox_path:',
+        disabled=False
+            )
+
+    t_access_token = widgets.Text(
+        value=vars.get('access_token',''),
+        description='access_token:',
+        disabled=False
+            )
+
+    t_zip_name = widgets.Text(
+        value=vars.get('zip_name',''),
+        description='zip_name:',
+        disabled=False
+            )
+
+    brefresh = widgets.Button(description="Upload to Dropbox")
+    button = widgets.VBox([t_config,
+            t_groups, t_dropbox_path, t_access_token, t_zip_name,
+            brefresh])
+
+    def on_clicked(b):
+        with output:
+            exp_config_fname = t_config.value
+            exp_groups = get_list_from_str(t_groups.value)
+
+            exp_list_new = []
+            for group in exp_groups:
+                exp_list_new += hu.load_py(exp_config_fname).EXP_GROUPS[group]
+
+            hd.to_dropbox(exp_list_new, 
+            vars['savedir_base'], 
+            t_dropbox_path.value, 
+            t_access_token.value, 
+            t_zip_name.value)
+
+    brefresh.on_click(on_clicked)
+    
+    with output:
         display(button)
 
-    def on_button_clicked(b):
-        with dropbox:
-            print("Button clicked.")
-            exp_list_new = []
-            for el in rm.exp_groups: 
-                exp_list_new += el
-            print(exp_list_new)
-            hd.to_dropbox(vars['exp_list'], 
-            vars['savedir_base'], 
-            vars['dropbox_path'], 
-            vars['access_token'], 
-            vars['zipname'])
 
-    button.on_click(on_button_clicked)
+def get_list_from_str(string):
+    if string is None:
+        return "none"
+    
+    if isinstance(string, str) and "[" not in string:
+        return string
 
+    res = string.strip(" ").strip("[").strip("]").split(',')
+    return [s.strip('"').strip("'").replace(" ", "") for s in res]
