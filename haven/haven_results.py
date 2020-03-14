@@ -880,6 +880,8 @@ class ResultManager:
         else:
             exp_list = exp_list
 
+        self.exp_list_all = copy.deepcopy(exp_list)
+        
         if has_score_list:
             exp_list = [e for e in exp_list if 
                             os.path.exists(os.path.join(savedir_base, 
@@ -890,7 +892,7 @@ class ResultManager:
         self.verbose = verbose
 
         self.n_exp_all = len(exp_list)
-        self.exp_list_all = exp_list
+        
         self.exp_list = filter_exp_list(exp_list, 
                             filterby_list=filterby_list, verbose=verbose)
         

@@ -190,7 +190,7 @@ def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
 
     
     def on_button_clicked(sender):
-        rm_new = hr.ResultManager(exp_list=rm.exp_list, 
+        rm_new = hr.ResultManager(exp_list=rm.exp_list_all, 
                       savedir_base=rm.savedir_base, 
                       filterby_list=ast.literal_eval(t_filterby_list.value),
                       verbose=rm.verbose,
@@ -204,8 +204,8 @@ def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
                         'for filtrby_list %s' % (rm_new.n_exp_all,
                                                  rm_new.filterby_list))
                     print('All exp_list.')
-                    score_table = hr.get_score_df(exp_list=rm_new.exp_list_all,
-                                                  savedir_base=rm_new.savedir_base)
+                    score_table = hr.get_score_df(exp_list=rm.exp_list_all,
+                                                  savedir_base=rm.savedir_base)
                     display(score_table)
                 else:
                     print('no experiments exist...')
@@ -489,11 +489,13 @@ def dropbox_tab(output, rm, vars):
 
 
 def get_list_from_str(string):
-    if string is None:
-        return "none"
+    import ast
+    return ast.literal_eval(string)
+    # if string is None:
+    #     return "none"
     
-    if isinstance(string, str) and "[" not in string:
-        return string
+    # if isinstance(string, str) and "[" not in string:
+    #     return string
 
-    res = string.strip(" ").strip("[").strip("]").split(',')
-    return [s.strip('"').strip("'").replace(" ", "") for s in res]
+    # res = string.strip(" ").strip("[").strip("]").split(',')
+    # return [s.strip('"').strip("'").replace(" ", "") for s in res]
