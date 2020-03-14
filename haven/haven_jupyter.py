@@ -149,16 +149,7 @@ def init_datatable_mode():
 
         
 def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
-    if len(rm.exp_list) == 0:
-        if rm.n_exp_all > 0:
-            print('no experiments selected out of %d '
-                  'for filtrby_list %s' % (rm.n_exp_all, rm.filterby_list))
-            print('Example existing exp_dict:\n%s'%
-              pprint.pformat(rm.exp_list_all[0]))
-        else:
-            print('no experiments exist...')
-        return
-    
+    import ast
     from ipywidgets import Button, HBox, VBox
     from ipywidgets import widgets
 
@@ -168,8 +159,7 @@ def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
     from haven import haven_results as hr
     from haven import haven_jupyter as hj
 
-    display('Acquiring %d Experiments From: %s' % (len(rm.exp_list), 
-                rm.savedir_base))
+    
 
     t_filterby_list = widgets.Text(
         value=str(vars['filterby_list']),
@@ -196,32 +186,55 @@ def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
     tab.set_title(2, 'Images')
     tab.set_title(3, 'Jobs')
     tab.set_title(4, 'Dropbox')
-    display(tab)
+    
 
     
     def on_button_clicked(sender):
-        rm.filterby_list =  json.loads('"%s"' %t_filterby_list.value)
-        # Display tables
+        rm_new = hr.ResultManager(exp_list=rm.exp_list, 
+                      savedir_base=rm.savedir_base, 
+                      filterby_list=ast.literal_eval(t_filterby_list.value),
+                      verbose=rm.verbose,
+                     )
+        
+        main_out.clear_output()
         with main_out:
-            with tables:
-                # Get score table 
-                score_table = rm.get_score_table()
-                display(score_table)
-
-    
-            bset.on_click(on_button_clicked)
-
-            plot_tab(plots, rm, vars)
-
-            # Display images
-            images_tab(images, rm, vars)
-
-            # Display job states
-            job_tab(jobs, rm, vars)
+            if len(rm_new.exp_list) == 0:
+                if rm_new.n_exp_all > 0:
+                    display('no experiments selected out of %d '
+                        'for filtrby_list %s' % (rm_new.n_exp_all,
+                                                 rm_new.filterby_list))
+                    print('All exp_list.')
+                    score_table = hr.get_score_df(exp_list=rm_new.exp_list_all,
+                                                  savedir_base=rm_new.savedir_base)
+                    display(score_table)
+                else:
+                    print('no experiments exist...')
+                return
             
-            # Dropbox tab
-            dropbox_tab(dropbox, rm, vars)
+            display('Acquiring %d Experiments From: %s' % (len(rm_new.exp_list), 
+                rm.savedir_base))
+            
+            display(tab)
 
+            tables.clear_output()
+            plots.clear_output()
+            images.clear_output()
+            jobs.clear_output()
+            dropbox.clear_output()
+
+            table_tab(tables, rm_new, vars)
+            plot_tab(plots, rm_new, vars)
+            # Display images
+            images_tab(images, rm_new, vars)
+            # Display job states
+            job_tab(jobs, rm_new, vars)
+            # Dropbox tab
+            dropbox_tab(dropbox, rm_new, vars)
+
+            
+
+    bset.on_click(on_button_clicked)
+    display(main_out)
     if wide_display:
         display(HTML("<style>.container { width:100% !important; }</style>"))
         # display(HTML("<style>.output_result { max-width:100% !important; }</style>"))
@@ -240,6 +253,13 @@ def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
     """
     display(HTML(style))
 
+def table_tab(output, rm, vars):
+    from IPython.display import display
+    
+    with output:
+        # Get score table 
+        score_table = rm.get_score_table()
+        display(score_table)
 
 def job_tab(output, rm, vars):
     # plot tab
