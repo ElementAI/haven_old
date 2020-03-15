@@ -45,8 +45,10 @@ from haven import haven_jupyter as hj
 from haven import haven_results as hr
 from haven import haven_utils as hu
 
+# please define the path to the experiments
 savedir_base = <path_to_saved_experiments>
 exp_list = None
+
 # exp_config_name = <exp_config_name>
 # exp_list = hu.load_py(exp_config_name).EXP_GROUPS['mnist']
 
@@ -55,44 +57,25 @@ filterby_list = None
 
 # group the experiments based on a hyperparameter, for example, ['dataset']
 groupby_list = None
-verbose = 1
-
-# table vars
-columns = None
+verbose = 0
 
 # plot vars
-y_metric='train_loss'
+y_metrics='train_loss'
 x_metric='epoch'
 log_metric_list = ['train_loss']
 map_exp_list = []
-figsize=(10,5)
 title_list=['dataset']
 legend_list=['model']
-mode='line'
-
-# image vars
-image_legend_list = []
-n_images=5
-
-# job vars
-username = 'anonymous'
-columns = None
-
-# dropbox vars
-dropbox_path = ''
-access_token =  ''
-zipname = 'test.zip'
 
 # get experiments
 rm = hr.ResultManager(exp_list=exp_list, 
                       savedir_base=savedir_base, 
                       filterby_list=filterby_list,
-                      groupby_list=groupby_list,
                       verbose=verbose
                      )
 
 # launch dashboard
-hj.get_dashboard(rm, vars())
+hj.get_dashboard(rm, vars(), wide_display=True)
           """)
     return script
 
@@ -159,7 +142,11 @@ def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
     from haven import haven_results as hr
     from haven import haven_jupyter as hj
 
-    
+    t_savedir_base = widgets.Text(
+        value=str(vars['savedir_base']),
+        description='savedir_base:',
+        disabled=False
+            )
 
     t_filterby_list = widgets.Text(
         value=str(vars['filterby_list']),
@@ -167,7 +154,7 @@ def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
         disabled=False
             )
     bset = widgets.Button(description="set")
-    display(widgets.HBox([t_filterby_list, bset]))
+    display(widgets.HBox([t_savedir_base, t_filterby_list, bset]))
 
     hj.init_datatable_mode()
 
@@ -191,8 +178,8 @@ def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
     
     def on_button_clicked(sender):
         rm_new = hr.ResultManager(exp_list=rm.exp_list_all, 
-                      savedir_base=rm.savedir_base, 
-                      filterby_list=ast.literal_eval(t_filterby_list.value),
+                      savedir_base=str(t_savedir_base.value), 
+                      filterby_list=ast.literal_eval(str(t_filterby_list.value)),
                       verbose=rm.verbose,
                      )
         
@@ -320,24 +307,24 @@ def plot_tab(output, rm, vars):
     
     ## add stuff
     tfigsize = widgets.Text(
-        value=str(vars['figsize']),
+        value=str(vars.get('figsize', '(10,5)')),
         description='figsize:',
         disabled=False
             )
     llegend_list = widgets.Text(
-        value=str(vars['legend_list']),
+        value=str(vars.get('legend_list', '[model]')),
         description='legend_list:',
         disabled=False
             )
     
     t_y_metric = widgets.Text(
-        value=str(vars['y_metric']),
+        value=str(vars.get('y_metrics', 'train_loss')),
         description='y_metrics:',
         disabled=False
             )
 
     t_x_metric = widgets.Text(
-        value=str(vars['x_metric']),
+        value=str(vars.get('x_metric', 'epoch')),
         description='x_metric:',
         disabled=False
             )
@@ -349,13 +336,13 @@ def plot_tab(output, rm, vars):
             )
 
     t_mode = widgets.Text(
-        value=str(vars.get('mode')),
+        value=str(vars.get('mode', 'line')),
         description='mode:',
         disabled=False
             )
 
     t_title_list = widgets.Text(
-        value=str(vars.get('title_list')),
+        value=str(vars.get('title_list', 'dataset')),
         description='title_list:',
         disabled=False
             )
@@ -490,6 +477,8 @@ def dropbox_tab(output, rm, vars):
 
 def get_list_from_str(string):
     import ast
+    if "[" not in string:
+        return string
     return ast.literal_eval(string)
     # if string is None:
     #     return "none"

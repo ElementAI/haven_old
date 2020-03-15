@@ -880,6 +880,8 @@ class ResultManager:
         else:
             exp_list = exp_list
 
+        if len(exp_list) == 0:
+            raise ValueError('exp_list is empty...')
         self.exp_list_all = copy.deepcopy(exp_list)
         
         if has_score_list:
