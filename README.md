@@ -263,8 +263,10 @@ from haven import haven_jupyter as hj
 from haven import haven_results as hr
 from haven import haven_utils as hu
 
+# please define the path to the experiments
 savedir_base = <path_to_saved_experiments>
 exp_list = None
+
 # exp_config_name = <exp_config_name>
 # exp_list = hu.load_py(exp_config_name).EXP_GROUPS['mnist']
 
@@ -273,45 +275,25 @@ filterby_list = None
 
 # group the experiments based on a hyperparameter, for example, ['dataset']
 groupby_list = None
-verbose = 1
-
-# table vars
-columns = None
+verbose = 0
 
 # plot vars
-y_metric='train_loss'
+y_metrics='train_loss'
 x_metric='epoch'
 log_metric_list = ['train_loss']
 map_exp_list = []
-figsize=(10,5)
 title_list=['dataset']
 legend_list=['model']
-mode='line'
-
-# image vars
-image_legend_list = []
-n_images=5
-n_exps=3
-
-# job vars
-username = 'anonymous'
-columns = None
-
-# dropbox vars
-dropbox_path = ''
-access_token =  ''
-zipname = 'test.zip'
 
 # get experiments
 rm = hr.ResultManager(exp_list=exp_list, 
                       savedir_base=savedir_base, 
                       filterby_list=filterby_list,
-                      groupby_list=groupby_list,
                       verbose=verbose
                      )
 
 # launch dashboard
-hj.get_dashboard(rm, vars())
+hj.get_dashboard(rm, vars(), wide_display=True)
 ```
 
 To install Haven from a jupyter cell, run the following script in a cell,
