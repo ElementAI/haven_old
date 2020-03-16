@@ -298,7 +298,7 @@ hj.get_dashboard(rm, vars(), wide_display=True)
 
 To install Haven from a jupyter cell, run the following script in a cell,
 
-```python
+```bash
 import sys
 !{sys.executable} -m pip install --upgrade  --no-dependencies 'git+https://github.com/ElementAI/haven' --user
 ```

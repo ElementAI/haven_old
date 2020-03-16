@@ -173,9 +173,7 @@ def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
     tab.set_title(2, 'Images')
     tab.set_title(3, 'Jobs')
     tab.set_title(4, 'Dropbox')
-    
-
-    
+        
     def on_button_clicked(sender):
         rm_new = hr.ResultManager(exp_list=rm.exp_list_all, 
                       savedir_base=str(t_savedir_base.value), 
@@ -394,8 +392,33 @@ def images_tab(output, rm, vars):
     from IPython.display import display
     from ipywidgets import widgets
     from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
+    tfigsize = widgets.Text(
+        value=str(vars.get('figsize', '(10,5)')),
+        description='figsize:',
+        disabled=False
+            )
+    llegend_list = widgets.Text(
+        value=str(vars.get('legend_list', '[model]')),
+        description='legend_list:',
+        disabled=False
+            )
+    
+    t_n_images = widgets.Text(
+        value=str(vars.get('n_images', '5')),
+        description='n_images:',
+        disabled=False
+            )
 
-    button = widgets.Button(description="Refresh")
+    t_n_exps = widgets.Text(
+        value=str(vars.get('n_exps', '3')),
+        description='n_exps:',
+        disabled=False
+            )
+
+    brefresh = widgets.Button(description="Refresh")
+    button = widgets.VBox([brefresh,
+            widgets.HBox([t_n_images, t_n_exps,
+                         llegend_list, tfigsize])])
     output_plot = widgets.Output()
 
     
@@ -406,12 +429,18 @@ def images_tab(output, rm, vars):
     def on_clicked(b):
         output_plot.clear_output()
         with output_plot:
-            rm.get_images(legend_list=vars['image_legend_list'], 
+            w, h = tfigsize.value.strip('(').strip(')').split(',')
+            vars['figsize'] = (int(w), int(h))
+            vars['legend_list'] = get_list_from_str(llegend_list.value)
+            vars['n_images'] = int(t_n_images.value)
+            vars['n_exps'] = int(t_n_exps.value)
+
+            rm.get_images(legend_list=vars['legend_list'], 
                       n_images=vars['n_images'],
-                      n_exps=vars.get('n_exps', 100))
+                      n_exps=vars['n_exps'])
             show_inline_matplotlib_plots()
             
-    button.on_click(on_clicked)
+    brefresh.on_click(on_clicked)
 
 
 def dropbox_tab(output, rm, vars):

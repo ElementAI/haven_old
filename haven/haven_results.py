@@ -37,17 +37,17 @@ def group_exp_list(exp_list, groupby_list):
     >>>
     >>>
     """
-    groupby_list = hu.as_double_list(groupby_list)[0]
+    if groupby_list is None:
+        return [exp_list]
+    if not isinstance(groupby_list, list):
+        groupby_list = [groupby_list]
+    # groupby_list = hu.as_double_list(groupby_list)
     def split_func(x):
         x_list = []
-        for split_hparam in groupby_list:
-            val = x.get(split_hparam)
-            if isinstance(val, dict):
-                if 'name' in val:
-                    val = val['name']
-                else:
-                    # print(split_hparam, val)
-                    val = str(val[list(val.keys())[0]])
+        for k_list in groupby_list:
+            if not isinstance(k_list, list):
+                k_list = [k_list]
+            val = get_str(x, k_list)
             x_list += [val]
 
         return x_list
@@ -66,6 +66,13 @@ def group_exp_list(exp_list, groupby_list):
 
     return list_of_exp_list
 
+def get_str(h_dict, k_list):
+    k = k_list[0]
+
+    if len(k_list) == 1:
+        return str(h_dict.get(k))
+    
+    return get_str(h_dict.get(k), k_list[1:])
 
 def get_best_exp_dict(exp_list, savedir_base, metric, min_or_max='min', return_scores=False, verbose=True):
     """Obtain best the experiment for a specific metric.

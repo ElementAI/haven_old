@@ -229,7 +229,10 @@ class Test(unittest.TestCase):
     def test_group_exp_list(self):
         exp_list = hu.cartesian_exp_group({'dataset':['imagenet',
             'mnist','cifar10'], 
-                        'model':'mlp', 'batch_size':[1, 5]})
+                        'model':'mlp', 'batch_size':[1, 5], 'mode':{'fset':1}})
+
+        list_of_exp_list = hr.group_exp_list(exp_list,
+                             groupby_list=['dataset', ['mode','fset']])
 
         list_of_exp_list = hr.group_exp_list(exp_list,
                              groupby_list='dataset')
