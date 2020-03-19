@@ -958,3 +958,37 @@ def get_exp_list_from_ids(exp_id_list, savedir_base):
         exp_list += [load_json(os.path.join(savedir_base, exp_id, 
                         'exp_dict.json'))]
     return exp_list
+
+
+def flatten_dict(key_name, v_dict):
+    if not isinstance(v_dict, dict):
+        return {key_name: v_dict}
+    
+    leaf_dict = {}
+    for k in v_dict:
+        if key_name != '':
+            k_new = key_name + "_" + k
+        else:
+            k_new = k
+        leaf_dict.update(flatten_dict(key_name=k_new, v_dict=v_dict[k]))
+        
+    return leaf_dict
+
+
+def get_diff_columns(df, min_threshold=2, max_threshold=None):
+    df.reset_index()
+    if max_threshold is None:
+        max_threshold = df.shape[0] - 1
+    column_count = []
+    
+    for column in df.columns:
+        _set = set([str(v) for v in df[column].values])
+        column_count.append(len(_set))
+    indices = np.arange(len(df.columns))
+    
+    column_count = np.array(column_count)
+    
+    indices = indices[(column_count >= min_threshold) & (column_count <= max_threshold)]
+    diff_columns = [df.columns[i] for i in indices]
+    
+    return diff_columns
