@@ -240,11 +240,39 @@ def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
 
 def table_tab(output, rm, vars):
     from IPython.display import display
+    from ipywidgets import widgets
     
+    t_columns = widgets.Text(
+        value=str(vars.get('columns')),
+        description='columns:',
+        disabled=False
+            )
+    t_score_columns = widgets.Text(
+        value=str(vars.get('score_columns')),
+        description='score_columns:',
+        disabled=False
+            )
+    brefresh = widgets.Button(description="refresh")
+
+    button = widgets.HBox([t_columns, t_score_columns, brefresh])
+    output_plot = widgets.Output()
+
     with output:
-        # Get score table 
-        score_table = rm.get_score_table()
-        display(score_table)
+        display(button)
+        display(output_plot)
+
+    def on_refresh_clicked(b):
+        vars['columns'] = get_list_from_str(t_columns.value)
+        vars['score_columns'] = get_list_from_str(t_score_columns.value)
+        score_table = rm.get_score_table(columns=vars.get('columns'), 
+                                         score_columns=vars.get('score_columns'))
+
+        output_plot.clear_output()
+        with output_plot:
+            display(score_table) 
+
+    brefresh.on_click(on_refresh_clicked)
+
 
 def job_tab(output, rm, vars):
     # plot tab
@@ -339,35 +367,42 @@ def plot_tab(output, rm, vars):
         disabled=False
             )
 
+    t_bar_agg = widgets.Text(
+        value=str(vars.get('bar_agg', 'mean')),
+        description='bar_agg:',
+        disabled=False
+            )
+
     t_title_list = widgets.Text(
         value=str(vars.get('title_list', 'dataset')),
         description='title_list:',
         disabled=False
             )
 
+    l_exp_params = widgets.Label(value="exp_params: %s" % str(rm.exp_params),
+            )
+
+
     brefresh = widgets.Button(description="Refresh")
-    button = widgets.VBox([brefresh,
+    button = widgets.VBox([widgets.HBox([brefresh, l_exp_params]),
             widgets.HBox([t_y_metric, t_x_metric,
                         t_groupby_list, llegend_list, tfigsize]),
-            widgets.HBox([t_title_list, t_mode]) ])
+            widgets.HBox([t_title_list, t_mode, t_bar_agg]) ])
     output_plot = widgets.Output()
 
     def on_clicked(b):
         output_plot.clear_output()
         with output_plot:
             w, h = tfigsize.value.strip('(').strip(')').split(',')
+
             vars['figsize'] = (int(w), int(h))
-
-
             vars['legend_list'] = get_list_from_str(llegend_list.value)
-            
             vars['y_metric'] = get_list_from_str(t_y_metric.value)
-
             vars['x_metric'] = t_x_metric.value
             vars['groupby_list'] = get_list_from_str(t_groupby_list.value)
-
             vars['mode'] = t_mode.value
             vars['title_list'] = get_list_from_str(t_title_list.value)
+            vars['bar_agg'] = t_bar_agg.value
 
             rm.get_plot_all(y_metric_list=vars['y_metric'], 
                 x_metric=vars['x_metric'], 
@@ -376,6 +411,7 @@ def plot_tab(output, rm, vars):
                 map_exp_list=vars['map_exp_list'], 
                 log_metric_list=vars['log_metric_list'],
                 mode=vars['mode'],
+                bar_agg=vars['bar_agg'],
                 figsize=vars['figsize'],
                 title_list=vars['title_list'])
 
@@ -506,8 +542,15 @@ def dropbox_tab(output, rm, vars):
 
 def get_list_from_str(string):
     import ast
+    if string is None:
+        return string
+
+    if string == 'None':
+        return None
+
     if "[" not in string:
         return string
+        
     return ast.literal_eval(string)
     # if string is None:
     #     return "none"

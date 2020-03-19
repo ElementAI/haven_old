@@ -467,7 +467,7 @@ def zip_score_list(exp_list, savedir_base, out_fname, include_list=None):
                out_fname, include_list=include_list)
 
 
-def time_to_montreal(fname=None):
+def time_to_montreal(fname=None, timezone='US/Eastern'):
     """Get time in Montreal zone.
 
     Returns
@@ -476,7 +476,7 @@ def time_to_montreal(fname=None):
         Current date at the selected timezone in string format
     """
     # Get time
-    os.environ['TZ'] = 'US/Eastern'
+    os.environ['TZ'] = timezone
     time.tzset()
     if fname:
         tstamp = os.path.getctime(fname)

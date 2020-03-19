@@ -15,6 +15,260 @@ from . import haven_utils as hu
 from . import haven_dropbox as hd
 
 
+class ResultManager:
+    def __init__(self, 
+                 savedir_base,
+                 exp_list=None,
+                 filterby_list=None,
+                 verbose=True,
+                 has_score_list=False):
+        """[summary]
+        
+        Parameters
+        ----------
+        savedir_base : [type]
+            A directory where experiments are saved
+        exp_list : [type], optional
+            [description], by default None
+        filterby_list : [type], optional
+            [description], by default None
+        has_score_list : [type], optional
+            [description], by default False
+        
+        Example
+        -------
+        >>> from haven import haven_results as hr
+        >>> savedir_base='../results'
+        >>> rm = hr.ResultManager(savedir_base=savedir_base,
+                                filterby_list=[{'dataset':'mnist'}],
+                                verbose=1)
+        >>> for df in rm.get_score_df():
+        >>>     display(df)
+        >>> fig_list = rm.get_plot_all(y_metric_list=['train_loss', 'val_acc'], 
+                                    order='groups_by_metrics',
+                                    x_metric='epoch', 
+                                    figsize=(15,6),
+                                    map_exp_list=[({'opt':{'name':'lenet'}}, {'label':'LeNet'})],
+                                    title_list=['dataset'],
+                                    legend_list=['model']) 
+        """
+        if exp_list is None:
+            exp_list = get_exp_list(savedir_base=savedir_base, verbose=verbose)
+
+        else:
+            exp_list = exp_list
+
+        if len(exp_list) == 0:
+            raise ValueError('exp_list is empty...')
+        self.exp_list_all = copy.deepcopy(exp_list)
+        
+        if has_score_list:
+            exp_list = [e for e in exp_list if 
+                            os.path.exists(os.path.join(savedir_base, 
+                                                        hu.hash_dict(e),
+                                                        'score_list.pkl'))]
+        self.savedir_base = savedir_base
+        self.filterby_list = filterby_list
+        self.verbose = verbose
+
+        self.n_exp_all = len(exp_list)
+        
+        self.exp_list = filter_exp_list(exp_list, 
+                            filterby_list=filterby_list, verbose=verbose)
+
+        if len(self.exp_list) != 0:
+            self.exp_params = list(self.exp_list[0].keys())
+    
+    def get_plot(self, groupby_list=None, **kwargs):
+        fig_list = []
+        exp_groups = group_exp_list(self.exp_list, groupby_list)
+        
+        for exp_list in exp_groups:
+            fig, ax = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, filterby_list=self.filterby_list, 
+                        verbose=self.verbose,
+                               **kwargs)
+            fig_list += [fig]
+
+        return fig_list
+
+    def get_plot_all(self, y_metric_list, order='groups_by_metrics', 
+                     groupby_list=None,
+                     **kwargs):
+        """[summary]
+        
+        Parameters
+        ----------
+        y_metric_list : [type]
+            [description]
+        order : str, optional
+            [description], by default 'groups_by_metrics'
+        
+        Returns
+        -------
+        [type]
+            [description]
+        
+        """
+        if order not in ['groups_by_metrics', 'metrics_by_groups']:
+            raise ValueError('%s order is not defined, choose between %s' % (order, ['groups_by_metrics', 'metrics_by_groups']))
+        exp_groups = group_exp_list(self.exp_list, groupby_list)
+        figsize = kwargs.get('figsize') or None
+        
+        fig_list = []
+
+        if not isinstance(y_metric_list, list):
+            y_metric_list = [y_metric_list]
+
+        if order == 'groups_by_metrics':
+            for exp_list in exp_groups:   
+                fig, ax_list = plt.subplots(nrows=1, ncols=len(y_metric_list), figsize=figsize)
+                if not hasattr(ax_list, 'size'):
+                    ax_list = [ax_list]
+                for i, y_metric in enumerate(y_metric_list):
+                    fig, _ = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, y_metric=y_metric, 
+                                    fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
+                                    **kwargs)
+                fig_list += [fig]
+
+        elif order == 'metrics_by_groups':
+
+            for y_metric in y_metric_list:   
+                fig, ax_list = plt.subplots(nrows=1, ncols=len(exp_groups) , figsize=figsize)
+                if not hasattr(ax_list, 'size'):
+                    ax_list = [ax_list]
+                for i, exp_list in enumerate(exp_groups): 
+                    fig, _ = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, y_metric=y_metric, 
+                                    fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
+                                    **kwargs)
+                fig_list += [fig]
+
+        plt.tight_layout()
+
+        return fig_list
+    
+    def get_score_df(self, **kwargs):
+        """[summary]
+        
+        Returns
+        -------
+        [type]
+            [description]
+        """
+        df_list = get_score_df(exp_list=self.exp_list, 
+                    savedir_base=self.savedir_base, verbose=self.verbose, 
+                    **kwargs)
+        return df_list 
+
+    def to_dropbox(self, outdir_base, access_token):
+        """[summary]
+        """ 
+        hd.to_dropbox(self.exp_list, savedir_base=self.savedir_base, 
+                          outdir_base=outdir_base,
+                          access_token=access_token)
+
+    def get_exp_list_df(self, **kwargs):
+        """[summary]
+        
+        Returns
+        -------
+        [type]
+            [description]
+        """
+        df_list = get_exp_list_df(exp_list=self.exp_list,
+                     verbose=self.verbose, **kwargs)
+        
+        return df_list 
+
+    def get_exp_table(self, **kwargs):
+        """[summary]
+        
+        Returns
+        -------
+        [type]
+            [description]
+        """
+        table = get_exp_list_df(exp_list=self.exp_list, verbose=self.verbose, **kwargs)
+        return table 
+
+    def get_score_table(self, **kwargs):
+        """[summary]
+        
+        Returns
+        -------
+        [type]
+            [description]
+        """
+        table = get_score_df(exp_list=self.exp_list, 
+                    savedir_base=self.savedir_base, 
+                    verbose=self.verbose, **kwargs)
+        return table 
+
+    def get_score_lists(self, **kwargs):
+        """[summary]
+        
+        Returns
+        -------
+        [type]
+            [description]
+        """
+        score_lists = get_score_lists(exp_list=self.exp_list, 
+                                savedir_base=self.savedir_base, 
+                             filterby_list=self.filterby_list,
+                              verbose=self.verbose, **kwargs)
+        return score_lists
+
+    def get_images(self, **kwargs):
+        """[summary]
+        
+        Returns
+        -------
+        [type]
+            [description]
+        """
+        return get_images(exp_list=self.exp_list, savedir_base=self.savedir_base, verbose=self.verbose, **kwargs)
+
+    def get_job_summary(self, columns=None, **kwargs):
+        """[summary]
+        """
+        jm = hjb.JobManager(self.exp_list, self.savedir_base, **kwargs)
+        summary_list = jm.get_summary(columns=columns)
+        return summary_list
+            
+    def to_zip(self, fname):
+        """[summary]
+        
+        Parameters
+        ----------
+        fname : [type]
+            [description]
+        """
+        from haven import haven_dropbox as hd
+
+        exp_id_list = [hu.hash_dict(exp_dict) for exp_dict in self.exp_list]
+        hd.zipdir(exp_id_list, self.savedir_base, fname)
+        print('Zipped %d experiments in %s' % (len(exp_id_list), fname))
+
+    def to_dropbox(self, fname, dropbox_path=None, access_token=None):
+        """[summary]
+        
+        Parameters
+        ----------
+        fname : [type]
+            [description]
+        dropbox_path : [type], optional
+            [description], by default None
+        access_token : [type], optional
+            [description], by default None
+        """
+        from haven import haven_dropbox as hd
+
+        out_fname = os.path.join(dropbox_path, fname)
+        src_fname = os.path.join(self.savedir_base, fname)
+        self.to_zip(src_fname)
+        hd.upload_file_to_dropbox(src_fname, out_fname, access_token)
+        print('saved: https://www.dropbox.com/home/%s' % out_fname)
+
+
 def group_exp_list(exp_list, groupby_list):
     """Split the experiment list into smaller lists where each
        is grouped by a set of hyper-parameters
@@ -360,7 +614,8 @@ def get_exp_list_df(exp_list, filterby_list=None, columns=None, verbose=True):
 
     return df
 
-def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None, 
+def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
+                 score_columns=None,
                  stats=True, verbose=True, wrap_size=8):
     """Get a table showing the scores for the given list of experiments 
 
@@ -405,10 +660,12 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
         exp_dict_fname = os.path.join(savedir, "exp_dict.json")
 
         for k in exp_dict:
+            if isinstance(columns, list) and k not in columns:
+                continue
             result_dict[k] = exp_dict[k]
 
         if os.path.exists(score_list_fname):
-            result_dict['started at (EST)'] = hu.time_to_montreal(exp_dict_fname)
+            result_dict['started_at'] = hu.time_to_montreal(exp_dict_fname)
             result_dict['creation_time'] = os.path.getctime(exp_dict_fname)
 
         if not os.path.exists(score_list_fname):
@@ -421,6 +678,8 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
             score_df = pd.DataFrame(score_list)
             if len(score_list):
                 for k in score_df.columns:
+                    if isinstance(score_columns, list) and k not in score_columns:
+                        continue
                     v = np.array(score_df[k])
                     if 'float' in str(v.dtype):
                         v = v[~np.isnan(v)]
@@ -449,8 +708,8 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
             df[c] = df[c].apply(pprint.pformat)
 
     # modify columns
-    if columns:
-        df = df[[c for c in columns if c in df.columns]]
+    # if columns:
+    #     df = df[[c for c in columns if c in df.columns]]
 
     return df
 
@@ -844,253 +1103,3 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1,
     return fig_list
 
 
-class ResultManager:
-    def __init__(self, 
-                 savedir_base,
-                 exp_list=None,
-                 filterby_list=None,
-                 verbose=True,
-                 has_score_list=False):
-        """[summary]
-        
-        Parameters
-        ----------
-        savedir_base : [type]
-            A directory where experiments are saved
-        exp_list : [type], optional
-            [description], by default None
-        filterby_list : [type], optional
-            [description], by default None
-        has_score_list : [type], optional
-            [description], by default False
-        
-        Example
-        -------
-        >>> from haven import haven_results as hr
-        >>> savedir_base='../results'
-        >>> rm = hr.ResultManager(savedir_base=savedir_base,
-                                filterby_list=[{'dataset':'mnist'}],
-                                verbose=1)
-        >>> for df in rm.get_score_df():
-        >>>     display(df)
-        >>> fig_list = rm.get_plot_all(y_metric_list=['train_loss', 'val_acc'], 
-                                    order='groups_by_metrics',
-                                    x_metric='epoch', 
-                                    figsize=(15,6),
-                                    map_exp_list=[({'opt':{'name':'lenet'}}, {'label':'LeNet'})],
-                                    title_list=['dataset'],
-                                    legend_list=['model']) 
-        """
-        if exp_list is None:
-            exp_list = get_exp_list(savedir_base=savedir_base, verbose=verbose)
-
-        else:
-            exp_list = exp_list
-
-        if len(exp_list) == 0:
-            raise ValueError('exp_list is empty...')
-        self.exp_list_all = copy.deepcopy(exp_list)
-        
-        if has_score_list:
-            exp_list = [e for e in exp_list if 
-                            os.path.exists(os.path.join(savedir_base, 
-                                                        hu.hash_dict(e),
-                                                        'score_list.pkl'))]
-        self.savedir_base = savedir_base
-        self.filterby_list = filterby_list
-        self.verbose = verbose
-
-        self.n_exp_all = len(exp_list)
-        
-        self.exp_list = filter_exp_list(exp_list, 
-                            filterby_list=filterby_list, verbose=verbose)
-        
-    
-    def get_plot(self, groupby_list=None, **kwargs):
-        fig_list = []
-        exp_groups = group_exp_list(self.exp_list, groupby_list)
-        
-        for exp_list in exp_groups:
-            fig, ax = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, filterby_list=self.filterby_list, 
-                        verbose=self.verbose,
-                               **kwargs)
-            fig_list += [fig]
-
-        return fig_list
-
-    def get_plot_all(self, y_metric_list, order='groups_by_metrics', 
-                     groupby_list=None,
-                     **kwargs):
-        """[summary]
-        
-        Parameters
-        ----------
-        y_metric_list : [type]
-            [description]
-        order : str, optional
-            [description], by default 'groups_by_metrics'
-        
-        Returns
-        -------
-        [type]
-            [description]
-        
-        """
-        if order not in ['groups_by_metrics', 'metrics_by_groups']:
-            raise ValueError('%s order is not defined, choose between %s' % (order, ['groups_by_metrics', 'metrics_by_groups']))
-        exp_groups = group_exp_list(self.exp_list, groupby_list)
-        figsize = kwargs.get('figsize') or None
-        
-        fig_list = []
-
-        if not isinstance(y_metric_list, list):
-            y_metric_list = [y_metric_list]
-
-        if order == 'groups_by_metrics':
-            for exp_list in exp_groups:   
-                fig, ax_list = plt.subplots(nrows=1, ncols=len(y_metric_list), figsize=figsize)
-                if not hasattr(ax_list, 'size'):
-                    ax_list = [ax_list]
-                for i, y_metric in enumerate(y_metric_list):
-                    fig, _ = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, y_metric=y_metric, 
-                                    fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
-                                    **kwargs)
-                fig_list += [fig]
-
-        elif order == 'metrics_by_groups':
-
-            for y_metric in y_metric_list:   
-                fig, ax_list = plt.subplots(nrows=1, ncols=len(exp_groups) , figsize=figsize)
-                if not hasattr(ax_list, 'size'):
-                    ax_list = [ax_list]
-                for i, exp_list in enumerate(exp_groups): 
-                    fig, _ = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, y_metric=y_metric, 
-                                    fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
-                                    **kwargs)
-                fig_list += [fig]
-
-        plt.tight_layout()
-
-        return fig_list
-    
-    def get_score_df(self, **kwargs):
-        """[summary]
-        
-        Returns
-        -------
-        [type]
-            [description]
-        """
-        df_list = get_score_df(exp_list=self.exp_list, 
-                    savedir_base=self.savedir_base, verbose=self.verbose, 
-                    **kwargs)
-        return df_list 
-
-    def to_dropbox(self, outdir_base, access_token):
-        """[summary]
-        """ 
-        hd.to_dropbox(self.exp_list, savedir_base=self.savedir_base, 
-                          outdir_base=outdir_base,
-                          access_token=access_token)
-
-    def get_exp_list_df(self, **kwargs):
-        """[summary]
-        
-        Returns
-        -------
-        [type]
-            [description]
-        """
-        df_list = get_exp_list_df(exp_list=self.exp_list,
-                     verbose=self.verbose, **kwargs)
-        
-        return df_list 
-
-    def get_exp_table(self, **kwargs):
-        """[summary]
-        
-        Returns
-        -------
-        [type]
-            [description]
-        """
-        table = get_exp_list_df(exp_list=self.exp_list, verbose=self.verbose, **kwargs)
-        return table 
-
-    def get_score_table(self, **kwargs):
-        """[summary]
-        
-        Returns
-        -------
-        [type]
-            [description]
-        """
-        table = get_score_df(exp_list=self.exp_list, 
-                    savedir_base=self.savedir_base, 
-                    verbose=self.verbose, **kwargs)
-        return table 
-
-    def get_score_lists(self, **kwargs):
-        """[summary]
-        
-        Returns
-        -------
-        [type]
-            [description]
-        """
-        score_lists = get_score_lists(exp_list=self.exp_list, 
-                                savedir_base=self.savedir_base, 
-                             filterby_list=self.filterby_list,
-                              verbose=self.verbose, **kwargs)
-        return score_lists
-
-    def get_images(self, **kwargs):
-        """[summary]
-        
-        Returns
-        -------
-        [type]
-            [description]
-        """
-        return get_images(exp_list=self.exp_list, savedir_base=self.savedir_base, verbose=self.verbose, **kwargs)
-
-    def get_job_summary(self, columns=None, **kwargs):
-        """[summary]
-        """
-        jm = hjb.JobManager(self.exp_list, self.savedir_base, **kwargs)
-        summary_list = jm.get_summary(columns=columns)
-        return summary_list
-            
-    def to_zip(self, fname):
-        """[summary]
-        
-        Parameters
-        ----------
-        fname : [type]
-            [description]
-        """
-        from haven import haven_dropbox as hd
-
-        exp_id_list = [hu.hash_dict(exp_dict) for exp_dict in self.exp_list]
-        hd.zipdir(exp_id_list, self.savedir_base, fname)
-        print('Zipped %d experiments in %s' % (len(exp_id_list), fname))
-
-    def to_dropbox(self, fname, dropbox_path=None, access_token=None):
-        """[summary]
-        
-        Parameters
-        ----------
-        fname : [type]
-            [description]
-        dropbox_path : [type], optional
-            [description], by default None
-        access_token : [type], optional
-            [description], by default None
-        """
-        from haven import haven_dropbox as hd
-
-        out_fname = os.path.join(dropbox_path, fname)
-        src_fname = os.path.join(self.savedir_base, fname)
-        self.to_zip(src_fname)
-        hd.upload_file_to_dropbox(src_fname, out_fname, access_token)
-        print('saved: https://www.dropbox.com/home/%s' % out_fname)

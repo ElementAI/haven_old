@@ -87,9 +87,15 @@ def run_exp_list_jobs(exp_list,
 
     if command == 'status':
         # view experiments
-        print(jm.get_summary()['succeeded'])
-        print(jm.get_summary()['failed'])
-        print(jm.get_summary()['status'])
+        summary_dict = jm.get_summary()
+        if len(summary_dict['table']):
+            print(summary_dict['table'])
+        if len(summary_dict['succeeded']):
+            print(summary_dict['succeeded'])
+        if len(summary_dict['failed']):
+            print(summary_dict['failed'])
+
+        print(summary_dict['status'])
         return
 
     elif command == 'logs':
@@ -305,7 +311,11 @@ class JobManager:
         # fill summary
         summary_dict = {'table':[], 'status':[], 'logs_failed':[], 'logs':[]}
         for exp_dict in self.exp_list:
-            result_dict = copy.deepcopy(exp_dict)
+            result_dict = {}
+            for k in exp_dict:
+                if isinstance(columns, list) and k not in columns:
+                    continue
+                result_dict[k] = exp_dict[k]
             
             exp_id = hu.hash_dict(exp_dict)
             savedir = os.path.join(self.savedir_base, exp_id)
@@ -325,7 +335,7 @@ class JobManager:
                 
                 fname_exp_dict = os.path.join(savedir, "exp_dict.json")
                 job = jobs_dict[job_id]
-                result_dict['started at (EST)'] = hu.time_to_montreal(fname_exp_dict)
+                result_dict['started_at'] = hu.time_to_montreal(fname_exp_dict)
                 result_dict["job_id"] = job_id
                 result_dict["job_state"] = job.state
                 
@@ -354,8 +364,8 @@ class JobManager:
         # get info
         df = pd.DataFrame(summary_dict['table'])
     
-        if columns:
-            df = df[[c for c in columns if (c in df.columns and c not in ['err'])]]
+        # if columns:
+        #     df = df[[c for c in columns if (c in df.columns and c not in ['err'])]]
 
         if "job_state" in df:
             stats = np.vstack(np.unique(df['job_state'].fillna("NaN"),return_counts=True)).T
@@ -369,7 +379,7 @@ class JobManager:
         summary_dict['running'] = df[df['job_state']=='RUNNING'] 
         summary_dict['succeeded'] = df[df['job_state']=='SUCCEEDED'] 
         summary_dict['failed'] = df[df['job_state']=='FAILED']
-
+        
         return summary_dict
 
     def _assert_no_duplicates(self, job_new=None, max_jobs=500):
