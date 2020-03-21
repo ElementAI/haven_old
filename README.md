@@ -30,6 +30,12 @@ To setup a machine learning project for large-scale experimentation, we can foll
 3. [run the experiments; and](#3-running-the-experiments)
 4. [visualize the results.](#4-visualizing-the-results)
 
+### TODO
+
+- [ ] automatically launch a jupyter when experiments are launched
+
+- [ ] better handlings of lists in the jupyter dashboard
+
 ### Examples
 
 The following folders contain example projects built on this framework.
