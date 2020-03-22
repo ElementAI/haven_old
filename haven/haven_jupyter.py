@@ -3,6 +3,7 @@ from . import haven_utils
 import os
 import pprint, json
 from haven import haven_utils as hu 
+import copy
 
 
 def launch_jupyter():
@@ -137,8 +138,8 @@ def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
 
 class DashboardManager:
     def __init__(self, rm, vars, show_jobs, wide_display):
-        self.rm = rm
-        self.vars = vars 
+        self.rm_old = rm
+        self.vars = vars
         self.show_jobs = show_jobs
         self.wide_display = wide_display
 
@@ -186,29 +187,29 @@ class DashboardManager:
         tab.set_title(4, 'Dropbox')
             
         def on_button_clicked(sender):
-            rm_new = hr.ResultManager(exp_list=rm.exp_list_all, 
+            self.rm = hr.ResultManager(exp_list=self.rm_old.exp_list_all, 
                         savedir_base=str(t_savedir_base.value), 
                         filterby_list=ast.literal_eval(str(t_filterby_list.value)),
-                        verbose=rm.verbose,
+                        verbose=self.rm_old.verbose,
                         )
             
             main_out.clear_output()
             with main_out:
-                if len(rm_new.exp_list) == 0:
-                    if rm_new.n_exp_all > 0:
+                if len(self.rm.exp_list) == 0:
+                    if self.rm.n_exp_all > 0:
                         display('no experiments selected out of %d '
-                            'for filtrby_list %s' % (rm_new.n_exp_all,
-                                                    rm_new.filterby_list))
+                            'for filtrby_list %s' % (self.rm.n_exp_all,
+                                                    self.rm.filterby_list))
                         print('All exp_list.')
-                        score_table = hr.get_score_df(exp_list=rm.exp_list_all,
-                                                    savedir_base=rm.savedir_base)
+                        score_table = hr.get_score_df(exp_list=self.rm_old.exp_list_all,
+                                                    savedir_base=self.rm_old.savedir_base)
                         display(score_table)
                     else:
                         print('no experiments exist...')
                     return
                 
-                display('Acquiring %d Experiments From: %s' % (len(rm_new.exp_list), 
-                    rm.savedir_base))
+                display('Acquiring %d Experiments From: %s' % (len(self.rm.exp_list), 
+                    self.rm.savedir_base))
                 
                 display(tab)
 
@@ -218,20 +219,20 @@ class DashboardManager:
                 jobs.clear_output()
                 dropbox.clear_output()
 
-                table_tab(tables, rm_new, self.vars)
-                plot_tab(plots, rm_new, self.vars)
+                self.table_tab(tables)
+                self.plot_tab(plots)
                 # Display images
-                images_tab(images, rm_new, self.vars)
+                self.images_tab(images)
                 # Display job states
-                job_tab(jobs, rm_new, self.vars)
+                self.job_tab(jobs)
                 # Dropbox tab
-                dropbox_tab(dropbox, rm_new, self.vars)
+                self.dropbox_tab(dropbox)
 
                 
 
         bset.on_click(on_button_clicked)
         display(main_out)
-        if wide_display:
+        if self.wide_display:
             display(HTML("<style>.container { width:100% !important; }</style>"))
             # display(HTML("<style>.output_result { max-width:100% !important; }</style>"))
             # display(HTML("<style>.prompt { display:none !important; }</style>"))
@@ -303,7 +304,7 @@ class DashboardManager:
             display(output_plot)
         
         def on_table_clicked(b):
-            table_dict = rm.get_job_summary(verbose=rm.verbose,
+            table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
                                             username=self.vars.get('username'))
 
             output_plot.clear_output()
@@ -314,7 +315,7 @@ class DashboardManager:
         btable.on_click(on_table_clicked)
 
         def on_logs_clicked(b):
-            table_dict = rm.get_job_summary(verbose=rm.verbose,
+            table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
                                             username=self.vars.get('username'))
             output_plot.clear_output()
             with output_plot:
@@ -323,7 +324,7 @@ class DashboardManager:
         blogs.on_click(on_logs_clicked)
 
         def on_failed_clicked(b):
-            table_dict = rm.get_job_summary(verbose=rm.verbose,
+            table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
                                             username=self.vars.get('username'))
             output_plot.clear_output()
             with output_plot:
@@ -390,7 +391,7 @@ class DashboardManager:
             disabled=False
                 )
 
-        l_exp_params = widgets.Label(value="exp_params: %s" % str(rm.exp_params),
+        l_exp_params = widgets.Label(value="exp_params: %s" % str(self.rm.exp_params),
                 )
 
 
@@ -408,14 +409,14 @@ class DashboardManager:
 
                 self.vars['figsize'] = (int(w), int(h))
                 self.vars['legend_list'] = get_list_from_str(llegend_list.value)
-                self.vars['y_metric'] = get_list_from_str(t_y_metric.value)
+                self.vars['y_metrics'] = get_list_from_str(t_y_metric.value)
                 self.vars['x_metric'] = t_x_metric.value
                 self.vars['groupby_list'] = get_list_from_str(t_groupby_list.value)
                 self.vars['mode'] = t_mode.value
                 self.vars['title_list'] = get_list_from_str(t_title_list.value)
                 self.vars['bar_agg'] = t_bar_agg.value
 
-                rm.get_plot_all(y_metric_list=self.vars['y_metric'], 
+                self.rm.get_plot_all(y_metric_list=self.vars['y_metrics'], 
                     x_metric=self.vars['x_metric'], 
                     groupby_list=self.vars['groupby_list'],
                     legend_list=self.vars['legend_list'], 
@@ -482,7 +483,7 @@ class DashboardManager:
                 self.vars['n_images'] = int(t_n_images.value)
                 self.vars['n_exps'] = int(t_n_exps.value)
 
-                rm.get_images(legend_list=self.vars['legend_list'], 
+                self.rm.get_images(legend_list=self.vars['legend_list'], 
                         n_images=self.vars['n_images'],
                         n_exps=self.vars['n_exps'])
                 show_inline_matplotlib_plots()
@@ -559,7 +560,7 @@ def get_list_from_str(string):
     if string == 'None':
         return None
 
-    return string.replace(' ','').strip(']').strip('[').strip('"').strip("'").split(',')
+    return string.replace(' ','').strip(']').strip('[').replace('"', '').replace("'", "").split(',')
     
     # import ast
     # return ast.literal_eval(string)
