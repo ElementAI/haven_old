@@ -125,8 +125,14 @@ class ResultManager:
                 if not hasattr(ax_list, 'size'):
                     ax_list = [ax_list]
                 for i, y_metric in enumerate(y_metric_list):
+                    if i == (len(y_metric_list) - 1):
+                        show_legend = True
+                    else:
+                        show_legend = False
+
                     fig, _ = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, y_metric=y_metric, 
                                     fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
+                                    show_legend=show_legend,
                                     **kwargs)
                 fig_list += [fig]
 
@@ -739,7 +745,8 @@ def get_plot(exp_list, savedir_base,
              map_xlabel_list=tuple(),
              map_ylabel_list=dict(),
              bar_agg='min',
-             verbose=True):
+             verbose=True,
+             show_legend=True):
     """Plots the experiment list in a single figure.
     
     Parameters
@@ -1005,7 +1012,8 @@ def get_plot(exp_list, savedir_base,
 
     legend_kwargs = legend_kwargs or {"loc":2, "bbox_to_anchor":(1.05,1),
                                       'borderaxespad':0., "ncol":1}
-    axis.legend(fontsize=legend_fontsize, **legend_kwargs)
+    if show_legend:
+        axis.legend(fontsize=legend_fontsize, **legend_kwargs)
 
     plt.tight_layout()
 
