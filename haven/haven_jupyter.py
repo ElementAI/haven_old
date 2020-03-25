@@ -4,6 +4,7 @@ import os
 import pprint, json
 from haven import haven_utils as hu 
 import copy
+import pprint
 
 
 def launch_jupyter():
@@ -16,57 +17,43 @@ def launch_jupyter():
     print()
     
 
-def install_cell():
+def create_jupyter(fname='example.ipynb', savedir_base='<path_to_saved_experiments>', overwrite=False, print_url=False):
+    if overwrite or not os.path.exists(fname):
+        cells = [main_cell(savedir_base)]
+        os.makedirs(os.path.dirname(fname), exist_ok=True)
+        save_ipynb(fname, cells)  
+
+    print('Jupyter') 
+    print('- saved:', fname)
+    if print_url:
+        from notebook import notebookapp
+        servers = list(notebookapp.list_running_servers())
+        hostname = os.uname().nodename
+        
+        flag = False
+        for i, s in enumerate(servers):
+            if s['hostname'] == 'localhost':
+                continue
+            flag = True
+            url = 'http://%s:%s/' % (hostname, s['port'])
+            print('- url:', url)
+
+        if flag == False:
+            print('a jupyter server was not found :(')
+            print('a jupyter server can be started using the script in https://github.com/ElementAI/haven .')
+
+
+def main_cell(savedir_base):
     script = ("""
-import sys
-from importlib import reload
-
-# !{sys.executable} -m pip install --upgrade --no-dependencies   git+https://github.com/ElementAI/haven --user
-!{sys.executable} -m pip install --upgrade --no-dependencies  '/home/issam/Research_Ground/haven/' --user
-
-reload(hj)
-reload(hr)
-reload(hd)
-reload(hu)
-          """)
-    return script
-
-
-
-def create_jupyter(fname='example.ipynb'):
-    cells = [main_cell()]
-    save_ipynb(fname, cells)        
-    print('Saved Jupyter: %s' % fname)
-
-
-def main_cell():
-    script = ("""
-# Specify variables
 from haven import haven_jupyter as hj
 from haven import haven_results as hr
 from haven import haven_utils as hu
 
-# please define the path to the experiments
-savedir_base = <path_to_saved_experiments>
+# path to where the experiments got saved
+savedir_base = '%s'
 exp_list = None
 
-# exp_config_name = <exp_config_name>
-# exp_list = hu.load_py(exp_config_name).EXP_GROUPS['mnist']
-
-# get specific experiments, for example, {'model':'resnet34'}
-filterby_list = None
-
-# group the experiments based on a hyperparameter, for example, ['dataset']
-groupby_list = None
-verbose = 0
-
-# plot vars
-y_metrics='train_loss'
-x_metric='epoch'
-log_metric_list = ['train_loss']
-map_exp_list = []
-title_list=['dataset']
-legend_list=['model']
+# exp_list = hu.load_py(<exp_config_name>).EXP_GROUPS[<exp_group>]
 
 # get experiments
 rm = hr.ResultManager(exp_list=exp_list, 
@@ -77,7 +64,7 @@ rm = hr.ResultManager(exp_list=exp_list,
 
 # launch dashboard
 hj.get_dashboard(rm, vars(), wide_display=True)
-          """)
+          """ % savedir_base)
     return script
 
 
@@ -276,7 +263,7 @@ class DashboardManager:
         def on_refresh_clicked(b):
             self.vars['columns'] = get_list_from_str(t_columns.value)
             self.vars['score_columns'] = get_list_from_str(t_score_columns.value)
-            score_table = rm.get_score_table(columns=self.vars.get('columns'), 
+            score_table = self.rm.get_score_table(columns=self.vars.get('columns'), 
                                             score_columns=self.vars.get('score_columns'))
 
             output_plot.clear_output()
@@ -392,6 +379,9 @@ class DashboardManager:
                 )
 
         l_exp_params = widgets.Label(value="exp_params: %s" % str(self.rm.exp_params),
+                )
+        # TODO: infer the score metrics
+        l_score_metrics = widgets.Label(value="score_metrics: %s" % str(self.rm.exp_params),
                 )
 
 
@@ -560,7 +550,7 @@ def get_list_from_str(string):
     if string == 'None':
         return None
 
-    return string.replace(' ','').strip(']').strip('[').replace('"', '').replace("'", "").split(',')
+    return string.replace(' ','').replace(']', '').replace('[', '').replace('"', '').replace("'", "").split(',')
     
     # import ast
     # return ast.literal_eval(string)

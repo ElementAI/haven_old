@@ -2,8 +2,8 @@ import os
 import time
 import sys
 import subprocess
-from haven import haven_utils as hu
-from haven import haven_chk as hc
+from . import haven_utils as hu
+from . import haven_chk as hc
 import os
 from textwrap import wrap
 import time
@@ -12,6 +12,7 @@ import pandas as pd
 import numpy as np 
 import getpass
 import pprint
+from . import haven_jupyter as hj
 
 
 def run_exp_list_jobs(exp_list,
@@ -117,6 +118,9 @@ def run_exp_list_jobs(exp_list,
     print("Checking job status in %d seconds" % wait_seconds)
     time.sleep(wait_seconds)
     print(jm.get_summary()['table'])
+
+    hj.create_jupyter(os.path.join('results', 'notebook.ipynb'), savedir_base=savedir_base, print_url=True)
+
 
 
 class JobManager:

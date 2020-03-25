@@ -9,7 +9,7 @@
 </table> -->
 # Haven 
 
-Most machine learning projects require a codebase and a workflow to  create, manage, and visualize experiments. This framework helps in achieving this setup while focusing on simplicity, readability, reliability, and flexibility. 
+The goal of this framework is have a minimalistic setup to define the hyperparameters, to launch large scale experiments, and to visualize their results efficiently.
 
 * [Install](#install)
 * [Getting Started](#getting-started)
@@ -21,14 +21,17 @@ Most machine learning projects require a codebase and a workflow to  create, man
 ```
 $ pip install --upgrade git+https://github.com/ElementAI/haven
 ```
+
+<!-- /home/issam/Research_Ground/haven/ -->
+
 ### Getting Started
 
 To setup a machine learning project for large-scale experimentation, we can follow these 4 steps.
 
-1. [Write the codebase;](#1-writing-the-codebase)
-2. [define the hyperparameters;](#2-defining-the-hyperparameters)
-3. [run the experiments; and](#3-running-the-experiments)
-4. [visualize the results.](#4-visualizing-the-results)
+1. [Define the hyperparameters;](#1-define-the-hyperparameters)
+2. [Write the codebase;](#2-write-the-codebase)
+3. [Run the experiments; and](#3-run-the-experiments)
+4. [Visualize the results.](#4-visualize-the-results)
 
 ### Examples
 
@@ -41,13 +44,32 @@ The following folders contain example projects built on this framework.
 
 
 
-#### 1. Writing the Codebase
+
+#### 1. Define the Hyperparameters
+
+create `exp_configs.py` and add the following dictionary which defines a set of hyperparameters. This dictionary defines a `mnist` experiment group.
+
+```python
+from haven import haven_utils as hu
+
+# Define exp groups for parameter search
+EXP_GROUPS = {'mnist':
+                hu.cartesian_exp_group({
+                    'lr':[1e-3, 1e-4],
+                    'batch_size':[32, 64]})
+                }
+```
+
+
+#### 2. Write the Codebase
 
 Create a file `trainval.py` with the template below: 
 
 ```python
 import os
 import argparse
+
+import exp_configs
 
 from haven import haven_utils as hu
 from haven import haven_results as hr
@@ -131,24 +153,7 @@ def trainval(exp_dict, savedir_base, reset=False):
 
 ```
 
-
-
-#### 2. Defining the Hyperparameters
-
-Add to `trainval.py` the following dictionary which defines a set of hyperparameters for Mnist. This dictionary defines a `mnist` experiment group.
-
-```python
-from haven import haven_utils as hu
-
-# Define exp groups for parameter search
-EXP_GROUPS = {'mnist':
-                hu.cartesian_exp_group({
-                    'lr':[1e-3, 1e-4],
-                    'batch_size':[32, 64]})
-                }
-```
-
-#### 3. Running the Experiments
+#### 3. Run the Experiments
 
 To run `trainval.py` with the `mnist` experiment group, follow the two steps below.
 
@@ -228,7 +233,7 @@ elif args.run_jobs:
                             job_config=job_config)
 ```
 
-#### 4. Visualizing the Results
+#### 4. Visualize the Results
 ![](examples/4_results.png)
 
 The following two steps will setup the visualization environment.
@@ -296,13 +301,6 @@ rm = hr.ResultManager(exp_list=exp_list,
 hj.get_dashboard(rm, vars(), wide_display=True)
 ```
 
-To install Haven from a jupyter cell, run the following script in a cell,
-
-```bash
-import sys
-!{sys.executable} -m pip install --upgrade  --no-dependencies 'git+https://github.com/ElementAI/haven' --user
-```
-<!-- /home/issam/Research_Ground/haven/ -->
 
 ### Extras
 
