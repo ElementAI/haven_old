@@ -188,12 +188,14 @@ class Test(unittest.TestCase):
         fig_list = rm.get_plot(x_metric='epoch', y_metric='acc', title_list=['dataset'], legend_list=['model'])
         for i, fig in enumerate(fig_list):
             fig.savefig(os.path.join(savedir_base, '%d.png' % i))
+        map_exp_list=[{'filterby':{'batch_size':5,'model':{'name':'lenet'}},
+                       'map':{'color':'yellow', 'marker':'+', 'label':'LeNet'}}]
 
         order = 'groups_by_metrics'
         fig_list = rm.get_plot_all(order=order, x_metric='epoch', y_metric_list=['acc', 'epoch'], title_list=['dataset'], 
                               legend_list=['model'], 
                               log_metric_list=['acc'],
-                              map_exp_list=[({'batch_size':5,'model':{'name':'lenet'}},{'color':'yellow', 'marker':'+', 'label':'LeNet'})],
+                              map_exp_list=map_exp_list,
                               map_title_list=[{'mnist':'MNIST'}, {'cifar10':'CIFAR-10'}],
                               map_xlabel_list=[{'epoch':'EPOCHS'}],
                               map_ylabel_list=[{'acc':'Score'}])
