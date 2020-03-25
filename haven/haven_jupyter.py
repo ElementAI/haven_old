@@ -58,7 +58,6 @@ exp_list = None
 # get experiments
 rm = hr.ResultManager(exp_list=exp_list, 
                       savedir_base=savedir_base, 
-                      filterby_list=filterby_list,
                       verbose=verbose
                      )
 
@@ -148,7 +147,7 @@ class DashboardManager:
                 )
 
         t_filterby_list = widgets.Textarea(
-            value=str(self.vars['filterby_list']),
+            value=str(self.vars.get('filterby_list')),
             description='filterby_list:',
             disabled=False
                 )
@@ -341,6 +340,16 @@ class DashboardManager:
             description='legend_list:',
             disabled=False
                 )
+        llog_metric_list = widgets.Text(
+            value=str(self.vars.get('log_metric_list', '[train_loss]')),
+            description='log_metric_list:',
+            disabled=False
+                )
+        lmap_exp_list = widgets.Textarea(
+            value=str(self.vars.get('mape_exp_list', 'None')),
+            description='mape_exp_list:',
+            disabled=False
+                )
         
         t_y_metric = widgets.Text(
             value=str(self.vars.get('y_metrics', 'train_loss')),
@@ -389,7 +398,7 @@ class DashboardManager:
         button = widgets.VBox([widgets.HBox([brefresh, l_exp_params]),
                 widgets.HBox([t_y_metric, t_x_metric,
                             t_groupby_list, llegend_list, tfigsize]),
-                widgets.HBox([t_title_list, t_mode, t_bar_agg]) ])
+                widgets.HBox([t_title_list, t_mode, t_bar_agg, lmap_exp_list]) ])
         output_plot = widgets.Output()
 
         def on_clicked(b):
@@ -401,10 +410,12 @@ class DashboardManager:
                 self.vars['legend_list'] = get_list_from_str(llegend_list.value)
                 self.vars['y_metrics'] = get_list_from_str(t_y_metric.value)
                 self.vars['x_metric'] = t_x_metric.value
+                self.vars['log_metric_list'] = get_list_from_str(llog_metric_list.value)
                 self.vars['groupby_list'] = get_list_from_str(t_groupby_list.value)
                 self.vars['mode'] = t_mode.value
                 self.vars['title_list'] = get_list_from_str(t_title_list.value)
                 self.vars['bar_agg'] = t_bar_agg.value
+                self.vars['map_exp_list'] = get_list_from_str(lmap_exp_list.value)
 
                 self.rm.get_plot_all(y_metric_list=self.vars['y_metrics'], 
                     x_metric=self.vars['x_metric'], 
@@ -548,6 +559,9 @@ def get_list_from_str(string):
         return string
 
     if string == 'None':
+        return None
+
+    if string == '':
         return None
 
     return string.replace(' ','').replace(']', '').replace('[', '').replace('"', '').replace("'", "").split(',')

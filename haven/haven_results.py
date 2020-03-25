@@ -923,14 +923,18 @@ def get_plot(exp_list, savedir_base,
             markevery = None
             markersize = None
 
-            for filterby_dict, map_dict in map_exp_list:
-                if hu.is_subset(filterby_dict, exp_dict):
-                    marker = map_dict.get('marker', marker)
-                    label = map_dict.get('label', label)
-                    color = map_dict.get('color', color)
-                    linewidth = map_dict.get('linewidth', linewidth)
-                    markevery = map_dict.get('markevery', markevery)
-                    break
+            if map_exp_list:
+                for map_exp in map_exp_list:
+                    filterby_dict = map_exp['filterby']
+                    map_dict = map_exp['map']
+
+                    if hu.is_subset(filterby_dict, exp_dict):
+                        marker = map_dict.get('marker', marker)
+                        label = map_dict.get('label', label)
+                        color = map_dict.get('color', color)
+                        linewidth = map_dict.get('linewidth', linewidth)
+                        markevery = map_dict.get('markevery', markevery)
+                        break
         
             # plot
             if mode == 'line':
