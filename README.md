@@ -35,9 +35,9 @@ To setup a machine learning project for large-scale experimentation, we can foll
 
 ### TODO
 
-- [ ] automatically launch a jupyter when experiments are launched
+- [x] automatically create a jupyter when experiments are launched
 
-- [ ] better handlings of lists in the jupyter dashboard
+- [x] better handlings of lists in the jupyter dashboard
 
 ### Examples
 
@@ -321,7 +321,10 @@ hj.get_dashboard(rm, vars(), wide_display=True)
 - View scores as a barchart.
 
 
+### FAQ
 
+- case: experiment being saved in a different folder than expected.
+- reason: the hashing function might have changed between haven versions.
 
 ### Contributing
 

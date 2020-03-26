@@ -622,7 +622,7 @@ def get_exp_list_df(exp_list, filterby_list=None, columns=None, verbose=True):
 
 def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
                  score_columns=None,
-                 stats=True, verbose=True, wrap_size=8):
+                 stats=True, verbose=True, wrap_size=8, hparam_diff=0, flatten_columns=True):
     """Get a table showing the scores for the given list of experiments 
 
     Parameters
@@ -698,6 +698,11 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
                             result_dict[k] = "%.4f" % v[-1]
                     else:
                         result_dict[k] = v[-1]
+            if flatten_columns:
+                new_dict = {}
+                for k, v in result_dict.items():
+                    new_dict.update(hu.flatten_dict(k, v))
+                result_dict = new_dict
 
             result_list += [result_dict]
 
@@ -713,9 +718,9 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
             # df[c] = df[c].str.wrap(wrap_size)
             df[c] = df[c].apply(pprint.pformat)
 
-    # modify columns
-    # if columns:
-    #     df = df[[c for c in columns if c in df.columns]]
+    if hparam_diff > 0:
+        cols = hu.get_diff_columns(df, min_threshold=hparam_diff, max_threshold='auto')
+        df = df[cols]
 
     return df
 

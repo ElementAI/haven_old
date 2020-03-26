@@ -967,7 +967,7 @@ def flatten_dict(key_name, v_dict):
     leaf_dict = {}
     for k in v_dict:
         if key_name != '':
-            k_new = key_name + "_" + k
+            k_new = key_name + "." + k
         else:
             k_new = k
         leaf_dict.update(flatten_dict(key_name=k_new, v_dict=v_dict[k]))
@@ -975,10 +975,14 @@ def flatten_dict(key_name, v_dict):
     return leaf_dict
 
 
-def get_diff_columns(df, min_threshold=2, max_threshold=None):
+def get_diff_columns(df, min_threshold=2, max_threshold='auto'):
     df.reset_index()
-    if max_threshold is None:
-        max_threshold = df.shape[0] - 1
+    if max_threshold == 'auto':
+        max_threshold = df.shape[0]
+    
+    if max_threshold < 0:
+        max_threshold = df.shape[0] + max_threshold
+    
     column_count = []
     
     for column in df.columns:

@@ -108,10 +108,15 @@ def init_datatable_mode():
             require(["DT"], function(DT) {
                 $(document).ready( () => {
                     // Turn existing table into datatable
-                    $(element).find("table.dataframe").DataTable();
+                    $(element).find("table.dataframe").DataTable({"scrollX": true});
+
+                    $('#container').css( 'display', 'block' );
+                    table.columns.adjust().draw();
+                    
                 })
             });
         """
+        
 
         return script
 
@@ -242,7 +247,7 @@ class DashboardManager:
         
         t_columns = widgets.Text(
             value=str(self.vars.get('columns')),
-            description='columns:',
+            description='exp_param_columns:',
             disabled=False
                 )
         t_score_columns = widgets.Text(
@@ -250,9 +255,20 @@ class DashboardManager:
             description='score_columns:',
             disabled=False
                 )
+
+        l_exp_params = widgets.Label(value="exp_params: %s" % str(self.rm.exp_params),
+                )
+
+        t_diff = widgets.Text(
+            value=str(self.vars.get('hparam_diff', 0)),
+            description='hparam diff:',
+            disabled=False
+                )
+
         brefresh = widgets.Button(description="refresh")
 
-        button = widgets.HBox([t_columns, t_score_columns, brefresh])
+        button = widgets.VBox([widgets.HBox([l_exp_params, t_diff]),
+                               widgets.HBox([t_columns, t_score_columns, brefresh])])
         output_plot = widgets.Output()
 
         with output:
@@ -262,8 +278,10 @@ class DashboardManager:
         def on_refresh_clicked(b):
             self.vars['columns'] = get_list_from_str(t_columns.value)
             self.vars['score_columns'] = get_list_from_str(t_score_columns.value)
+            self.vars['hparam_diff'] = int(t_diff.value)
             score_table = self.rm.get_score_table(columns=self.vars.get('columns'), 
-                                            score_columns=self.vars.get('score_columns'))
+                                            score_columns=self.vars.get('score_columns'),
+                                            hparam_diff=self.vars['hparam_diff'])
 
             output_plot.clear_output()
             with output_plot:
