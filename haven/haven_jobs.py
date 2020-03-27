@@ -268,7 +268,8 @@ class JobManager:
 
         fname_exp_dict = os.path.join(savedir, "exp_dict.json")
         hu.save_json(fname_exp_dict, exp_dict)
-
+        assert(hu.hash_dict(hu.load_json(fname_exp_dict)) == hu.hash_dict(exp_dict))
+        
         # Define paths
         workdir_job = os.path.join(savedir, "code")
 

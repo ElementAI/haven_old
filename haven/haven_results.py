@@ -457,8 +457,15 @@ def get_exp_list(savedir_base, filterby_list=None, verbose=True):
             if verbose:
                 print('%s: missing exp_dict.json' % exp_id)
             continue
-
+        
         exp_dict = hu.load_json(fname)
+        expected_id = hu.hash_dict(exp_dict)
+        if expected_id != exp_id:
+            if verbose:
+                # assert(hu.hash_dict(exp_dict) == exp_id)
+                print('%s does not match %s' % (expected_id, exp_id))
+            continue
+        # print(hu.hash_dict(exp_dict))
         exp_list += [exp_dict]
 
     exp_list = filter_exp_list(exp_list, filterby_list)
@@ -678,7 +685,6 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
             if verbose:
                 print('%s: score_list.pkl is missing' % exp_id)
             
-            result_list += [result_dict]
         else:
             score_list = hu.load_pkl(score_list_fname)
             score_df = pd.DataFrame(score_list)
@@ -698,13 +704,13 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
                             result_dict[k] = "%.4f" % v[-1]
                     else:
                         result_dict[k] = v[-1]
-            if flatten_columns:
-                new_dict = {}
-                for k, v in result_dict.items():
-                    new_dict.update(hu.flatten_dict(k, v))
-                result_dict = new_dict
+        if flatten_columns:
+            new_dict = {}
+            for k, v in result_dict.items():
+                new_dict.update(hu.flatten_dict(k, v))
+            result_dict = new_dict
 
-            result_list += [result_dict]
+        result_list += [result_dict]
 
     # create table
     df = pd.DataFrame(result_list)
@@ -1028,8 +1034,8 @@ def get_plot(exp_list, savedir_base,
 
     return fig, axis
 
-def get_images(exp_list, savedir_base, n_exps=3, n_images=1,
-                   height=12, width=12, legend_list=None,
+def get_images(exp_list, savedir_base, n_exps=20, n_images=1,
+                   figsize=(12,12), legend_list=None,
                    dirname='images', verbose=True):
     """[summary]
     
@@ -1066,12 +1072,14 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1,
     >>> hr.get_images(exp_list, savedir_base=savedir_base)
     """
     fig_list = []
+    exp_count = 0
     for k, exp_dict in enumerate(exp_list):
         
-        if k >= n_exps:
+        if exp_count >= n_exps:
             if verbose:
                 print('displayed %d/%d experiment images' % (k, n_exps))
             break
+
         result_dict = {}
         if legend_list is None:
             label = hu.hash_dict(exp_dict)
@@ -1100,22 +1108,19 @@ def get_images(exp_list, savedir_base, n_exps=3, n_images=1,
         ncols = len(img_list)
         # ncols = len(exp_configs)
         nrows = 1
-        fig, axs = plt.subplots(nrows=ncols, ncols=nrows,
-                                figsize=(ncols*width, nrows*height))
 
-        if not hasattr(axs, 'size'):
-            axs = [axs]
-
+        print('%s\nExperiment id: %s' % ("="*100, exp_id,))
         for i in range(ncols):
+            fig = plt.figure(figsize=figsize)
             img = plt.imread(img_list[i])
-            axs[i].imshow(img)
-            axs[i].set_axis_off()
-            axs[i].set_title('%s\n%s:%s' %
+            plt.imshow(img)
+            plt.title('%s\n%s:%s' %
                                 (exp_id, label, os.path.split(img_list[i])[-1]))
 
-        plt.axis('off')
-        plt.tight_layout()
-        fig_list += [fig]
+            plt.axis('off')
+            plt.tight_layout()
+            fig_list += [fig]
+        exp_count += 1
     
     return fig_list
 

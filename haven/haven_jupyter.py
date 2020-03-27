@@ -58,7 +58,7 @@ exp_list = None
 # get experiments
 rm = hr.ResultManager(exp_list=exp_list, 
                       savedir_base=savedir_base, 
-                      verbose=verbose
+                      verbose=0
                      )
 
 # launch dashboard
@@ -460,7 +460,7 @@ class DashboardManager:
         from ipywidgets import widgets
         from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
         tfigsize = widgets.Text(
-            value=str(self.vars.get('figsize', '(10,5)')),
+            value=str(self.vars.get('figsize_images', '(10,5)')),
             description='figsize:',
             disabled=False
                 )
@@ -497,14 +497,15 @@ class DashboardManager:
             output_plot.clear_output()
             with output_plot:
                 w, h = tfigsize.value.strip('(').strip(')').split(',')
-                self.vars['figsize'] = (int(w), int(h))
+                self.vars['figsize_images'] = (int(w), int(h))
                 self.vars['legend_list'] = get_list_from_str(llegend_list.value)
                 self.vars['n_images'] = int(t_n_images.value)
                 self.vars['n_exps'] = int(t_n_exps.value)
 
                 self.rm.get_images(legend_list=self.vars['legend_list'], 
                         n_images=self.vars['n_images'],
-                        n_exps=self.vars['n_exps'])
+                        n_exps=self.vars['n_exps'],
+                        figsize=self.vars['figsize_images'])
                 show_inline_matplotlib_plots()
                 
         brefresh.on_click(on_clicked)
