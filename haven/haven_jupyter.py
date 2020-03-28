@@ -222,7 +222,10 @@ class DashboardManager:
                 
 
         bset.on_click(on_button_clicked)
+        
         display(main_out)
+        on_button_clicked(None)
+
         if self.wide_display:
             display(HTML("<style>.container { width:100% !important; }</style>"))
             # display(HTML("<style>.output_result { max-width:100% !important; }</style>"))
@@ -240,6 +243,7 @@ class DashboardManager:
         </style>
         """
         display(HTML(style))
+        
 
     def table_tab(self, output):
         from IPython.display import display
@@ -265,10 +269,10 @@ class DashboardManager:
             disabled=False
                 )
 
-        brefresh = widgets.Button(description="refresh")
+        brefresh = widgets.Button(description="Display")
 
-        button = widgets.VBox([widgets.HBox([l_exp_params, t_diff]),
-                               widgets.HBox([t_columns, t_score_columns, brefresh])])
+        button = widgets.VBox([widgets.HBox([brefresh, l_exp_params, t_diff]),
+                               widgets.HBox([t_columns, t_score_columns ])])
         output_plot = widgets.Output()
 
         with output:
@@ -288,6 +292,7 @@ class DashboardManager:
                 display(score_table) 
 
         brefresh.on_click(on_refresh_clicked)
+        on_refresh_clicked(None)
 
 
     def job_tab(self, output):
@@ -412,7 +417,7 @@ class DashboardManager:
                 )
 
 
-        brefresh = widgets.Button(description="Refresh")
+        brefresh = widgets.Button(description="Display")
         button = widgets.VBox([widgets.HBox([brefresh, l_exp_params]),
                 widgets.HBox([t_y_metric, t_x_metric,
                             t_groupby_list, llegend_list, tfigsize]),
@@ -482,7 +487,7 @@ class DashboardManager:
             disabled=False
                 )
 
-        brefresh = widgets.Button(description="Refresh")
+        brefresh = widgets.Button(description="Display")
         button = widgets.VBox([brefresh,
                 widgets.HBox([t_n_images, t_n_exps,
                             llegend_list, tfigsize])])

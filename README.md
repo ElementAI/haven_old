@@ -13,7 +13,7 @@ Write a simple codebase in order to efficiently define hyperparameters, launch m
 
 ### Getting Started
 
-The following 4 steps helps in setting up the codebase.
+The following 4 steps helps in setting up the codebase. The full codebase is provided [here](https://github.com/ElementAI/haven/tree/master/examples/minimal).
 
 1. [Define the hyperparameters;](#1-define-the-hyperparameters)
 2. [Write the codebase;](#2-write-the-codebase)
@@ -425,6 +425,7 @@ hj.get_dashboard(rm, vars(), wide_display=True)
 
 The following folders contain example projects built on this framework.
 
+- [Minimal](https://github.com/ElementAI/haven/tree/master/examples/minimal)
 - [Classification](https://github.com/ElementAI/haven/tree/master/examples/classification)
 - [Active Learning](https://github.com/ElementAI/haven/tree/master/examples/active_learning)
 - [Generative Adversarial Networks](https://github.com/ElementAI/haven/tree/master/examples/gans)
