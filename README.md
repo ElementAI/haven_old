@@ -9,13 +9,7 @@
 </table> -->
 # Haven 
 
-The goal of this framework is have a minimalistic setup to define the hyperparameters, to launch large scale experiments, and to visualize their results efficiently.
-
-* [Install](#install)
-* [Getting Started](#getting-started)
-* [Examples](#examples)
-* [Extras](#extras)
-* [Contributing](#contributing)
+Write a simple codebase in order to efficiently define hyperparameters, launch many experiments, and visualize their results.
 
 ### Install
 ```
@@ -33,23 +27,7 @@ To setup a machine learning project for large-scale experimentation, we can foll
 3. [Run the experiments; and](#3-run-the-experiments)
 4. [Visualize the results.](#4-visualize-the-results)
 
-### TODO
-
-- [x] automatically create a jupyter when experiments are launched
-
-- [x] better handlings of lists in the jupyter dashboard
-
-### Examples
-
-The following folders contain example projects built on this framework.
-
-- [Classification](https://github.com/ElementAI/haven/tree/master/examples/classification)
-- [Active Learning](https://github.com/ElementAI/haven/tree/master/examples/active_learning)
-- [Generative Adversarial Networks](https://github.com/ElementAI/haven/tree/master/examples/gans)
-- [Object Counting](https://github.com/ElementAI/haven/tree/master/examples/object_counting)
-
-
-
+* [Examples Here](#examples)
 
 #### 1. Define the Hyperparameters
 
@@ -306,6 +284,16 @@ rm = hr.ResultManager(exp_list=exp_list,
 # launch dashboard
 hj.get_dashboard(rm, vars(), wide_display=True)
 ```
+
+### Examples
+
+The following folders contain example projects built on this framework.
+
+- [Classification](https://github.com/ElementAI/haven/tree/master/examples/classification)
+- [Active Learning](https://github.com/ElementAI/haven/tree/master/examples/active_learning)
+- [Generative Adversarial Networks](https://github.com/ElementAI/haven/tree/master/examples/gans)
+- [Object Counting](https://github.com/ElementAI/haven/tree/master/examples/object_counting)
+
 
 
 ### Extras
