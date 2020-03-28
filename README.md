@@ -11,13 +11,6 @@
 
 Write a simple codebase in order to efficiently define hyperparameters, launch many experiments, and visualize their results.
 
-### Install
-```
-$ pip install --upgrade git+https://github.com/ElementAI/haven
-```
-
-<!-- /home/issam/Research_Ground/haven/ -->
-
 ### Getting Started
 
 The following 4 steps helps in setting up the codebase.
@@ -28,6 +21,13 @@ The following 4 steps helps in setting up the codebase.
 4. [Visualize the results.](#4-visualize-the-results)
 
 * [Examples Here](#examples)
+
+### Install
+```
+$ pip install --upgrade git+https://github.com/ElementAI/haven
+```
+
+<!-- /home/issam/Research_Ground/haven/ -->
 
 #### 1. Define the Hyperparameters
 
