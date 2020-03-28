@@ -34,18 +34,13 @@ $ pip install --upgrade git+https://github.com/ElementAI/haven
 Create `exp_configs.py` and add the following dictionary. The experiment group `mnist` defines hyperparameters for comparing learning rates against MNIST. 
 
 ```python
-from haven import haven_utils as hu
-
 # Compare between two learning rates for the same model and dataset
 EXP_GROUPS = {'mnist':
                 [
-                 {
-                    'lr':1e-3, 'model':'mlp', 'dataset':mnist'}
-                 },
-                  {
-                    'lr':1e-4, 'model':'mlp', 'dataset':mnist'}
-                  }
+                 {'lr':1e-3, 'model':'mlp', 'dataset':'mnist'},
+                 {'lr':1e-4, 'model':'mlp', 'dataset':'mnist'}
                   ]
+}
 ```
 
 
@@ -189,8 +184,12 @@ def get_loader(dataset_name, datadir, split, batch_size):
 Create `models.py` with the following code:
 
 ```python
-# Model
-# -----
+import torch
+import tqdm
+
+from torch import nn
+
+
 def get_model(model_name):
     if model_name == 'mlp':
         return MLP()
@@ -212,7 +211,7 @@ class MLP(nn.Module):
         out = x
         for layer in self.hidden_layers:
             Z = layer(out)
-            out = F.relu(Z)
+            out = torch.nn.functional.relu(Z)
         logits = self.output_layer(out)
 
         return logits
@@ -232,12 +231,14 @@ class MLP(nn.Module):
 
         n_batches = len(train_loader)
 
+        pbar = tqdm.tqdm(desc="Training", total=n_batches, leave=False)
         for i, batch in enumerate(train_loader):
             loss_sum += float(self.train_on_batch(batch))
 
-            if i % (n_batches//10) == 0:
-                print("%d - Training loss: %.4f" % (i, loss_sum / (i + 1)))
+            pbar.set_description("Training - loss: %.4f " % (loss_sum / (i + 1)))
+            pbar.update(1)
 
+        pbar.close()
         loss = loss_sum / n_batches
 
         return {"train_loss": loss}
@@ -250,6 +251,7 @@ class MLP(nn.Module):
         n_samples = 0
 
         n_batches = len(val_loader)
+        pbar = tqdm.tqdm(desc="Validating", total=n_batches, leave=False)
 
         for i, batch in enumerate(val_loader):
             gt_labels = batch[1]
@@ -258,8 +260,10 @@ class MLP(nn.Module):
             se += float((pred_labels.cpu() == gt_labels).sum())
             n_samples += gt_labels.shape[0]
             
-            if i % (n_batches//10) == 0:
-                print("%d - Val score: %.4f" % (i, se / n_samples))
+            pbar.set_description("Validating -  %.4f acc" % (se / n_samples))
+            pbar.update(1)
+
+        pbar.close()
 
         acc = se / n_samples
 
@@ -271,8 +275,8 @@ class MLP(nn.Module):
         images, labels = images, labels
 
         self.opt.zero_grad()
-        probs = F.log_softmax(self(images), dim=1)
-        loss = F.nll_loss(probs, labels, reduction="mean")
+        probs = torch.nn.functional.log_softmax(self(images), dim=1)
+        loss = torch.nn.functional.nll_loss(probs, labels, reduction="mean")
         loss.backward()
 
         self.opt.step()
@@ -283,7 +287,7 @@ class MLP(nn.Module):
         """Predict for one batch."""
         images, labels = batch
         images = images
-        probs = F.log_softmax(self(images), dim=1)
+        probs = torch.nn.functional.log_softmax(self(images), dim=1)
 
         return probs.argmax(dim=1)
 ```
