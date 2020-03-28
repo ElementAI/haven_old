@@ -31,26 +31,38 @@ $ pip install --upgrade git+https://github.com/ElementAI/haven
 
 #### 1. Define the Hyperparameters
 
-create `exp_configs.py` and add the following dictionary which defines a set of hyperparameters. This dictionary defines a `mnist` experiment group.
+Create `exp_configs.py` and add the following dictionary. The experiment group `mnist` defines hyperparameters for comparing learning rates against MNIST. 
 
 ```python
 from haven import haven_utils as hu
 
-# Define exp groups for parameter search
+# Compare between two learning rates for the same model and dataset
 EXP_GROUPS = {'mnist':
-                hu.cartesian_exp_group({
-                    'lr':[1e-3, 1e-4],
-                    'batch_size':[32, 64]})
-                }
+                [
+                 {
+                    'lr':1e-3, 'model':'mlp', 'dataset':mnist'}
+                 },
+                  {
+                    'lr':1e-4, 'model':'mlp', 'dataset':mnist'}
+                  }
+                  ]
 ```
 
 
 #### 2. Write the Codebase
 
-Create a file `trainval.py` with the template below: 
+A minimal codebase can includee 3 files.
+    - `trainval.py` for the main loop training and validation loop
+    - `datasets.py` for selecting the dataset based on the hyperparameter
+    - `models.py` for selecting the model based on the hyperparameter
+
+##### 2.1 Create the training and validation loop
+
+Create `trainval.py` with the code below: 
 
 ```python
 import os
+import pprint
 import argparse
 
 import exp_configs
@@ -76,19 +88,23 @@ def trainval(exp_dict, savedir_base, reset=False):
     # create folder and save the experiment dictionary
     os.makedirs(savedir, exist_ok=True)
     hu.save_json(os.path.join(savedir, "exp_dict.json"), exp_dict)
-    print(exp_dict)
+    pprint.pprint(exp_dict)
     print("Experiment saved in %s" % savedir)
 
     # Dataset
     # -----------
+    
+    # train loader
+    train_loader = datasets.get_loader(dataset_name=exp_dict['dataset'], datadir=savedir_base, 
+                                        split='train', batch_size=32)
 
-    # train and val loader
-    train_loader = ...
-    val_loader = ...
-   
+    # val loader
+    val_loader = datasets.get_loader(dataset_name=exp_dict['dataset'], datadir=savedir_base, 
+                                     split='val', batch_size=32)
+
     # Model
     # -----------
-    model = ...
+    model = models.get_model(model_name=exp_dict['model'])
 
     # Checkpoint
     # -----------
@@ -97,7 +113,7 @@ def trainval(exp_dict, savedir_base, reset=False):
 
     if os.path.exists(score_list_path):
         # resume experiment
-        model.set_state_dict(hu.torch_load(model_path))
+        model.load_state_dict(hu.torch_load(model_path))
         score_list = hu.load_pkl(score_list_path)
         s_epoch = score_list[-1]['epoch'] + 1
     else:
@@ -137,13 +153,148 @@ def trainval(exp_dict, savedir_base, reset=False):
 
 ```
 
+##### 2.2 Add the MNIST dataset
+
+Create `datasets.py` with the following code:
+
+```python
+import torchvision
+
+from torch.utils.data import DataLoader
+
+
+def get_loader(dataset_name, datadir, split, batch_size):
+    if dataset_name == 'mnist':
+        transform = torchvision.transforms.Compose(
+            [torchvision.transforms.ToTensor(),
+                torchvision.transforms.Normalize((0.5,), (0.5,))])
+
+        if split == 'train':
+            train = True 
+        else:
+            train = False 
+
+        dataset = torchvision.datasets.MNIST(datadir,
+                                                train=train,
+                                                download=True,
+                                                transform=transform)
+        loader = DataLoader(dataset, shuffle=True,
+                                  batch_size=batch_size)
+        
+        return loader
+```
+
+##### 2.3 Add the MLP model
+
+Create `models.py` with the following code:
+
+```python
+# Model
+# -----
+def get_model(model_name):
+    if model_name == 'mlp':
+        return MLP()
+
+class MLP(nn.Module):
+    def __init__(self, input_size=784, n_classes=10):
+        """Constructor."""
+        super().__init__()
+
+        self.input_size = input_size
+        self.hidden_layers = nn.ModuleList([nn.Linear(input_size, 256)])
+        self.output_layer = nn.Linear(256, n_classes)
+
+        self.opt = torch.optim.SGD(self.parameters(), lr=1e-3)
+
+    def forward(self, x):
+        """Forward pass of one batch."""
+        x = x.view(-1, self.input_size)
+        out = x
+        for layer in self.hidden_layers:
+            Z = layer(out)
+            out = F.relu(Z)
+        logits = self.output_layer(out)
+
+        return logits
+    
+    def get_state_dict(self):
+        return {'model': self.state_dict(),
+                'opt': self.opt.state_dict()} 
+
+    def load_state_dict(self, state_dict):
+        self.load_state_dict(state_dict['model'])
+        self.opt.load_state_dict(state_dict['opt'])
+
+    def train_on_loader(self, train_loader):
+        """Train for one epoch."""
+        self.train()
+        loss_sum = 0.
+
+        n_batches = len(train_loader)
+
+        for i, batch in enumerate(train_loader):
+            loss_sum += float(self.train_on_batch(batch))
+
+            if i % (n_batches//10) == 0:
+                print("%d - Training loss: %.4f" % (i, loss_sum / (i + 1)))
+
+        loss = loss_sum / n_batches
+
+        return {"train_loss": loss}
+    
+    @torch.no_grad()
+    def val_on_loader(self, val_loader):
+        """Validate the model."""
+        self.eval()
+        se = 0.
+        n_samples = 0
+
+        n_batches = len(val_loader)
+
+        for i, batch in enumerate(val_loader):
+            gt_labels = batch[1]
+            pred_labels = self.predict_on_batch(batch)
+
+            se += float((pred_labels.cpu() == gt_labels).sum())
+            n_samples += gt_labels.shape[0]
+            
+            if i % (n_batches//10) == 0:
+                print("%d - Val score: %.4f" % (i, se / n_samples))
+
+        acc = se / n_samples
+
+        return {"val_acc": acc}
+
+    def train_on_batch(self, batch):
+        """Train for one batch."""
+        images, labels = batch
+        images, labels = images, labels
+
+        self.opt.zero_grad()
+        probs = F.log_softmax(self(images), dim=1)
+        loss = F.nll_loss(probs, labels, reduction="mean")
+        loss.backward()
+
+        self.opt.step()
+
+        return loss.item()
+
+    def predict_on_batch(self, batch, **options):
+        """Predict for one batch."""
+        images, labels = batch
+        images = images
+        probs = F.log_softmax(self(images), dim=1)
+
+        return probs.argmax(dim=1)
+```
+
 #### 3. Run the Experiments
 
-To run `trainval.py` with the `mnist` experiment group, follow the two steps below.
+To run the `mnist` experiment group, follow the two steps below.
 
-##### 3.1 Create the 'Main' Script
+##### 3.1 Add the 'Main' Script
 
-Add the following script to `trainval.py`. This script allows the user to use the command line to select between experiment groups in order to run them.
+Add the following script to the bottom of `trainval.py`. This script allows using the command line to run experiment groups like `mnist`.
 
 ```python
 if __name__ == "__main__":
@@ -185,7 +336,7 @@ if __name__ == "__main__":
 
 ##### 3.2 Run trainval.py in Command Line
 
-Run the following command in order to launch the mnist experiments and save them under the folder `../results/`.
+The following command launches the mnist experiments and saves their results under `../results/`.
 
 ```
 python trainval.py -e mnist -sb ../results -r 1
@@ -193,7 +344,7 @@ python trainval.py -e mnist -sb ../results -r 1
 
 ##### 3.3 Using a job manager
 
-You can run all the experiments in parallel using a job scheduler such as the orkestrator. The job scheduler can be used with the following script.
+The experiments can be ran in parallel using a job scheduler such as slurm or the orkestrator. The job scheduler can be used with the following script.
 
 ```python
 # launch jobs
@@ -237,50 +388,31 @@ pip install ipywidgets
 pip install --upgrade git+https://github.com/ElementAI/haven
 
 jupyter nbextension enable --py widgetsnbextension --sys-prefix
+
 jupyter notebook --ip 0.0.0.0 --port 9123 \
       --notebook-dir="/home/$USER" --NotebookApp.token="password"
 ```
 
 ##### 2. Create Jupyter
 
-Shown in example.ipynb, run the following script in a Jupyter cell. The script will launch a dashboard from the specified variables
+Add following script in a Jupyter cell to launch a dashboard.
 
 
 ```python
-# Specify variables
 from haven import haven_jupyter as hj
 from haven import haven_results as hr
 from haven import haven_utils as hu
 
-# please define the path to the experiments
-savedir_base = <path_to_saved_experiments>
+# path to where the experiments got saved
+savedir_base = <insert_savedir_base>
 exp_list = None
 
-# exp_config_name = <exp_config_name>
-# exp_list = hu.load_py(exp_config_name).EXP_GROUPS['mnist']
-
-# get specific experiments, for example, {'model':'resnet34'}
-filterby_list = None
-
-# group the experiments based on a hyperparameter, for example, ['dataset']
-groupby_list = None
-verbose = 0
-
-# plot vars
-y_metrics='train_loss'
-x_metric='epoch'
-log_metric_list = ['train_loss']
-map_exp_list = []
-title_list=['dataset']
-legend_list=['model']
-
+# exp_list = hu.load_py(<exp_config_name>).EXP_GROUPS[<exp_group>]
 # get experiments
 rm = hr.ResultManager(exp_list=exp_list, 
                       savedir_base=savedir_base, 
-                      filterby_list=filterby_list,
-                      verbose=verbose
+                      verbose=0
                      )
-
 # launch dashboard
 hj.get_dashboard(rm, vars(), wide_display=True)
 ```
