@@ -14,6 +14,8 @@ On the orkestrator
 python trainval.py -e mnist -r 1 -sb <savedir_base> -j 1
 ```
 
+`<savedir_base>` is where the results are saved.
+
 ### 2.  Visualize
 
 Create the jupyter file as follows
