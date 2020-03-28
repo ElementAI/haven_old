@@ -20,7 +20,7 @@ $ pip install --upgrade git+https://github.com/ElementAI/haven
 
 ### Getting Started
 
-To setup a machine learning project for large-scale experimentation, we can follow these 4 steps.
+The following 4 steps helps in setting up the codebase.
 
 1. [Define the hyperparameters;](#1-define-the-hyperparameters)
 2. [Write the codebase;](#2-write-the-codebase)
