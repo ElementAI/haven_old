@@ -59,15 +59,18 @@ Create `trainval.py` with the code below:
 
 ```python
 import os
-import pprint
 import argparse
+import pandas as pd
+import pprint
+import torch 
 
 import exp_configs
+import models
+import datasets
 
 from haven import haven_utils as hu
-from haven import haven_results as hr
 from haven import haven_chk as hc
-import pandas as pd
+from haven import haven_jobs as hj
 
 
 def trainval(exp_dict, savedir_base, reset=False):
@@ -84,20 +87,20 @@ def trainval(exp_dict, savedir_base, reset=False):
     
     # create folder and save the experiment dictionary
     os.makedirs(savedir, exist_ok=True)
-    hu.save_json(os.path.join(savedir, "exp_dict.json"), exp_dict)
+    hu.save_json(os.path.join(savedir, 'exp_dict.json'), exp_dict)
     pprint.pprint(exp_dict)
-    print("Experiment saved in %s" % savedir)
+    print('Experiment saved in %s' % savedir)
 
     # Dataset
     # -----------
-    
+
     # train loader
     train_loader = datasets.get_loader(dataset_name=exp_dict['dataset'], datadir=savedir_base, 
-                                        split='train', batch_size=32)
+                                        split='train')
 
     # val loader
     val_loader = datasets.get_loader(dataset_name=exp_dict['dataset'], datadir=savedir_base, 
-                                     split='val', batch_size=32)
+                                     split='val')
 
     # Model
     # -----------
@@ -105,12 +108,12 @@ def trainval(exp_dict, savedir_base, reset=False):
 
     # Checkpoint
     # -----------
-    model_path = os.path.join(savedir, "model.pth")
-    score_list_path = os.path.join(savedir, "score_list.pkl")
+    model_path = os.path.join(savedir, 'model.pth')
+    score_list_path = os.path.join(savedir, 'score_list.pkl')
 
     if os.path.exists(score_list_path):
         # resume experiment
-        model.load_state_dict(hu.torch_load(model_path))
+        model.set_state_dict(hu.torch_load(model_path))
         score_list = hu.load_pkl(score_list_path)
         s_epoch = score_list[-1]['epoch'] + 1
     else:
@@ -120,34 +123,33 @@ def trainval(exp_dict, savedir_base, reset=False):
 
     # Train & Val
     # ------------
-    print("Starting experiment at epoch %d" % (s_epoch))
+    print('Starting experiment at epoch %d' % (s_epoch))
 
-    for e in range(s_epoch, exp_dict['max_epoch']):
+    for e in range(s_epoch, 10):
         score_dict = {}
 
         # Train the model
-        score_dict.update(model.train_on_loader(train_loader))
+        train_dict = model.train_on_loader(train_loader)
 
         # Validate the model
-        score_dict.update(model.val_on_loader(val_loader, savedir=os.path.join(savedir_base, exp_dict['dataset']['name'])))
-        score_dict["epoch"] = e
+        val_dict = model.val_on_loader(val_loader)
 
-        # Visualize the model
-        model.vis_on_loader(vis_loader, savedir=savedir+"/images/")
+        # Get metrics
+        score_dict['train_loss'] = train_dict['train_loss']
+        score_dict['val_acc'] = val_dict['val_acc']
+        score_dict['epoch'] = e
 
         # Add to score_list and save checkpoint
         score_list += [score_dict]
 
         # Report & Save
         score_df = pd.DataFrame(score_list)
-        print("\n", score_df.tail())
+        print(score_df.tail())
         hu.torch_save(model_path, model.get_state_dict())
         hu.save_pkl(score_list_path, score_list)
-        print("Checkpoint Saved: %s" % savedir)
+        print('Checkpoint Saved: %s' % savedir)
 
     print('experiment completed')
-
-
 ```
 
 ##### 2.2 Add the MNIST dataset
