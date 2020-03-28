@@ -11,9 +11,11 @@
 
 Write a simple codebase in order to efficiently define hyperparameters, launch many experiments, and visualize their results.
 
+In the example below, we will write a minimal [codebase](https://github.com/ElementAI/haven/tree/master/examples/minimal) to get us started. 
+
 ### Getting Started
 
-The following 4 steps helps in setting up the codebase. The full codebase is provided [here](https://github.com/ElementAI/haven/tree/master/examples/minimal).
+The following 4 steps helps in setting up the codebase. 
 
 1. [Define the hyperparameters;](#1-define-the-hyperparameters)
 2. [Write the codebase;](#2-write-the-codebase)
