@@ -915,13 +915,12 @@ def get_plot(exp_list, savedir_base,
             if legend_list is not None:
                 label_list = []
                 for k in legend_list:
-                    if isinstance(k, list):
-                        if k[0] not in exp_dict:
-                            label_list += [str(None)]
-                        else:
-                            label_list += [str(exp_dict[k[0]].get(k[1]))]
-                    else:
-                        label_list += [str(exp_dict.get(k))]
+                    depth_list = k.split('.')
+                    sub_dict = exp_dict
+                    for d in depth_list:
+                        sub_dict = sub_dict[d]
+                        
+                    label_list += [str(sub_dict)]
 
                 label = '_'.join(label_list)
                 label = '\n'.join(wrap(label, 40))

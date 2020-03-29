@@ -268,7 +268,7 @@ class Test(unittest.TestCase):
         pass
 
     def test_get_job_stats_logs_errors(self):
-        if os.path.exists('tests_jobs.py'):
+        if os.path.exists('tests/tests_jobs.py'):
             import tests_jobs
             tests_jobs.test_get_job_stats_logs_errors()
         

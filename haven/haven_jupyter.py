@@ -123,14 +123,23 @@ def init_datatable_mode():
     pd.DataFrame._repr_javascript_ = _repr_datatable_
 
         
-def get_dashboard(rm, vars, show_jobs=True, wide_display=False):
-    dm = DashboardManager(rm, vars, show_jobs, wide_display)
+def get_dashboard(rm, vars=None, show_jobs=True, wide_display=False):
+    dm = DashboardManager(rm, vars=vars, show_jobs=show_jobs, wide_display=wide_display)
     dm.display()
 
 class DashboardManager:
-    def __init__(self, rm, vars, show_jobs, wide_display):
+    def __init__(self, rm, vars=None, show_jobs=True, wide_display=True):
         self.rm_old = rm
+        
+        if vars is None:
+            fname = os.path.join(rm.savedir_base, '.dashboard_history.json')
+            if os.path.exists(fname):
+                self.vars = hu.load_json(fname)
+            else:
+                self.vars = {}
+
         self.vars = vars
+
         self.show_jobs = show_jobs
         self.wide_display = wide_display
 
@@ -148,16 +157,18 @@ class DashboardManager:
         t_savedir_base = widgets.Text(
             value=str(self.vars['savedir_base']),
             description='savedir_base:',
+            layout=widgets.Layout(width='600px'),
             disabled=False
                 )
 
         t_filterby_list = widgets.Textarea(
             value=str(self.vars.get('filterby_list')),
             description='filterby_list:',
+            layout=widgets.Layout(width='600px'),
             disabled=False
                 )
-        bset = widgets.Button(description="set")
-        display(widgets.HBox([t_savedir_base, t_filterby_list, bset]))
+        bset = widgets.Button(description="Set")
+        display(widgets.VBox([t_savedir_base, t_filterby_list, bset]))
 
         hj.init_datatable_mode()
 
