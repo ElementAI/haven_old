@@ -918,6 +918,9 @@ def get_plot(exp_list, savedir_base,
                     depth_list = k.split('.')
                     sub_dict = exp_dict
                     for d in depth_list:
+                        if d not in sub_dict:
+                            sub_dict = None
+                            break
                         sub_dict = sub_dict[d]
                         
                     label_list += [str(sub_dict)]
