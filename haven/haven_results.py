@@ -1018,6 +1018,10 @@ def get_plot(exp_list, savedir_base,
     if log_metric_list and y_metric in log_metric_list:
         axis.set_yscale('log')
         ylabel = ylabel + ' (log)'
+    
+    if log_metric_list and x_metric in log_metric_list:
+        axis.set_xscale('log')
+        xlabel = xlabel + ' (log)'
 
     axis.set_ylabel(ylabel, fontsize=y_fontsize)
     axis.set_xlabel(xlabel, fontsize=x_fontsize)

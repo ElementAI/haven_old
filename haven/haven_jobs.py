@@ -121,7 +121,8 @@ def run_exp_list_jobs(exp_list,
 
     if not force_run:
         # create jupyter only when user manually runs a command
-        hj.create_jupyter(os.path.join('results', 'notebook.ipynb'), savedir_base=savedir_base, print_url=True)
+        hj.create_jupyter(os.path.join('results', 'notebook.ipynb'), savedir_base=savedir_base, print_url=True, 
+                          create_notebook=False)
 
 
 
