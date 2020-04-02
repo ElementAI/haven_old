@@ -303,7 +303,7 @@ class DashboardManager:
             self.vars['columns'] = get_list_from_str(t_columns.value)
             self.vars['score_columns'] = get_list_from_str(t_score_columns.value)
             self.vars['hparam_diff'] = int(t_diff.value)
-            self.vars['show_meta'] = int(t_diff.value)
+            self.vars['show_meta'] = int(t_meta.value)
             score_table = self.rm.get_score_table(columns=self.vars.get('columns'), 
                                             score_columns=self.vars.get('score_columns'),
                                             hparam_diff=self.vars['hparam_diff'],
