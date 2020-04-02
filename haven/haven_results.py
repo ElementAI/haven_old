@@ -629,7 +629,8 @@ def get_exp_list_df(exp_list, filterby_list=None, columns=None, verbose=True):
 
 def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
                  score_columns=None,
-                 stats=True, verbose=True, wrap_size=8, hparam_diff=0, flatten_columns=True):
+                 verbose=True, wrap_size=8, hparam_diff=0, flatten_columns=True,
+                 show_meta=True, show_max_min=True):
     """Get a table showing the scores for the given list of experiments 
 
     Parameters
@@ -667,7 +668,8 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
         result_dict = {'creation_time':-1}
 
         exp_id = hu.hash_dict(exp_dict)
-        result_dict["exp_id"] = '\n'.join(wrap(exp_id, wrap_size))
+        if show_meta:
+            result_dict["exp_id"] = '\n'.join(wrap(exp_id, wrap_size))
         savedir = os.path.join(savedir_base, exp_id)
         score_list_fname = os.path.join(savedir, "score_list.pkl")
         exp_dict_fname = os.path.join(savedir, "exp_dict.json")
@@ -677,7 +679,7 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
                 continue
             result_dict[k] = exp_dict[k]
 
-        if os.path.exists(score_list_fname):
+        if os.path.exists(score_list_fname) and show_meta:
             result_dict['started_at'] = hu.time_to_montreal(exp_dict_fname)
             result_dict['creation_time'] = os.path.getctime(exp_dict_fname)
 
@@ -697,11 +699,11 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
                         v = v[~np.isnan(v)]
 
                     if "float" in str(v.dtype):
-                        if stats:
-                            result_dict[k] = ("%.3f (%.3f-%.3f)" %
-                                            (v[-1], v.min(), v.max()))
-                        else:
-                            result_dict[k] = "%.4f" % v[-1]
+                        result_dict[k] = v[-1]
+                        if show_max_min:
+                            result_dict[k+'_max'] = v.max()
+                            result_dict[k+'_min'] = v.min()
+                            
                     else:
                         result_dict[k] = v[-1]
         if flatten_columns:

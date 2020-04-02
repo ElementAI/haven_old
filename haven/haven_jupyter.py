@@ -273,19 +273,26 @@ class DashboardManager:
             disabled=False
                 )
 
-        l_exp_params = widgets.Label(value="exp_params: %s" % str(self.rm.exp_params),
+        l_exp_params = widgets.Label(value="Hyperparameters: %s" % str(self.rm.exp_params),
                 )
 
         t_diff = widgets.Text(
             value=str(self.vars.get('hparam_diff', 0)),
-            description='hparam diff:',
+            description='Hyper-parameter filter level:',
+            disabled=False
+                )
+        t_meta = widgets.Text(
+            value=str(self.vars.get('show_meta', 0)),
+            description='Show Exp ID:',
             disabled=False
                 )
 
         brefresh = widgets.Button(description="Display")
 
-        button = widgets.VBox([widgets.HBox([brefresh, l_exp_params, t_diff]),
-                               widgets.HBox([t_columns, t_score_columns ])])
+        button = widgets.VBox([widgets.HBox([brefresh]),
+                                widgets.HBox([t_meta, t_diff]),
+                               widgets.HBox([t_columns, t_score_columns ]),
+                               widgets.HBox([l_exp_params])])
         output_plot = widgets.Output()
 
         with output:
@@ -296,9 +303,11 @@ class DashboardManager:
             self.vars['columns'] = get_list_from_str(t_columns.value)
             self.vars['score_columns'] = get_list_from_str(t_score_columns.value)
             self.vars['hparam_diff'] = int(t_diff.value)
+            self.vars['show_meta'] = int(t_diff.value)
             score_table = self.rm.get_score_table(columns=self.vars.get('columns'), 
                                             score_columns=self.vars.get('score_columns'),
-                                            hparam_diff=self.vars['hparam_diff'])
+                                            hparam_diff=self.vars['hparam_diff'],
+                                            show_meta=self.vars['show_meta'])
 
             output_plot.clear_output()
             with output_plot:
