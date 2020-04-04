@@ -113,8 +113,9 @@ def save_json(fname, data, makedirs=True):
     makedirs : bool, optional
         If enabled creates the folder for saving the file, by default True
     """
-    if makedirs:
-        os.makedirs(os.path.dirname(fname), exist_ok=True)
+    dirname = os.path.dirname(fname)
+    if makedirs and dirname != '':
+        os.makedirs(dirname, exist_ok=True)
     with open(fname, "w") as json_file:
         json.dump(data, json_file, indent=4, sort_keys=True)
 
@@ -208,8 +209,9 @@ def save_pkl(fname, data, with_rename=True, makedirs=True):
         If enabled creates the folder for saving the file, by default True
     """
     # Create folder
-    if makedirs:
-        os.makedirs(os.path.dirname(fname), exist_ok=True)
+    dirname = os.path.dirname(fname)
+    if makedirs and dirname != '':
+        os.makedirs(dirname, exist_ok=True)
 
     # Save file
     if with_rename:

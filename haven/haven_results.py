@@ -240,7 +240,7 @@ class ResultManager:
         summary_list = jm.get_summary(columns=columns)
         return summary_list
             
-    def to_zip(self, fname):
+    def to_zip(self, savedir_base='', fname='tmp.zip', **kwargs):
         """[summary]
         
         Parameters
@@ -249,10 +249,10 @@ class ResultManager:
             [description]
         """
         from haven import haven_dropbox as hd
-
+        if savedir_base == '':
+            savedir_base = self.savedir_base
         exp_id_list = [hu.hash_dict(exp_dict) for exp_dict in self.exp_list]
-        hd.zipdir(exp_id_list, self.savedir_base, fname)
-        print('Zipped %d experiments in %s' % (len(exp_id_list), fname))
+        hd.zipdir(exp_id_list, savedir_base, fname, **kwargs)
 
     def to_dropbox(self, fname, dropbox_path=None, access_token=None):
         """[summary]
@@ -698,14 +698,15 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
                     if 'float' in str(v.dtype):
                         v = v[~np.isnan(v)]
 
-                    if "float" in str(v.dtype):
-                        result_dict[k] = v[-1]
-                        if show_max_min:
-                            result_dict[k+'_max'] = v.max()
-                            result_dict[k+'_min'] = v.min()
-                            
-                    else:
-                        result_dict[k] = v[-1]
+                    if len(v):
+                        if "float" in str(v.dtype):
+                            result_dict[k] = v[-1]
+                            if show_max_min:
+                                result_dict[k+' (max)'] = v.max()
+                                result_dict[k+' (min)'] = v.min()
+                                
+                        else:
+                            result_dict[k] = v[-1]
         if flatten_columns:
             new_dict = {}
             for k, v in result_dict.items():

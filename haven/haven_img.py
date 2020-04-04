@@ -5,7 +5,7 @@ from PIL import Image
 from skimage.segmentation import mark_boundaries
     
 
-def mask_on_image(image, mask, add_bbox=True, return_pil=False):
+def mask_on_image(image, mask, add_bbox=False, return_pil=False):
     """[summary]
     
     Parameters
@@ -350,7 +350,7 @@ def bbox_on_image(bbox_xyxy, image, mode='yxyx', color=(255, 0, 0)):
         # Line thickness of 2 px 
         thickness = 2
         # Draw a rectangle with blue line borders of thickness of 2 px 
-        image_uint8 = cv2.rectangle(image_uint8, start_point, end_point, color, thickness) 
+        image_uint8 = cv2.rectangle(image_uint8.copy(), start_point, end_point, color, thickness) 
 
     return image_uint8 / 255.
 

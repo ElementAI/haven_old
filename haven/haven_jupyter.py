@@ -2,9 +2,25 @@ import pandas as pd
 from . import haven_utils
 import os
 import pprint, json
-from haven import haven_utils as hu 
 import copy
 import pprint
+
+try:
+    import ast
+    from ipywidgets import Button, HBox, VBox
+    from ipywidgets import widgets
+
+    from IPython.display import display
+    from IPython.core.display import Javascript, display, HTML
+    from IPython.display import FileLink, FileLinks
+    from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
+except:
+    pass
+
+from haven import haven_results as hr
+from haven import haven_jupyter as hj
+from haven import haven_utils as hu 
+from haven import haven_dropbox as hd
 
 
 def launch_jupyter():
@@ -17,12 +33,14 @@ def launch_jupyter():
     print()
     
 
-def create_jupyter(fname='example.ipynb', savedir_base='<path_to_saved_experiments>', overwrite=False, print_url=False,
+def create_jupyter(fname='example.ipynb', 
+                   savedir_base='<path_to_saved_experiments>', 
+                   overwrite=False, print_url=False,
                    create_notebook=True):
     print('Jupyter') 
 
     if create_notebook and (overwrite or not os.path.exists(fname)):
-        cells = [main_cell(savedir_base)]
+        cells = [main_cell(savedir_base), install_cell()]
         os.makedirs(os.path.dirname(fname), exist_ok=True)
         save_ipynb(fname, cells)  
         print('- saved:', fname)
@@ -57,17 +75,30 @@ exp_list = None
 
 # exp_list = hu.load_py(<exp_config_name>).EXP_GROUPS[<exp_group>]
 
+# filter exps
+# e.g. filterby_list =[{'dataset':'mnist'}] gets exps with mnist
+filterby_list = None
+
 # get experiments
 rm = hr.ResultManager(exp_list=exp_list, 
                       savedir_base=savedir_base, 
+                      filterby_list=filterby_list,
                       verbose=0
                      )
 
 # launch dashboard
+# make sure you have 'widgetsnbextension' enabled; 
+# otherwise see README.md in https://github.com/ElementAI/haven
+
 hj.get_dashboard(rm, vars(), wide_display=True)
           """ % savedir_base)
     return script
 
+def install_cell():
+    script = ("""
+    !pip install --upgrade git+https://github.com/ElementAI/haven
+          """)
+    return script
 
 def save_ipynb(fname, script_list):
     import nbformat as nbf
@@ -146,103 +177,73 @@ class DashboardManager:
         self.wide_display = wide_display
 
     def display(self):
-        import ast
-        from ipywidgets import Button, HBox, VBox
-        from ipywidgets import widgets
-
-        from IPython.display import display
-        from IPython.core.display import Javascript, display, HTML
-
-        from haven import haven_results as hr
-        from haven import haven_jupyter as hj
-
-        t_savedir_base = widgets.Text(
+        self.t_savedir_base = widgets.Text(
             value=str(self.vars['savedir_base']),
             description='savedir_base:',
             layout=widgets.Layout(width='600px'),
             disabled=False
                 )
 
-        t_filterby_list = widgets.Textarea(
+        self.t_filterby_list = widgets.Textarea(
             value=str(self.vars.get('filterby_list')),
             description='filterby_list:',
             layout=widgets.Layout(width='600px'),
             disabled=False
                 )
-        bset = widgets.Button(description="Set")
-        display(widgets.VBox([t_savedir_base, t_filterby_list, bset]))
+
+        self.update_rm()
+
+        
+
+
+        bdownload = widgets.Button(description="Zip to Download Experiments", 
+                                   layout=widgets.Layout(width='300px'))
+        bdownload_out = widgets.Output(layout=widgets.Layout(width='300px'))
+        
+        def on_download_clicked(b):
+            fname = 'results.zip'
+            bdownload_out.clear_output()
+            with bdownload_out:
+                self.rm.to_zip(savedir_base='', fname=fname)
+            bdownload_out.clear_output()
+            with bdownload_out:
+                display('%d exps zipped.' % len(self.rm.exp_list))
+                display(FileLink(fname, result_html_prefix="Download: "))
+
+        bdownload.on_click(on_download_clicked)
+
+        display(widgets.VBox([
+                        widgets.HBox([self.t_savedir_base, bdownload]), 
+                        widgets.HBox([self.t_filterby_list, bdownload_out ])
+        ]))
 
         hj.init_datatable_mode()
-
-        dropbox = widgets.Output()
         tables = widgets.Output()
         plots = widgets.Output()
         images = widgets.Output()
-        jobs = widgets.Output()
 
         main_out = widgets.Output()
         # Display tabs
-        tab = widgets.Tab(children = [tables, plots, images, jobs,
-                                    dropbox])
+        tab = widgets.Tab(children = [tables, plots, images])
         tab.set_title(0, 'Tables')
         tab.set_title(1, 'Plots')
         tab.set_title(2, 'Images')
-        tab.set_title(3, 'Jobs')
-        tab.set_title(4, 'Dropbox')
             
-        def on_button_clicked(sender):
-            self.rm = hr.ResultManager(exp_list=self.rm_old.exp_list_all, 
-                        savedir_base=str(t_savedir_base.value), 
-                        filterby_list=ast.literal_eval(str(t_filterby_list.value)),
-                        verbose=self.rm_old.verbose,
-                        )
-            
-            main_out.clear_output()
-            with main_out:
-                if len(self.rm.exp_list) == 0:
-                    if self.rm.n_exp_all > 0:
-                        display('no experiments selected out of %d '
-                            'for filtrby_list %s' % (self.rm.n_exp_all,
-                                                    self.rm.filterby_list))
-                        print('All exp_list.')
-                        score_table = hr.get_score_df(exp_list=self.rm_old.exp_list_all,
-                                                    savedir_base=self.rm_old.savedir_base)
-                        display(score_table)
-                    else:
-                        print('no experiments exist...')
-                    return
-                
-                display('Acquiring %d Experiments From: %s' % (len(self.rm.exp_list), 
-                    self.rm.savedir_base))
-                
-                display(tab)
+        with main_out:
+            display(tab)
+            tables.clear_output()
+            plots.clear_output()
+            images.clear_output()
 
-                tables.clear_output()
-                plots.clear_output()
-                images.clear_output()
-                jobs.clear_output()
-                dropbox.clear_output()
+            # show tabs
+            self.table_tab(tables)
+            self.plot_tab(plots)
+            self.images_tab(images)
 
-                self.table_tab(tables)
-                self.plot_tab(plots)
-                # Display images
-                self.images_tab(images)
-                # Display job states
-                self.job_tab(jobs)
-                # Dropbox tab
-                self.dropbox_tab(dropbox)
-
-                
-
-        bset.on_click(on_button_clicked)
-        
         display(main_out)
-        on_button_clicked(None)
 
         if self.wide_display:
             display(HTML("<style>.container { width:100% !important; }</style>"))
-            # display(HTML("<style>.output_result { max-width:100% !important; }</style>"))
-            # display(HTML("<style>.prompt { display:none !important; }</style>"))
 
         # This makes cell show full height display
         style = """
@@ -256,43 +257,62 @@ class DashboardManager:
         </style>
         """
         display(HTML(style))
-        
+    
+    def update_rm(self):
+        self.rm = hr.ResultManager(exp_list=self.rm_old.exp_list_all, 
+                    savedir_base=str(self.t_savedir_base.value), 
+                    filterby_list=ast.literal_eval(str(self.t_filterby_list.value)),
+                    verbose=self.rm_old.verbose,
+                    )
+
+        if len(self.rm.exp_list) == 0:
+            if self.rm.n_exp_all > 0:
+                display('No experiments selected out of %d '
+                    'for filtrby_list %s' % (self.rm.n_exp_all,
+                                            self.rm.filterby_list))
+                display('Table below shows all experiments.')
+                score_table = hr.get_score_df(exp_list=self.rm_old.exp_list_all,
+                                              savedir_base=self.rm_old.savedir_base)
+                display(score_table)
+            else:
+                display('No experiments exist...')
+            return
+
 
     def table_tab(self, output):
-        from IPython.display import display
-        from ipywidgets import widgets
-        
-        t_columns = widgets.Text(
-            value=str(self.vars.get('columns')),
-            description='exp_param_columns:',
-            disabled=False
+        layout = {'width': '200px'}
+        d_columns_txt = widgets.Label(value="Select Hyperparam column", 
+                                      layout=layout,)
+        d_columns = widgets.Dropdown(
+                    options=['None'] + self.rm.exp_params,
+                    value='None',
+                    layout=layout,
+                    disabled=False,
                 )
-        t_score_columns = widgets.Text(
-            value=str(self.vars.get('score_columns')),
-            description='score_columns:',
-            disabled=False
-                )
+        d_score_columns_txt = widgets.Label(value="Select Score column",
+                                            layout=layout,)
+        d_score_columns = widgets.Dropdown(
+                options=['None', 'train_loss', 'val_score'],
+                value='None',
+                layout=layout,
+                disabled=False,
+            )
 
-        l_exp_params = widgets.Label(value="Hyperparameters: %s" % str(self.rm.exp_params),
-                )
+        bstatus = widgets.Button(description="Jobs Status")
+        blogs = widgets.Button(description="Jobs Logs")
+        bfailed = widgets.Button(description="Jobs Failed")
 
-        t_diff = widgets.Text(
-            value=str(self.vars.get('hparam_diff', 0)),
-            description='Hyper-parameter filter level:',
-            disabled=False
-                )
-        t_meta = widgets.Text(
-            value=str(self.vars.get('show_meta', 0)),
-            description='Show Exp ID:',
-            disabled=False
-                )
+        b_meta = widgets.Button(description="Show exp_id")
+        b_diff = widgets.Button(description="Filter Columns")
 
         brefresh = widgets.Button(description="Display")
 
         button = widgets.VBox([widgets.HBox([brefresh]),
-                                widgets.HBox([t_meta, t_diff]),
-                               widgets.HBox([t_columns, t_score_columns ]),
-                               widgets.HBox([l_exp_params])])
+                               widgets.HBox([b_meta, b_diff]),
+                               widgets.HBox([bstatus, blogs, bfailed]),
+                               widgets.HBox([d_columns_txt, d_score_columns_txt]),
+                               widgets.HBox([d_columns, d_score_columns ]),
+        ])
         output_plot = widgets.Output()
 
         with output:
@@ -300,40 +320,19 @@ class DashboardManager:
             display(output_plot)
 
         def on_refresh_clicked(b):
-            self.vars['columns'] = get_list_from_str(t_columns.value)
-            self.vars['score_columns'] = get_list_from_str(t_score_columns.value)
-            self.vars['hparam_diff'] = int(t_diff.value)
-            self.vars['show_meta'] = int(t_meta.value)
+            self.update_rm()
+
+            self.vars['columns'] = get_list_from_str(d_columns.value)
+            self.vars['score_columns'] = get_list_from_str(d_score_columns.value)
             score_table = self.rm.get_score_table(columns=self.vars.get('columns'), 
                                             score_columns=self.vars.get('score_columns'),
-                                            hparam_diff=self.vars['hparam_diff'],
-                                            show_meta=self.vars['show_meta'])
+                                            hparam_diff=self.vars.get('hparam_diff', 0),
+                                            show_meta=self.vars.get('show_meta', 0))
 
             output_plot.clear_output()
             with output_plot:
                 display(score_table) 
 
-        brefresh.on_click(on_refresh_clicked)
-        on_refresh_clicked(None)
-
-
-    def job_tab(self, output):
-        # plot tab
-        from IPython.display import display
-        from ipywidgets import widgets
-        from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
-        
-        btable = widgets.Button(description="table")
-        blogs = widgets.Button(description="logs")
-        bfailed = widgets.Button(description="failed")
-
-        button = widgets.HBox([btable, blogs, bfailed])
-        output_plot = widgets.Output()
-
-        with output:
-            display(button)
-            display(output_plot)
-        
         def on_table_clicked(b):
             table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
                                             username=self.vars.get('username'))
@@ -343,8 +342,6 @@ class DashboardManager:
                 display(table_dict['status'])
                 display(table_dict['table'])   
 
-        btable.on_click(on_table_clicked)
-
         def on_logs_clicked(b):
             table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
                                             username=self.vars.get('username'))
@@ -352,8 +349,7 @@ class DashboardManager:
             with output_plot:
                 for logs in table_dict['logs']:
                     pprint.pprint(logs)        
-        blogs.on_click(on_logs_clicked)
-
+        
         def on_failed_clicked(b):
             table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
                                             username=self.vars.get('username'))
@@ -366,20 +362,28 @@ class DashboardManager:
                     for failed in table_dict['logs_failed']:
                         pprint.pprint(failed)
 
+        # Add call listeners
+        brefresh.on_click(on_refresh_clicked)
+        bstatus.on_click(on_table_clicked)
+        blogs.on_click(on_logs_clicked)
         bfailed.on_click(on_failed_clicked)
 
-    def plot_tab(self, output):
-        # plot tab
-        from IPython.display import display
-        from ipywidgets import widgets
-        from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
+        # meta stuff and column filtration
+        def on_bmeta_clicked(b):
+            self.vars['show_meta'] = 1 - self.vars.get('show_meta', 0)
+            on_refresh_clicked(None)
+
+        def on_hparam_diff_clicked(b):
+            self.vars['hparam_diff'] = 2 - self.vars.get('hparam_diff', 0)
+            on_refresh_clicked(None)
+
+        b_meta.on_click(on_bmeta_clicked)
+        b_diff.on_click(on_hparam_diff_clicked)
+
         
+    def plot_tab(self, output):
         ## add stuff
-        tfigsize = widgets.Text(
-            value=str(self.vars.get('figsize', '(10,5)')),
-            description='figsize:',
-            disabled=False
-                )
+        
         llegend_list = widgets.Text(
             value=str(self.vars.get('legend_list', '[model]')),
             description='legend_list:',
@@ -390,11 +394,7 @@ class DashboardManager:
             description='log_metric_list:',
             disabled=False
                 )
-        lmap_exp_list = widgets.Textarea(
-            value=str(self.vars.get('mape_exp_list', 'None')),
-            description='mape_exp_list:',
-            disabled=False
-                )
+
         
         t_y_metric = widgets.Text(
             value=str(self.vars.get('y_metrics', 'train_loss')),
@@ -432,41 +432,42 @@ class DashboardManager:
             disabled=False
                 )
 
-        l_exp_params = widgets.Label(value="exp_params: %s" % str(self.rm.exp_params),
-                )
-        # TODO: infer the score metrics
-        l_score_metrics = widgets.Label(value="score_metrics: %s" % str(self.rm.exp_params),
-                )
-
-
         brefresh = widgets.Button(description="Display")
-        button = widgets.VBox([widgets.HBox([brefresh, l_exp_params]),
-                widgets.HBox([t_y_metric, t_x_metric,
-                            t_groupby_list, llegend_list, tfigsize]),
-                widgets.HBox([t_title_list, t_mode, t_bar_agg, lmap_exp_list]) ])
+        button = widgets.VBox([widgets.HBox([brefresh]),
+                widgets.HBox([t_title_list]),
+                widgets.HBox([t_y_metric, t_x_metric, ]),
+                widgets.HBox([t_groupby_list, llegend_list, ]),
+                widgets.HBox([t_mode, t_bar_agg]) ])
+
         output_plot = widgets.Output()
 
         def on_clicked(b):
+            self.update_rm()
+
             output_plot.clear_output()
             with output_plot:
-                w, h = tfigsize.value.strip('(').strip(')').split(',')
-
-                self.vars['figsize'] = (int(w), int(h))
-                self.vars['legend_list'] = get_list_from_str(llegend_list.value)
                 self.vars['y_metrics'] = get_list_from_str(t_y_metric.value)
                 self.vars['x_metric'] = t_x_metric.value
+                
+                w, h = 10, 5
+                if len(self.vars['y_metrics']) > 1:
+                    figsize = (2*int(w), int(h))
+                    self.vars['figsize'] = figsize
+                else:
+                    self.vars['figsize'] = (int(w), int(h))
+
+                self.vars['legend_list'] = get_list_from_str(llegend_list.value)
+                
                 self.vars['log_metric_list'] = get_list_from_str(llog_metric_list.value)
                 self.vars['groupby_list'] = get_list_from_str(t_groupby_list.value)
                 self.vars['mode'] = t_mode.value
                 self.vars['title_list'] = get_list_from_str(t_title_list.value)
                 self.vars['bar_agg'] = t_bar_agg.value
-                self.vars['map_exp_list'] = get_list_from_str(lmap_exp_list.value)
 
                 self.rm.get_plot_all(y_metric_list=self.vars['y_metrics'], 
                     x_metric=self.vars['x_metric'], 
                     groupby_list=self.vars['groupby_list'],
                     legend_list=self.vars['legend_list'], 
-                    map_exp_list=self.vars['map_exp_list'], 
                     log_metric_list=self.vars['log_metric_list'],
                     mode=self.vars['mode'],
                     bar_agg=self.vars['bar_agg'],
@@ -482,10 +483,6 @@ class DashboardManager:
             display(output_plot)
             
     def images_tab(self, output):
-        # plot tab
-        from IPython.display import display
-        from ipywidgets import widgets
-        from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
         tfigsize = widgets.Text(
             value=str(self.vars.get('figsize_images', '(10,5)')),
             description='figsize:',
@@ -511,16 +508,18 @@ class DashboardManager:
 
         brefresh = widgets.Button(description="Display")
         button = widgets.VBox([brefresh,
-                widgets.HBox([t_n_images, t_n_exps,
-                            llegend_list, tfigsize])])
+                widgets.HBox([t_n_exps, t_n_images]),
+                widgets.HBox([tfigsize, llegend_list, ]),
+                            ])
+
         output_plot = widgets.Output()
 
-        
         with output:
             display(button)
             display(output_plot)
 
         def on_clicked(b):
+            self.update_rm()
             output_plot.clear_output()
             with output_plot:
                 w, h = tfigsize.value.strip('(').strip(')').split(',')
@@ -538,67 +537,6 @@ class DashboardManager:
         brefresh.on_click(on_clicked)
 
 
-    def dropbox_tab(self, output):
-        from haven import haven_dropbox as hd
-        from IPython.display import display
-        from ipywidgets import widgets
-
-        t_config = widgets.Text(
-            value=self.vars.get('exp_config_fname','exp_config.py'),
-            description='exp_config_fname:',
-            disabled=False,
-            width='auto'
-                )
-        t_groups = widgets.Text(
-            value=str(self.vars.get('exp_groups','')),
-            description='exp_groups:',
-            disabled=False
-                )
-
-        t_dropbox_path = widgets.Text(
-            value=self.vars.get('dropbox_path',''),
-            description='dropbox_path:',
-            disabled=False
-                )
-
-        t_access_token = widgets.Text(
-            value=self.vars.get('access_token',''),
-            description='access_token:',
-            disabled=False
-                )
-
-        t_zip_name = widgets.Text(
-            value=self.vars.get('zip_name',''),
-            description='zip_name:',
-            disabled=False
-                )
-
-        brefresh = widgets.Button(description="Upload to Dropbox")
-        button = widgets.VBox([t_config,
-                t_groups, t_dropbox_path, t_access_token, t_zip_name,
-                brefresh])
-
-        def on_clicked(b):
-            with output:
-                exp_config_fname = t_config.value
-                exp_groups = get_list_from_str(t_groups.value)
-
-                exp_list_new = []
-                for group in exp_groups:
-                    exp_list_new += hu.load_py(exp_config_fname).EXP_GROUPS[group]
-
-                hd.to_dropbox(exp_list_new, 
-                self.vars['savedir_base'], 
-                t_dropbox_path.value, 
-                t_access_token.value, 
-                t_zip_name.value)
-
-        brefresh.on_click(on_clicked)
-        
-        with output:
-            display(button)
-
-
 def get_list_from_str(string):
     
     if string is None:
@@ -607,10 +545,11 @@ def get_list_from_str(string):
     if string == 'None':
         return None
 
+    string = string.replace(' ','').replace(']', '').replace('[', '').replace('"', '').replace("'", "")
     if string == '':
         return None
 
-    return string.replace(' ','').replace(']', '').replace('[', '').replace('"', '').replace("'", "").split(',')
+    return string.split(',')
     
     # import ast
     # return ast.literal_eval(string)

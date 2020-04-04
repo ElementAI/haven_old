@@ -125,7 +125,6 @@ def run_exp_list_jobs(exp_list,
                           create_notebook=False)
 
 
-
 class JobManager:
     """Job manager."""
     def __init__(self, 

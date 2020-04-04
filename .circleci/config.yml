@@ -42,7 +42,8 @@ jobs:
           name: run tests
           command: |
             . venv/bin/activate
-            python tests/tests_basic.py
+            python tests/test_basic.py
+            python tests/test_zip.py
 
       - store_artifacts:
           path: test-reports
