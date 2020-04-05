@@ -73,8 +73,6 @@ from haven import haven_utils as hu
 savedir_base = '%s'
 exp_list = None
 
-# exp_list = hu.load_py(<exp_config_name>).EXP_GROUPS[<exp_group>]
-
 # filter exps
 # e.g. filterby_list =[{'dataset':'mnist'}] gets exps with mnist
 filterby_list = None
@@ -83,7 +81,8 @@ filterby_list = None
 rm = hr.ResultManager(exp_list=exp_list, 
                       savedir_base=savedir_base, 
                       filterby_list=filterby_list,
-                      verbose=0
+                      verbose=0,
+                      exp_groups=None
                      )
 
 # launch dashboard
@@ -162,8 +161,7 @@ def get_dashboard(rm, vars=None, show_jobs=True, wide_display=False):
 
 class DashboardManager:
     def __init__(self, rm, vars=None, show_jobs=True, wide_display=True):
-        self.rm_old = rm
-        
+        self.rm_original = rm
         if vars is None:
             fname = os.path.join(rm.savedir_base, '.dashboard_history.json')
             if os.path.exists(fname):
@@ -177,68 +175,61 @@ class DashboardManager:
         self.wide_display = wide_display
 
     def display(self):
-        self.t_savedir_base = widgets.Text(
-            value=str(self.vars['savedir_base']),
-            description='savedir_base:',
-            layout=widgets.Layout(width='600px'),
-            disabled=False
-                )
 
-        self.t_filterby_list = widgets.Textarea(
-            value=str(self.vars.get('filterby_list')),
-            description='filterby_list:',
-            layout=widgets.Layout(width='600px'),
-            disabled=False
-                )
+        
 
         self.update_rm()
 
         
 
+        # Select Exp Group
+        l_exp_group = widgets.Label(value="Select Exp Group", layout=layout_label,)
 
-        bdownload = widgets.Button(description="Zip to Download Experiments", 
-                                   layout=widgets.Layout(width='300px'))
-        bdownload_out = widgets.Output(layout=widgets.Layout(width='300px'))
+        d_exp_group = widgets.Dropdown(
+            options=list(self.rm_original.exp_groups.keys()),
+            value='all',
+        )
+        l_n_exps = widgets.Label(value='Total Exps %d' % len(self.rm_original.exp_list_all), layout=layout,)
+                
+        def on_group_change(change):
+            if change['type'] == 'change' and change['name'] == 'value':
+                self.rm_original.exp_list_all = self.rm_original.exp_groups[change['new']]
+                l_n_exps.value = 'Total Exps %d' % len(self.rm_original.exp_list_all)
         
-        def on_download_clicked(b):
-            fname = 'results.zip'
-            bdownload_out.clear_output()
-            with bdownload_out:
-                self.rm.to_zip(savedir_base='', fname=fname)
-            bdownload_out.clear_output()
-            with bdownload_out:
-                display('%d exps zipped.' % len(self.rm.exp_list))
-                display(FileLink(fname, result_html_prefix="Download: "))
-
-        bdownload.on_click(on_download_clicked)
+        d_exp_group.observe(on_group_change)
 
         display(widgets.VBox([
-                        widgets.HBox([self.t_savedir_base, bdownload]), 
-                        widgets.HBox([self.t_filterby_list, bdownload_out ])
+                        widgets.HBox([l_savedir_base, self.t_savedir_base, bdownload]), 
+                        widgets.HBox([l_filterby_list, self.t_filterby_list, bdownload_out ]),
+                        widgets.HBox([l_exp_group, d_exp_group, l_n_exps]) 
         ]))
 
         hj.init_datatable_mode()
         tables = widgets.Output()
         plots = widgets.Output()
         images = widgets.Output()
+        meta = widgets.Output()
 
         main_out = widgets.Output()
         # Display tabs
-        tab = widgets.Tab(children = [tables, plots, images])
+        tab = widgets.Tab(children = [tables, plots, images, meta])
         tab.set_title(0, 'Tables')
         tab.set_title(1, 'Plots')
         tab.set_title(2, 'Images')
+        tab.set_title(3, 'Meta')
             
         with main_out:
             display(tab)
             tables.clear_output()
             plots.clear_output()
             images.clear_output()
+            meta.clear_output()
 
             # show tabs
             self.table_tab(tables)
             self.plot_tab(plots)
             self.images_tab(images)
+            self.meta_tab(meta)
 
         display(main_out)
 
@@ -259,10 +250,10 @@ class DashboardManager:
         display(HTML(style))
     
     def update_rm(self):
-        self.rm = hr.ResultManager(exp_list=self.rm_old.exp_list_all, 
+        self.rm = hr.ResultManager(exp_list=self.rm_original.exp_list_all, 
                     savedir_base=str(self.t_savedir_base.value), 
                     filterby_list=ast.literal_eval(str(self.t_filterby_list.value)),
-                    verbose=self.rm_old.verbose,
+                    verbose=self.rm_original.verbose,
                     )
 
         if len(self.rm.exp_list) == 0:
@@ -271,13 +262,44 @@ class DashboardManager:
                     'for filtrby_list %s' % (self.rm.n_exp_all,
                                             self.rm.filterby_list))
                 display('Table below shows all experiments.')
-                score_table = hr.get_score_df(exp_list=self.rm_old.exp_list_all,
-                                              savedir_base=self.rm_old.savedir_base)
+                score_table = hr.get_score_df(exp_list=self.rm_original.exp_list_all,
+                                              savedir_base=self.rm_original.savedir_base)
                 display(score_table)
             else:
                 display('No experiments exist...')
             return
 
+    def meta_tab(self, output):
+        layout=widgets.Layout(width='300px')
+        layout_label=widgets.Layout(width='150px')
+        l_savedir_base = widgets.Label(value="savedir_base:", layout=layout_label,)
+        self.t_savedir_base = widgets.Text(
+            value=str(self.vars['savedir_base']),
+            layout=widgets.Layout(width='600px'),
+            disabled=False
+                )
+        l_filterby_list= widgets.Label(value="filterby_list:", layout=layout_label,)
+        self.t_filterby_list = widgets.Textarea(
+            value=str(self.vars.get('filterby_list')),
+            layout=widgets.Layout(width='600px'),
+            disabled=False
+                )
+        bdownload = widgets.Button(description="Zip to Download Experiments", 
+                                   layout=layout)
+        bdownload_out = widgets.Output(layout=layout)
+        
+        def on_download_clicked(b):
+            fname = 'results.zip'
+            bdownload_out.clear_output()
+            with bdownload_out:
+                self.rm.to_zip(savedir_base='', fname=fname)
+            bdownload_out.clear_output()
+            with bdownload_out:
+                display('%d exps zipped.' % len(self.rm.exp_list))
+                display(FileLink(fname, result_html_prefix="Download: "))
+
+        bdownload.on_click(on_download_clicked)
+        
 
     def table_tab(self, output):
         layout = {'width': '200px'}
@@ -367,6 +389,9 @@ class DashboardManager:
         bstatus.on_click(on_table_clicked)
         blogs.on_click(on_logs_clicked)
         bfailed.on_click(on_failed_clicked)
+
+        d_columns.observe(on_refresh_clicked)
+        d_score_columns.observe(on_refresh_clicked)
 
         # meta stuff and column filtration
         def on_bmeta_clicked(b):

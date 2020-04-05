@@ -21,7 +21,8 @@ class ResultManager:
                  exp_list=None,
                  filterby_list=None,
                  verbose=True,
-                 has_score_list=False):
+                 has_score_list=False,
+                 exp_groups=None):
         """[summary]
         
         Parameters
@@ -78,7 +79,23 @@ class ResultManager:
 
         if len(self.exp_list) != 0:
             self.exp_params = list(self.exp_list[0].keys())
+
+        self.exp_groups = {}
+        if exp_groups is not None:
+            if isinstance(exp_groups, dict):
+                # load from a dict
+                self.exp_groups = exp_groups
+            else:
+                # load from a file
+                self.exp_groups = hu.load_py(exp_groups).EXP_GROUPS
+
+        self.exp_groups['all'] = copy.deepcopy(self.exp_list_all)
     
+    def get_state_dict(self):
+        pass
+    def load_state_dict(self, state_dict):
+        pass
+
     def get_plot(self, groupby_list=None, **kwargs):
         fig_list = []
         exp_groups = group_exp_list(self.exp_list, groupby_list)
@@ -727,7 +744,7 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
             # df[c] = df[c].str.wrap(wrap_size)
             df[c] = df[c].apply(pprint.pformat)
 
-    if hparam_diff > 0:
+    if hparam_diff > 0 and len(df) > 1:
         cols = hu.get_diff_columns(df, min_threshold=hparam_diff, max_threshold='auto')
         df = df[cols]
 
