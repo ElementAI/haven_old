@@ -174,22 +174,35 @@ class DashboardManager:
         self.show_jobs = show_jobs
         self.wide_display = wide_display
 
+        self.layout=widgets.Layout(width='100px')
+        self.layout_label=widgets.Layout(width='200px')
+        self.layout_dropdown = widgets.Layout(width='200px')
+        self.layout_button = widgets.Layout(width='200px')
+        self.t_savedir_base = widgets.Text(
+                value=str(self.vars['savedir_base']),
+                layout=widgets.Layout(width='600px'),
+                disabled=False
+                    )
+            
+        self.t_filterby_list = widgets.Textarea(
+                value=str(self.vars.get('filterby_list')),
+                layout=widgets.Layout(width='600px'),
+                disabled=False
+                    )
+
+
     def display(self):
-
-        
-
         self.update_rm()
 
-        
-
         # Select Exp Group
-        l_exp_group = widgets.Label(value="Select Exp Group", layout=layout_label,)
+        l_exp_group = widgets.Label(value="Select Exp Group", layout=self.layout_label,)
 
         d_exp_group = widgets.Dropdown(
             options=list(self.rm_original.exp_groups.keys()),
             value='all',
+            layout=self.layout_dropdown,
         )
-        l_n_exps = widgets.Label(value='Total Exps %d' % len(self.rm_original.exp_list_all), layout=layout,)
+        l_n_exps = widgets.Label(value='Total Exps %d' % len(self.rm_original.exp_list_all), layout=self.layout,)
                 
         def on_group_change(change):
             if change['type'] == 'change' and change['name'] == 'value':
@@ -198,10 +211,8 @@ class DashboardManager:
         
         d_exp_group.observe(on_group_change)
 
-        display(widgets.VBox([
-                        widgets.HBox([l_savedir_base, self.t_savedir_base, bdownload]), 
-                        widgets.HBox([l_filterby_list, self.t_filterby_list, bdownload_out ]),
-                        widgets.HBox([l_exp_group, d_exp_group, l_n_exps]) 
+        display(widgets.VBox([l_exp_group,
+                        widgets.HBox([d_exp_group, l_n_exps]) 
         ]))
 
         hj.init_datatable_mode()
@@ -270,53 +281,49 @@ class DashboardManager:
             return
 
     def meta_tab(self, output):
-        layout=widgets.Layout(width='300px')
-        layout_label=widgets.Layout(width='150px')
-        l_savedir_base = widgets.Label(value="savedir_base:", layout=layout_label,)
-        self.t_savedir_base = widgets.Text(
-            value=str(self.vars['savedir_base']),
-            layout=widgets.Layout(width='600px'),
-            disabled=False
-                )
-        l_filterby_list= widgets.Label(value="filterby_list:", layout=layout_label,)
-        self.t_filterby_list = widgets.Textarea(
-            value=str(self.vars.get('filterby_list')),
-            layout=widgets.Layout(width='600px'),
-            disabled=False
-                )
-        bdownload = widgets.Button(description="Zip to Download Experiments", 
-                                   layout=layout)
-        bdownload_out = widgets.Output(layout=layout)
-        
-        def on_download_clicked(b):
-            fname = 'results.zip'
-            bdownload_out.clear_output()
-            with bdownload_out:
-                self.rm.to_zip(savedir_base='', fname=fname)
-            bdownload_out.clear_output()
-            with bdownload_out:
-                display('%d exps zipped.' % len(self.rm.exp_list))
-                display(FileLink(fname, result_html_prefix="Download: "))
+        with output:
+            l_savedir_base = widgets.Label(value="savedir_base:", layout=self.layout_label,)
+            l_filterby_list= widgets.Label(value="filterby_list:", layout=self.layout_label,)
+            
+            bdownload = widgets.Button(description="Zip to Download Experiments", 
+                                    layout=self.layout_button)
+            bdownload_out = widgets.Output(layout=self.layout_button)
+            
+            def on_download_clicked(b):
+                fname = 'results.zip'
+                bdownload_out.clear_output()
+                with bdownload_out:
+                    self.rm.to_zip(savedir_base='', fname=fname)
+                bdownload_out.clear_output()
+                with bdownload_out:
+                    display('%d exps zipped.' % len(self.rm.exp_list))
+                    display(FileLink(fname, result_html_prefix="Download: "))
 
-        bdownload.on_click(on_download_clicked)
-        
+            bdownload.on_click(on_download_clicked)
+
+            display(widgets.VBox([
+                            widgets.HBox([l_savedir_base, self.t_savedir_base, ]), 
+                            widgets.HBox([l_filterby_list, self.t_filterby_list,  ]),
+                            widgets.VBox([bdownload, bdownload_out]) 
+            ]))
+
+
 
     def table_tab(self, output):
-        layout = {'width': '200px'}
         d_columns_txt = widgets.Label(value="Select Hyperparam column", 
-                                      layout=layout,)
+                                      layout=self.layout_label,)
         d_columns = widgets.Dropdown(
                     options=['None'] + self.rm.exp_params,
                     value='None',
-                    layout=layout,
+                    layout=self.layout_dropdown,
                     disabled=False,
                 )
         d_score_columns_txt = widgets.Label(value="Select Score column",
-                                            layout=layout,)
+                                            layout=self.layout_label,)
         d_score_columns = widgets.Dropdown(
                 options=['None', 'train_loss', 'val_score'],
                 value='None',
-                layout=layout,
+                layout=self.layout_dropdown,
                 disabled=False,
             )
 
