@@ -1,8 +1,14 @@
+import sys, os
+path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, path)
+
 import unittest
 import numpy as np 
 import os
 import torch
 import shutil
+
+
 
 from haven import haven_utils as hu
 from haven import haven_results as hr

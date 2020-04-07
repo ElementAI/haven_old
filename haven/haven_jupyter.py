@@ -195,13 +195,14 @@ class DashboardManager:
         self.update_rm()
 
         # Select Exp Group
-        l_exp_group = widgets.Label(value="Select Exp Group", layout=self.layout_label,)
+        l_exp_group = widgets.Label(value="Select exp_group", layout=self.layout_label,)
 
         d_exp_group = widgets.Dropdown(
             options=list(self.rm_original.exp_groups.keys()),
-            value='all',
+            value=self.vars.get('exp_group', 'all'),
             layout=self.layout_dropdown,
         )
+        self.rm_original.exp_list_all = self.rm_original.exp_groups[d_exp_group.value]
         l_n_exps = widgets.Label(value='Total Exps %d' % len(self.rm_original.exp_list_all), layout=self.layout,)
                 
         def on_group_change(change):
@@ -321,7 +322,7 @@ class DashboardManager:
         d_score_columns_txt = widgets.Label(value="Select Score column",
                                             layout=self.layout_label,)
         d_score_columns = widgets.Dropdown(
-                options=['None', 'train_loss', 'val_score'],
+                options=self.rm_original.score_keys,
                 value='None',
                 layout=self.layout_dropdown,
                 disabled=False,
@@ -363,6 +364,7 @@ class DashboardManager:
                 display(score_table) 
 
         def on_table_clicked(b):
+            self.update_rm()
             table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
                                             username=self.vars.get('username'))
 
@@ -372,6 +374,7 @@ class DashboardManager:
                 display(table_dict['table'])   
 
         def on_logs_clicked(b):
+            self.update_rm()
             table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
                                             username=self.vars.get('username'))
             output_plot.clear_output()
@@ -380,6 +383,7 @@ class DashboardManager:
                     pprint.pprint(logs)        
         
         def on_failed_clicked(b):
+            self.update_rm()
             table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
                                             username=self.vars.get('username'))
             output_plot.clear_output()

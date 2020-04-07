@@ -63,11 +63,19 @@ class ResultManager:
             raise ValueError('exp_list is empty...')
         self.exp_list_all = copy.deepcopy(exp_list)
         
+        exp_list_with_scores = [e for e in exp_list if 
+                                    os.path.exists(os.path.join(savedir_base, 
+                                                                hu.hash_dict(e),
+                                                                'score_list.pkl'))]
         if has_score_list:
-            exp_list = [e for e in exp_list if 
-                            os.path.exists(os.path.join(savedir_base, 
-                                                        hu.hash_dict(e),
-                                                        'score_list.pkl'))]
+            exp_list = exp_list_with_scores
+        self.score_keys  = ['None']
+
+        if len(exp_list_with_scores):
+            score_fname = os.path.join(savedir_base, hu.hash_dict(exp_list_with_scores[0]), 'score_list.pkl')
+            self.score_keys = ['None'] + list(hu.load_pkl(score_fname)[0].keys())
+                    
+                                                        
         self.savedir_base = savedir_base
         self.filterby_list = filterby_list
         self.verbose = verbose
@@ -938,7 +946,7 @@ def get_plot(exp_list, savedir_base,
                     depth_list = k.split('.')
                     sub_dict = exp_dict
                     for d in depth_list:
-                        if d not in sub_dict:
+                        if sub_dict is None or d not in sub_dict:
                             sub_dict = None
                             break
                         sub_dict = sub_dict[d]
