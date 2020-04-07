@@ -941,20 +941,7 @@ def get_plot(exp_list, savedir_base,
 
             # map properties of exp
             if legend_list is not None:
-                label_list = []
-                for k in legend_list:
-                    depth_list = k.split('.')
-                    sub_dict = exp_dict
-                    for d in depth_list:
-                        if sub_dict is None or d not in sub_dict:
-                            sub_dict = None
-                            break
-                        sub_dict = sub_dict[d]
-                        
-                    label_list += [str(sub_dict)]
-
-                label = '_'.join(label_list)
-                label = '\n'.join(wrap(label, 40))
+                label = get_label(legend_list, exp_dict)
             else:
                 label = exp_id
 
@@ -1016,7 +1003,7 @@ def get_plot(exp_list, savedir_base,
 
     # default properties
     if title_list is not None:
-        title = '_'.join([str(exp_dict.get(k)) for k in title_list])
+        title = get_label(title_list, exp_dict)
     else:
         title = ''
 
@@ -1067,6 +1054,23 @@ def get_plot(exp_list, savedir_base,
     plt.tight_layout()
 
     return fig, axis
+
+def get_label(original_list, exp_dict):
+    label_list = []
+    for k in original_list:
+        depth_list = k.split('.')
+        sub_dict = exp_dict
+        for d in depth_list:
+            if sub_dict is None or d not in sub_dict:
+                sub_dict = None
+                break
+            sub_dict = sub_dict[d]
+            
+        label_list += [str(sub_dict)]
+
+    label = '_'.join(label_list)
+    label = '\n'.join(wrap(label, 40))
+    return label
 
 def get_images(exp_list, savedir_base, n_exps=20, n_images=1,
                    figsize=(12,12), legend_list=None,
