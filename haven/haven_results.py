@@ -22,7 +22,8 @@ class ResultManager:
                  filterby_list=None,
                  verbose=True,
                  has_score_list=False,
-                 exp_groups=None):
+                 exp_groups=None,
+                 mode_key=None):
         """[summary]
         
         Parameters
@@ -53,12 +54,12 @@ class ResultManager:
                                     title_list=['dataset'],
                                     legend_list=['model']) 
         """
+        self.mode_key = mode_key
         if exp_list is None:
             exp_list = get_exp_list(savedir_base=savedir_base, verbose=verbose)
-
         else:
             exp_list = exp_list
-
+        
         if len(exp_list) == 0:
             raise ValueError('exp_list is empty...')
         self.exp_list_all = copy.deepcopy(exp_list)
@@ -96,6 +97,12 @@ class ResultManager:
             else:
                 # load from a file
                 self.exp_groups = hu.load_py(exp_groups).EXP_GROUPS
+        
+        if mode_key:
+            for exp_dict in exp_list:
+                exp_dict[mode_key] = 1
+            for exp_dict in self.exp_list_all:
+                exp_dict[mode_key] = 1
 
         self.exp_groups['all'] = copy.deepcopy(self.exp_list_all)
     
@@ -987,6 +994,7 @@ def get_plot(exp_list, savedir_base,
                 elif bar_agg == 'mean':
                     y_agg = np.mean(y_list)
 
+                
                 axis.bar([bar_count], [y_agg],
                         color=color,
                         label=label
@@ -1039,7 +1047,8 @@ def get_plot(exp_list, savedir_base,
         xlabel = xlabel + ' (log)'
 
     axis.set_ylabel(ylabel, fontsize=y_fontsize)
-    axis.set_xlabel(xlabel, fontsize=x_fontsize)
+    if mode != 'bar':
+        axis.set_xlabel(xlabel, fontsize=x_fontsize)
 
     axis.tick_params(axis='x', labelsize=xtick_fontsize)
     axis.tick_params(axis='y', labelsize=ytick_fontsize)

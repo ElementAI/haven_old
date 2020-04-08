@@ -22,7 +22,8 @@ def run_exp_list_jobs(exp_list,
                       job_config=None,
                       force_run=False,
                       wait_seconds=3,
-                      username=None):
+                      username=None,
+                      job_fname=None):
     """Run the experiments in the cluster.
 
     Parameters
@@ -83,7 +84,8 @@ def run_exp_list_jobs(exp_list,
                 workdir=workdir,
                 job_config=job_config, 
                 username=username, 
-                verbose=1)
+                verbose=1,
+                job_fname=job_fname)
 
 
     if command == 'status':
@@ -133,7 +135,8 @@ class JobManager:
                  workdir=None,
                  job_config=None, 
                  username=None, 
-                 verbose=1):
+                 verbose=1,
+                 job_fname=None):
         """[summary]
         
         Parameters
@@ -153,7 +156,7 @@ class JobManager:
         """
         self.exp_list = exp_list
         self.username = username or getpass.getuser()
-
+        self.job_fname = job_fname
         self.job_config = job_config
         self.workdir = workdir
         self.verbose = verbose
@@ -195,7 +198,7 @@ class JobManager:
         for exp_dict in self.exp_list:
             exp_id = hu.hash_dict(exp_dict)
             savedir = os.path.join(self.savedir_base, exp_id)
-            fname = hju.get_job_fname(savedir)
+            fname = get_job_fname(savedir, job_fname=self.job_fname)
 
             if os.path.exists(fname):
                 job_id = hu.load_json(fname)['job_id']
@@ -222,7 +225,7 @@ class JobManager:
 
         # Define paths
         savedir = os.path.join(self.savedir_base, hu.hash_dict(exp_dict))
-        fname = hju.get_job_fname(savedir)
+        fname = get_job_fname(savedir, job_fname=self.job_fname)
         
         if not os.path.exists(fname):
             # Check if the job already exists
@@ -289,7 +292,7 @@ class JobManager:
         job_dict = {"job_id": job_id, 
                     "command":command}
 
-        hu.save_json(hju.get_job_fname(savedir), job_dict)
+        hu.save_json(get_job_fname(savedir, job_fname=self.job_fname), job_dict)
 
         return job_dict
 
@@ -308,7 +311,7 @@ class JobManager:
         for exp_dict in self.exp_list:
             exp_id = hu.hash_dict(exp_dict)
             savedir = os.path.join(self.savedir_base, exp_id)
-            fname = hju.get_job_fname(savedir) 
+            fname = get_job_fname(savedir, job_fname=self.job_fname)
 
             if os.path.exists(fname):
                 job_id_list += [hu.load_json(fname)["job_id"]]
@@ -328,7 +331,7 @@ class JobManager:
             savedir = os.path.join(self.savedir_base, exp_id)
             result_dict["exp_id"] = '\n'.join(wrap(exp_id, 8))
             
-            fname = hju.get_job_fname(savedir)
+            fname = get_job_fname(savedir, job_fname=self.job_fname)
 
             # Job results
             result_dict["job_id"] = None
@@ -415,6 +418,13 @@ class JobManager:
 
         return True
 
+def get_job_fname(savedir, job_fname=None):
+    import haven_jobs_utils as hju
+    if job_fname is None:
+        fname = hju.get_job_fname(savedir) 
+    else:
+        fname = os.path.join(savedir, job_fname)
+    return fname
     
 def add_job_utils():
     """adds the ElementAI plugin for running jobs

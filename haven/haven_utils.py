@@ -225,6 +225,24 @@ def save_pkl(fname, data, with_rename=True, makedirs=True):
         with open(fname, "wb") as f:
             pickle.dump(data, f)
 
+def create_command(base_command, args):
+    """
+    args is the parser
+    """
+    run_command = base_command
+    arg_keys= vars(args).keys()
+
+    assert('exp_group_list' in arg_keys)
+    assert('exp_id' in arg_keys)
+    assert('run_jobs' in arg_keys)
+
+    for a, v in vars(args).items():
+        if a == 'exp_group_list' or a == 'exp_id' or a == 'run_jobs':
+            continue
+
+        run_command += ' --%s %s' % (a, v)
+    
+    return run_command 
 
 def save_image(fname, img, size=None, makedirs=True):
     """Save an image into a file.

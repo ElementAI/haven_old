@@ -202,7 +202,7 @@ class DashboardManager:
             value=self.vars.get('exp_group', 'all'),
             layout=self.layout_dropdown,
         )
-        self.rm_original.exp_list_all = self.rm_original.exp_groups[d_exp_group.value]
+        self.rm_original.exp_list_all = self.rm_original.exp_groups.get(d_exp_group.value, 'all')
         l_n_exps = widgets.Label(value='Total Exps %d' % len(self.rm_original.exp_list_all), layout=self.layout,)
                 
         def on_group_change(change):
@@ -266,6 +266,7 @@ class DashboardManager:
                     savedir_base=str(self.t_savedir_base.value), 
                     filterby_list=ast.literal_eval(str(self.t_filterby_list.value)),
                     verbose=self.rm_original.verbose,
+                    mode_key=self.rm_original.mode_key
                     )
 
         if len(self.rm.exp_list) == 0:
