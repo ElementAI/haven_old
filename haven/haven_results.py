@@ -54,7 +54,23 @@ class ResultManager:
                                     title_list=['dataset'],
                                     legend_list=['model']) 
         """
+        # sanity checks
+        assert os.path.exists(savedir_base), '%s does not exist' % savedir_base
+
+        self.exp_groups = {}
+        if exp_groups is not None:
+            if isinstance(exp_groups, dict):
+                # load from a dict
+                self.exp_groups = exp_groups
+            elif os.path.exists(exp_groups):
+                # load from a file
+                self.exp_groups = hu.load_py(exp_groups).EXP_GROUPS
+            else:
+                raise ValueError('%s does not exist...' % exp_groups)
+        
+        # rest
         self.mode_key = mode_key
+        self.has_score_list = has_score_list
         if exp_list is None:
             exp_list = get_exp_list(savedir_base=savedir_base, verbose=verbose)
         else:
@@ -62,14 +78,15 @@ class ResultManager:
         
         if len(exp_list) == 0:
             raise ValueError('exp_list is empty...')
-        self.exp_list_all = copy.deepcopy(exp_list)
-        
+
         exp_list_with_scores = [e for e in exp_list if 
                                     os.path.exists(os.path.join(savedir_base, 
                                                                 hu.hash_dict(e),
                                                                 'score_list.pkl'))]
         if has_score_list:
             exp_list = exp_list_with_scores
+
+        self.exp_list_all = copy.deepcopy(exp_list)
         self.score_keys  = ['None']
 
         if len(exp_list_with_scores):
@@ -78,6 +95,7 @@ class ResultManager:
                     
                                                         
         self.savedir_base = savedir_base
+        
         self.filterby_list = filterby_list
         self.verbose = verbose
 
@@ -89,14 +107,7 @@ class ResultManager:
         if len(self.exp_list) != 0:
             self.exp_params = list(self.exp_list[0].keys())
 
-        self.exp_groups = {}
-        if exp_groups is not None:
-            if isinstance(exp_groups, dict):
-                # load from a dict
-                self.exp_groups = exp_groups
-            else:
-                # load from a file
-                self.exp_groups = hu.load_py(exp_groups).EXP_GROUPS
+        
         
         if mode_key:
             for exp_dict in exp_list:

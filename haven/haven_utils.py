@@ -1018,3 +1018,18 @@ def get_diff_columns(df, min_threshold=2, max_threshold='auto'):
     diff_columns = [df.columns[i] for i in indices]
     
     return diff_columns
+
+
+def collate_fn(batch, mode='list'):
+    if mode == 'list':
+        batch_dict = {}
+        for k in batch[0]:
+            batch_dict[k] = []
+            for i in range(len(batch)):
+                
+                batch_dict[k] += [batch[i][k]]
+
+        return batch_dict 
+        
+    elif mode == 'default':
+        return torch.utils.data.dataloader.default_collate(batch)

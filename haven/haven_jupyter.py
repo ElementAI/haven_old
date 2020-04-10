@@ -197,9 +197,14 @@ class DashboardManager:
         # Select Exp Group
         l_exp_group = widgets.Label(value="Select exp_group", layout=self.layout_label,)
 
+        exp_group_list = list(self.rm_original.exp_groups.keys())
+        exp_group_selected = 'all'
+        if self.vars.get('exp_group', 'all') in exp_group_list:
+            exp_group_selected = self.vars.get('exp_group')
+
         d_exp_group = widgets.Dropdown(
-            options=list(self.rm_original.exp_groups.keys()),
-            value=self.vars.get('exp_group', 'all'),
+            options=exp_group_list,
+            value=exp_group_selected,
             layout=self.layout_dropdown,
         )
         self.rm_original.exp_list_all = self.rm_original.exp_groups.get(d_exp_group.value, 'all')
@@ -266,7 +271,8 @@ class DashboardManager:
                     savedir_base=str(self.t_savedir_base.value), 
                     filterby_list=ast.literal_eval(str(self.t_filterby_list.value)),
                     verbose=self.rm_original.verbose,
-                    mode_key=self.rm_original.mode_key
+                    mode_key=self.rm_original.mode_key,
+                    has_score_list=self.rm_original.has_score_list
                     )
 
         if len(self.rm.exp_list) == 0:
