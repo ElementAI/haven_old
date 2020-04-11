@@ -475,16 +475,29 @@ class DashboardManager:
             disabled=False
                 )
 
+        d_style = widgets.Dropdown(
+                    options=['inline', 'notebook'],
+                    value='inline',
+                    layout=self.layout_dropdown,
+                    disabled=False,
+                )
+
         brefresh = widgets.Button(description="Display")
         button = widgets.VBox([widgets.HBox([brefresh]),
-                widgets.HBox([t_title_list]),
+                widgets.HBox([t_title_list, d_style]),
                 widgets.HBox([t_y_metric, t_x_metric, ]),
                 widgets.HBox([t_groupby_list, llegend_list, ]),
                 widgets.HBox([t_mode, t_bar_agg]) ])
 
         output_plot = widgets.Output()
 
+
         def on_clicked(b):
+            if d_style.value == 'notebook':
+                from IPython import get_ipython
+                ipython = get_ipython()
+                ipython.magic("matplotlib widget")
+
             self.update_rm()
 
             output_plot.clear_output()
@@ -516,9 +529,12 @@ class DashboardManager:
                     bar_agg=self.vars['bar_agg'],
                     figsize=self.vars['figsize'],
                     title_list=self.vars['title_list'])
-
-                show_inline_matplotlib_plots()
+           
                 
+                
+                show_inline_matplotlib_plots()
+        
+        d_style.observe(on_clicked)
         brefresh.on_click(on_clicked)
 
         with output:
@@ -548,11 +564,18 @@ class DashboardManager:
             description='n_exps:',
             disabled=False
                 )
-
+        t_dirname = widgets.Text(
+            value=str(self.vars.get('dirname', 'images')),
+            description='dirname:',
+            disabled=False
+                )
+        
         brefresh = widgets.Button(description="Display")
         button = widgets.VBox([brefresh,
                 widgets.HBox([t_n_exps, t_n_images]),
                 widgets.HBox([tfigsize, llegend_list, ]),
+                widgets.HBox([t_dirname, ]),
+                
                             ])
 
         output_plot = widgets.Output()
@@ -570,11 +593,12 @@ class DashboardManager:
                 self.vars['legend_list'] = get_list_from_str(llegend_list.value)
                 self.vars['n_images'] = int(t_n_images.value)
                 self.vars['n_exps'] = int(t_n_exps.value)
-
+                self.vars['dirname'] = t_dirname.value
                 self.rm.get_images(legend_list=self.vars['legend_list'], 
                         n_images=self.vars['n_images'],
                         n_exps=self.vars['n_exps'],
-                        figsize=self.vars['figsize_images'])
+                        figsize=self.vars['figsize_images'],
+                        dirname=self.vars['dirname'])
                 show_inline_matplotlib_plots()
                 
         brefresh.on_click(on_clicked)

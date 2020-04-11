@@ -273,10 +273,6 @@ class Test(unittest.TestCase):
     def test_get_images(self):
         pass
 
-    def test_get_job_stats_logs_errors(self):
-        if os.path.exists('tests/tests_jobs.py'):
-            import tests_jobs
-            tests_jobs.test_get_job_stats_logs_errors()
         
 if __name__ == '__main__':
     unittest.main()

@@ -171,9 +171,8 @@ def read_text(fname):
     list
         Content of the file. List containing the lines of the file
     """
-    with open(fname, "r", encoding="utf-8") as f:
+    with open(fname, "r", encoding="utf-8", errors='replace') as f:
         lines = f.readlines()
-        # lines = [line.decode('utf-8').strip() for line in f.readlines()]  # TODO: Delete?
     return lines
 
 
@@ -237,11 +236,12 @@ def create_command(base_command, args):
     assert('run_jobs' in arg_keys)
 
     for a, v in vars(args).items():
-        if a == 'exp_group_list' or a == 'exp_id' or a == 'run_jobs':
+        if a == 'exp_group_list' or a == 'exp_id' or a == 'run_jobs' or a == 'reset':
+            print('argument: %s ignored...' % a)
             continue
 
         run_command += ' --%s %s' % (a, v)
-    
+    print('command: %s' % run_command)
     return run_command 
 
 def save_image(fname, img, size=None, makedirs=True):

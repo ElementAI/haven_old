@@ -418,6 +418,46 @@ class JobManager:
 
         return True
 
+
+def submit_job(command, job_config, workdir, savedir_logs=None):
+    """
+    Launches a job in borgy
+
+    Parameters
+    ----------
+    command: str
+        command you wish to submit
+    job_config: dict
+        dictionary that should contain keys that correspond to borgy cli's arguments
+    workdir: str
+        path to where the borgy should run the code
+    savedir_logs: str
+        path to where the logs are exported (if needed)
+
+    Example
+    -------
+        import os
+        import haven_jobs_utils as hju
+        
+        job_config = {'volume': ['/mnt:/mnt'],
+                'image': 'images.borgy.elementai.net/issam/main',
+                'bid': '5',
+                'restartable': '1',
+                'gpu': '1',
+                'mem': '50',
+                'cpu': '2'}
+                
+        command = 'echo $PATH'
+        job_id = hju.submit_job(command=command, 
+                       job_config=job_config, 
+                       workdir=os.path.dirname(os.path.realpath(__file__)))
+    """
+    import haven_jobs_utils as hju
+    borgy_command = hju.get_job_command(job_config, command, savedir_logs, workdir)
+    job_id = hu.subprocess_call(borgy_command).replace("\n", "")
+
+    return job_id
+
 def get_job_fname(savedir, job_fname=None):
     import haven_jobs_utils as hju
     if job_fname is None:

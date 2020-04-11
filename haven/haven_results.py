@@ -1154,6 +1154,7 @@ def get_images(exp_list, savedir_base, n_exps=20, n_images=1,
         base_dir = os.path.join(savedir, dirname)
         img_list = glob.glob(os.path.join(base_dir, '*.jpg'))
         img_list += glob.glob(os.path.join(base_dir, '*.png'))
+
         img_list.sort(key=os.path.getmtime)
         img_list = img_list[::-1]
         img_list = img_list[:n_images]
