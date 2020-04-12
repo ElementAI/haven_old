@@ -549,9 +549,10 @@ def filter_exp_list(exp_list, filterby_list, verbose=True):
     [type]
         [description]
     """
-    if filterby_list is None or len(filterby_list) == 0:
+    if filterby_list is None or len(filterby_list) == 0 or filterby_list == '':
         return exp_list
 
+    
     filterby_list_list = hu.as_double_list(filterby_list)
     # filterby_list = filterby_list_list
     exp_list_new = []
@@ -579,7 +580,7 @@ def filter_exp_list(exp_list, filterby_list, verbose=True):
                     filterby_dict = dict_tree
 
                 assert isinstance(filterby_dict, dict), ('filterby_dict: %s is not a dict' % str(filterby_dict))
-                
+
                 if hu.is_subset(filterby_dict, exp_dict):
                     select_flag = True
                     break
