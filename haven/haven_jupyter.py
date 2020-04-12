@@ -270,7 +270,7 @@ class DashboardManager:
     def update_rm(self):
         self.rm = hr.ResultManager(exp_list=self.rm_original.exp_list_all, 
                     savedir_base=str(self.t_savedir_base.value), 
-                    filterby_list=ast.literal_eval(str(self.t_filterby_list.value)),
+                    filterby_list=get_dict_from_str(str(self.t_filterby_list.value)),
                     verbose=self.rm_original.verbose,
                     mode_key=self.rm_original.mode_key,
                     has_score_list=self.rm_original.has_score_list
@@ -606,8 +606,19 @@ class DashboardManager:
         brefresh.on_click(on_clicked)
 
 
+def get_dict_from_str(string):
+    if string is None:
+        return string
+
+    if string == 'None':
+        return None
+
+    if string == '':
+        return None
+        
+    return ast.literal_eval(string)
+
 def get_list_from_str(string):
-    
     if string is None:
         return string
 
@@ -615,6 +626,7 @@ def get_list_from_str(string):
         return None
 
     string = string.replace(' ','').replace(']', '').replace('[', '').replace('"', '').replace("'", "")
+
     if string == '':
         return None
 

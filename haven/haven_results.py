@@ -549,17 +549,18 @@ def filter_exp_list(exp_list, filterby_list, verbose=True):
     [type]
         [description]
     """
-    if filterby_list is None or len(filterby_list) == 0 or filterby_list == '':
+    if filterby_list is None or filterby_list == '' or len(filterby_list) == 0:
         return exp_list
 
     
     filterby_list_list = hu.as_double_list(filterby_list)
     # filterby_list = filterby_list_list
-    exp_list_new = []
-    for exp_dict in exp_list:
-        select_flag = False
-
-        for filterby_list in filterby_list_list:
+    
+    for filterby_list in filterby_list_list:
+        exp_list_new = []
+        for exp_dict in exp_list:
+            select_flag = False
+            
             for filterby_dict in filterby_list:
                 if isinstance(filterby_dict, tuple):
                     k, v = filterby_dict
@@ -587,8 +588,12 @@ def filter_exp_list(exp_list, filterby_list, verbose=True):
 
             if select_flag:
                 exp_list_new += [exp_dict]
+        exp_list = exp_list_new
+        
+
     if verbose:
         print('Filtered: %d/%d experiments gathered...' % (len(exp_list_new), len(exp_list)))
+    hu.check_duplicates(exp_list_new)
     return exp_list_new
 
 def get_score_lists(exp_list, savedir_base, filterby_list=None, verbose=True):
