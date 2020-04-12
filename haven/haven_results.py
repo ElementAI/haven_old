@@ -549,22 +549,43 @@ def filter_exp_list(exp_list, filterby_list, verbose=True):
     [type]
         [description]
     """
-    if filterby_list is None:
+    if filterby_list is None or len(filterby_list) == 0:
         return exp_list
 
     filterby_list_list = hu.as_double_list(filterby_list)
-    filterby_list = filterby_list_list[0]
+    # filterby_list = filterby_list_list
     exp_list_new = []
     for exp_dict in exp_list:
         select_flag = False
 
-        for filterby_dict in filterby_list:
-            if hu.is_subset(filterby_dict, exp_dict):
-                select_flag = True
-                break
+        for filterby_list in filterby_list_list:
+            for filterby_dict in filterby_list:
+                if isinstance(filterby_dict, tuple):
+                    k, v = filterby_dict
+                    
+                    k_list = k.split('.')
+                    nk = len(k_list)
 
-        if select_flag:
-            exp_list_new += [exp_dict]
+                    dict_tree = dict()
+                    t = dict_tree
+
+                    for i in range(nk):
+                        ki = k_list[i]
+                        if i == (nk - 1):
+                            t = t.setdefault(ki, v)
+                        else:
+                            t = t.setdefault(ki, {})
+
+                    filterby_dict = dict_tree
+
+                assert isinstance(filterby_dict, dict), ('filterby_dict: %s is not a dict' % str(filterby_dict))
+                
+                if hu.is_subset(filterby_dict, exp_dict):
+                    select_flag = True
+                    break
+
+            if select_flag:
+                exp_list_new += [exp_dict]
     if verbose:
         print('Filtered: %d/%d experiments gathered...' % (len(exp_list_new), len(exp_list)))
     return exp_list_new

@@ -221,6 +221,14 @@ class Test(unittest.TestCase):
         exp_list = hu.cartesian_exp_group({'dataset':['imagenet',
             'mnist','cifar10'], 
                         'model':'mlp', 'batch_size':[1, 5]})
+        
+        exp_list1 = hr.filter_exp_list(exp_list, 
+                            filterby_list=[('dataset', 'mnist')])
+
+        exp_list2 = hr.filter_exp_list(exp_list, 
+                            filterby_list=[
+                                            [('dataset', 'mnist')]
+                                           ])
 
         exp_list = hr.filter_exp_list(exp_list, 
                             filterby_list=[{'dataset':'mnist'},

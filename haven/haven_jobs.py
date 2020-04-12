@@ -60,6 +60,14 @@ def run_exp_list_jobs(exp_list,
     >>>                          job_config=job_config)
     """
     # let the user choose one of these options
+    jm = JobManager(exp_list, 
+                savedir_base, 
+                workdir=workdir,
+                job_config=job_config, 
+                username=username, 
+                verbose=1,
+                job_fname=job_fname)
+                
     print('%d experiments.' % len(exp_list))
     prompt = ("Type one of the following:\n"
               "  1)'reset' to reset the experiments; or\n"
@@ -79,13 +87,7 @@ def run_exp_list_jobs(exp_list,
         raise ValueError(
             'Command has to be one of these choices %s' % command_list)
 
-    jm = JobManager(exp_list, 
-                savedir_base, 
-                workdir=workdir,
-                job_config=job_config, 
-                username=username, 
-                verbose=1,
-                job_fname=job_fname)
+    
 
 
     if command == 'status':
@@ -154,6 +156,8 @@ class JobManager:
         verbose : int, optional
             [description], by default 1
         """
+        hu.check_duplicates(exp_list)
+
         self.exp_list = exp_list
         self.username = username or getpass.getuser()
         self.job_fname = job_fname
@@ -168,7 +172,6 @@ class JobManager:
         self.api = hju.get_api(self.username)
 
     def submit_jobs(self, job_command, reset=0):
-        hu.check_duplicates(self.exp_list)
 
         pr = hu.Parallel()
         submit_dict = {}

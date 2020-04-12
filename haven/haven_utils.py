@@ -3,6 +3,7 @@ import copy
 import hashlib
 import itertools
 import json
+import pprint
 import os
 import pickle
 import shlex
@@ -940,7 +941,7 @@ def check_duplicates(list_of_dicts):
     for data_dict in list_of_dicts:
         dict_id = hash_dict(data_dict)
         if dict_id in hash_list:
-            raise ValueError('duplicate experiments detected...')
+            raise ValueError('duplicated dictionary detected:\n%s' %pprint.pformat(data_dict))
         else:
             hash_list.add(dict_id)
 

@@ -184,9 +184,10 @@ class DashboardManager:
                 disabled=False
                     )
             
-        self.t_filterby_list = widgets.Textarea(
+        self.t_filterby_list = widgets.Text(
                 value=str(self.vars.get('filterby_list')),
-                layout=widgets.Layout(width='600px'),
+                layout=widgets.Layout(width='1200px'),
+                description='               filterby_list:',
                 disabled=False
                     )
 
@@ -218,7 +219,7 @@ class DashboardManager:
         d_exp_group.observe(on_group_change)
 
         display(widgets.VBox([l_exp_group,
-                        widgets.HBox([d_exp_group, l_n_exps]) 
+                        widgets.HBox([d_exp_group, l_n_exps, self.t_filterby_list]) 
         ]))
 
         hj.init_datatable_mode()
@@ -476,8 +477,9 @@ class DashboardManager:
                 )
 
         d_style = widgets.Dropdown(
-                    options=['inline', 'notebook'],
-                    value='inline',
+                    options=['False', 'True'],
+                    value='False',
+                    description='interactive:',
                     layout=self.layout_dropdown,
                     disabled=False,
                 )
@@ -493,7 +495,7 @@ class DashboardManager:
 
 
         def on_clicked(b):
-            if d_style.value == 'notebook':
+            if d_style.value == 'True':
                 from IPython import get_ipython
                 ipython = get_ipython()
                 ipython.magic("matplotlib widget")
