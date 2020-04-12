@@ -200,7 +200,7 @@ class DashboardManager:
         exp_group_list = list(self.rm_original.exp_groups.keys())
         exp_group_selected = 'all'
         if self.vars.get('exp_group', 'all') in exp_group_list:
-            exp_group_selected = self.vars.get('exp_group')
+            exp_group_selected = self.vars.get('exp_group', 'all')
 
         d_exp_group = widgets.Dropdown(
             options=exp_group_list,
