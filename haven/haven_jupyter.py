@@ -489,11 +489,17 @@ class DashboardManager:
         bdownload_out = widgets.Output(layout=self.layout_button)
         
         def on_download_clicked(b):
-            fname = 'plots.pdf'
+            fname = 'plots'
+            from matplotlib.backends.backend_pdf import PdfPages
+            import matplotlib.pyplot as plt
+
+            pp = PdfPages(fname)
+            for fig in self.rm_original.fig_list:
+                fig.savefig(pp, format='pdf')
+            pp.close()
+
             bdownload_out.clear_output()
-            with bdownload_out:
-                self.rm.to_pdf(savedir_base='', fname=fname)
-            bdownload_out.clear_output()
+          
             with bdownload_out:
                 display(FileLink(fname, result_html_prefix="Download: "))
 
@@ -635,6 +641,15 @@ def get_dict_from_str(string):
         return None
         
     return ast.literal_eval(string)
+
+# def multipage(filename, figs=None, dpi=200):
+#     from matplotlib.backends.backend_pdf import PdfPages
+#     import matplotlib.pyplot as plt
+
+#     pp = PdfPages(filename)
+#     for fig in figs:
+#         fig.savefig(pp, format='pdf')
+#     pp.close()
 
 def get_list_from_str(string):
     if string is None:
