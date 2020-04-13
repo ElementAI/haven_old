@@ -484,12 +484,29 @@ class DashboardManager:
                     disabled=False,
                 )
 
+        bdownload = widgets.Button(description="Download Plots", 
+                                    layout=self.layout_button)
+        bdownload_out = widgets.Output(layout=self.layout_button)
+        
+        def on_download_clicked(b):
+            fname = 'plots.pdf'
+            bdownload_out.clear_output()
+            with bdownload_out:
+                self.rm.to_pdf(savedir_base='', fname=fname)
+            bdownload_out.clear_output()
+            with bdownload_out:
+                display(FileLink(fname, result_html_prefix="Download: "))
+
+        bdownload.on_click(on_download_clicked)
+
         brefresh = widgets.Button(description="Display")
         button = widgets.VBox([widgets.HBox([brefresh]),
                 widgets.HBox([t_title_list, d_style]),
                 widgets.HBox([t_y_metric, t_x_metric, ]),
                 widgets.HBox([t_groupby_list, llegend_list, ]),
-                widgets.HBox([t_mode, t_bar_agg]) ])
+                widgets.HBox([t_mode, t_bar_agg]),
+                widgets.HBox([bdownload, bdownload_out]) 
+                ])
 
         output_plot = widgets.Output()
 
@@ -522,7 +539,7 @@ class DashboardManager:
                 self.vars['title_list'] = get_list_from_str(t_title_list.value)
                 self.vars['bar_agg'] = t_bar_agg.value
 
-                self.rm.get_plot_all(y_metric_list=self.vars['y_metrics'], 
+                self.rm_original.fig_list = self.rm.get_plot_all(y_metric_list=self.vars['y_metrics'], 
                     x_metric=self.vars['x_metric'], 
                     groupby_list=self.vars['groupby_list'],
                     legend_list=self.vars['legend_list'], 
@@ -531,6 +548,7 @@ class DashboardManager:
                     bar_agg=self.vars['bar_agg'],
                     figsize=self.vars['figsize'],
                     title_list=self.vars['title_list'])
+        
            
                 
                 

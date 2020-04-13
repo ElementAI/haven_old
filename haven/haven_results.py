@@ -122,15 +122,22 @@ class ResultManager:
     def load_state_dict(self, state_dict):
         pass
 
-    def get_plot(self, groupby_list=None, **kwargs):
+    def get_plot(self, groupby_list=None, savedir_plots=None, filterby_list=None, **kwargs):
         fig_list = []
+        filterby_list = filterby_list or self.filterby_list
         exp_groups = group_exp_list(self.exp_list, groupby_list)
         
-        for exp_list in exp_groups:
-            fig, ax = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, filterby_list=self.filterby_list, 
+        for i, exp_list in enumerate(exp_groups):
+            fig, ax = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, filterby_list=filterby_list, 
                         verbose=self.verbose,
                                **kwargs)
             fig_list += [fig]
+
+            # save image if given
+            if savedir_plots != '' and savedir_plots is not None:
+                os.makedirs(savedir_plots, exist_ok=True)
+                save_fname = os.path.join(savedir_plots, "%d.png" % i )
+                fig.savefig(save_fname, bbox_inches='tight')
 
         return fig_list
 
