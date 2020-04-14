@@ -39,8 +39,8 @@ Create `exp_configs.py` and add the following dictionary. The experiment group `
 # Compare between two learning rates for the same model and dataset
 EXP_GROUPS = {'mnist':
                 [
-                 {'lr':1e-3, 'model':'mlp', 'dataset':'mnist'},
-                 {'lr':1e-4, 'model':'mlp', 'dataset':'mnist'}
+                 {'lr':1e-3, 'model':'mlp', 'dataset':'mnist', 'max_epoch':10},
+                 {'lr':1e-4, 'model':'mlp', 'dataset':'mnist', 'max_epoch':10}
                   ]
 }
 ```
@@ -125,7 +125,7 @@ def trainval(exp_dict, savedir_base, reset=False):
     # ------------
     print('Starting experiment at epoch %d' % (s_epoch))
 
-    for e in range(s_epoch, 10):
+    for e in range(s_epoch, exp_dict['max_epoch']):
         score_dict = {}
 
         # Train the model
