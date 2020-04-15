@@ -439,6 +439,14 @@ class DashboardManager:
             layout=self.layout_dropdown,
             disabled=False
                 )
+
+        lcmap = widgets.Text(
+            value=str(self.vars.get('cmap', 'jet')),
+            description='cmap:',
+            layout=self.layout_dropdown,
+            disabled=False
+                )
+
         llog_metric_list = widgets.Text(
             value=str(self.vars.get('log_metric_list', '[train_loss]')),
             description='log_metric_list:',
@@ -550,6 +558,7 @@ class DashboardManager:
                 self.vars['mode'] = t_mode.value
                 self.vars['title_list'] = get_list_from_str(t_title_list.value)
                 self.vars['bar_agg'] = t_bar_agg.value
+                self.vars['cmap'] = lcmap.value
 
                 self.rm_original.fig_list = self.rm.get_plot_all(y_metric_list=self.vars['y_metrics'], 
                     x_metric=self.vars['x_metric'], 
@@ -560,7 +569,8 @@ class DashboardManager:
                     bar_agg=self.vars['bar_agg'],
                     figsize=self.vars['figsize'],
                     title_list=self.vars['title_list'],
-                    legend_format=self.vars['legend_format'])
+                    legend_format=self.vars['legend_format'],
+                    cmap=self.vars['cmap'])
         
            
                 

@@ -23,7 +23,8 @@ class ResultManager:
                  verbose=True,
                  has_score_list=False,
                  exp_groups=None,
-                 mode_key=None):
+                 mode_key=None,
+                 exp_ids=None):
         """[summary]
         
         Parameters
@@ -54,6 +55,7 @@ class ResultManager:
                                     title_list=['dataset'],
                                     legend_list=['model']) 
         """
+        
         # sanity checks
         assert os.path.exists(savedir_base), '%s does not exist' % savedir_base
 
@@ -71,13 +73,20 @@ class ResultManager:
         # rest
         self.mode_key = mode_key
         self.has_score_list = has_score_list
-        if exp_list is None:
-            exp_list = get_exp_list(savedir_base=savedir_base, verbose=verbose)
+
+        if exp_ids:
+            assert exp_list is None, "settings exp_ids require exp_list=None"
+            exp_list = []
+            for exp_id in exp_ids:
+                exp_list += [hu.load_pkl(os.path.join(savedir_base, exp_id, 'exp_dict.json'))]
         else:
-            exp_list = exp_list
-        
-        if len(exp_list) == 0:
-            raise ValueError('exp_list is empty...')
+            if exp_list is None:
+                exp_list = get_exp_list(savedir_base=savedir_base, verbose=verbose)
+            else:
+                exp_list = exp_list
+            
+            if len(exp_list) == 0:
+                raise ValueError('exp_list is empty...')
 
         exp_list_with_scores = [e for e in exp_list if 
                                     os.path.exists(os.path.join(savedir_base, 
@@ -838,7 +847,8 @@ def get_plot(exp_list, savedir_base,
              bar_agg='min',
              verbose=True,
              show_legend=True,
-             legend_format=None):
+             legend_format=None,
+             cmap=None):
     """Plots the experiment list in a single figure.
     
     Parameters
@@ -881,6 +891,8 @@ def get_plot(exp_list, savedir_base,
         [description], by default None
     legend_format: [str], optional
         [description], formatting of the legend, by default None
+    cmap: [str], optional
+        [description], specify colormap, by default None
     
     Returns
     -------
@@ -903,7 +915,9 @@ def get_plot(exp_list, savedir_base,
     # if len(exp_list) > 50:
     #     if verbose:
     #         raise ValueError('many experiments in one plot...use filterby_list to reduce them')
-        
+    # if cmap is not None or cmap is not '':
+    #     plt.rcParams["axes.prop_cycle"] = get_cycle(cmap)
+
     exp_list = filter_exp_list(exp_list, filterby_list=filterby_list, verbose=verbose)
     bar_count = 0
     visited = set()
@@ -1045,7 +1059,7 @@ def get_plot(exp_list, savedir_base,
                 
                 axis.bar([bar_count], [y_agg],
                         color=color,
-                        label=label
+                        label=label,
                         # label='%s - (%s: %d, %s: %.3f)' % (label, x_metric, x_list[-1], y_metric, y_agg)
                         )
                 if color is not None:
@@ -1053,6 +1067,7 @@ def get_plot(exp_list, savedir_base,
                 else:
                     bar_color = 'black'
                 axis.text(bar_count, y_agg + .01, "%.3f"%y_agg, color=bar_color, fontweight='bold')
+                axis.set_xticks([])
                 bar_count += 1
             else:
                 raise ValueError('mode %s does not exist. Options: (line, bar)' % mode)
@@ -1124,6 +1139,7 @@ def get_label(original_list, exp_dict, format_str=None):
             sub_dict = sub_dict[d]
             
         label_list += [str(sub_dict)]
+        
     if format_str:
         label = format_str.format(*label_list)
     else:
