@@ -9,7 +9,7 @@
 </table> -->
 # Haven 
 
-Write a simple codebase in order to efficiently define hyperparameters, launch many experiments, and visualize their results.
+A wrapper for defining hyperparameters, launching and managing many experiments, and visualizing their results.
 
 In the example below, we will write a minimal [codebase](https://github.com/ElementAI/haven/tree/master/examples/minimal) to get us started. 
 
