@@ -351,6 +351,7 @@ class JobManager:
                 result_dict['started_at'] = hu.time_to_montreal(fname_exp_dict)
                 result_dict["job_id"] = job_id
                 result_dict["job_state"] = job.state
+                result_dict["restarts"] = len(job.runs)
                 
                 summary_dict['table'] += [copy.deepcopy(result_dict)]
                 

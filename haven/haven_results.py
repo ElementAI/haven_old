@@ -837,7 +837,8 @@ def get_plot(exp_list, savedir_base,
              map_ylabel_list=dict(),
              bar_agg='min',
              verbose=True,
-             show_legend=True):
+             show_legend=True,
+             legend_format=None):
     """Plots the experiment list in a single figure.
     
     Parameters
@@ -878,6 +879,8 @@ def get_plot(exp_list, savedir_base,
         [description], by default None
     legend_kwargs : [type], optional
         [description], by default None
+    legend_format: [str], optional
+        [description], formatting of the legend, by default None
     
     Returns
     -------
@@ -993,7 +996,7 @@ def get_plot(exp_list, savedir_base,
 
             # map properties of exp
             if legend_list is not None:
-                label = get_label(legend_list, exp_dict)
+                label = get_label(legend_list, exp_dict, format_str=legend_format)
             else:
                 label = exp_id
 
@@ -1109,7 +1112,7 @@ def get_plot(exp_list, savedir_base,
 
     return fig, axis
 
-def get_label(original_list, exp_dict):
+def get_label(original_list, exp_dict, format_str=None):
     label_list = []
     for k in original_list:
         depth_list = k.split('.')
@@ -1121,8 +1124,11 @@ def get_label(original_list, exp_dict):
             sub_dict = sub_dict[d]
             
         label_list += [str(sub_dict)]
-
-    label = '_'.join(label_list)
+    if format_str:
+        label = format_str.format(*label_list)
+    else:
+        label = '_'.join(label_list)
+    
     label = '\n'.join(wrap(label, 40))
     return label
 

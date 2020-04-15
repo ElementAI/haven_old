@@ -433,6 +433,12 @@ class DashboardManager:
             description='legend_list:',
             disabled=False
                 )
+        llegend_format = widgets.Text(
+            value=str(self.vars.get('legend_format', '')),
+            description='legend_format:',
+            layout=self.layout_dropdown,
+            disabled=False
+                )
         llog_metric_list = widgets.Text(
             value=str(self.vars.get('log_metric_list', '[train_loss]')),
             description='log_metric_list:',
@@ -509,7 +515,7 @@ class DashboardManager:
         button = widgets.VBox([widgets.HBox([brefresh]),
                 widgets.HBox([t_title_list, d_style]),
                 widgets.HBox([t_y_metric, t_x_metric, ]),
-                widgets.HBox([t_groupby_list, llegend_list, ]),
+                widgets.HBox([t_groupby_list, llegend_list, llegend_format]),
                 widgets.HBox([t_mode, t_bar_agg]),
                 widgets.HBox([bdownload, bdownload_out]) 
                 ])
@@ -538,7 +544,7 @@ class DashboardManager:
                     self.vars['figsize'] = (int(w), int(h))
 
                 self.vars['legend_list'] = get_list_from_str(llegend_list.value)
-                
+                self.vars['legend_format'] = llegend_format.value
                 self.vars['log_metric_list'] = get_list_from_str(llog_metric_list.value)
                 self.vars['groupby_list'] = get_list_from_str(t_groupby_list.value)
                 self.vars['mode'] = t_mode.value
@@ -553,7 +559,8 @@ class DashboardManager:
                     mode=self.vars['mode'],
                     bar_agg=self.vars['bar_agg'],
                     figsize=self.vars['figsize'],
-                    title_list=self.vars['title_list'])
+                    title_list=self.vars['title_list'],
+                    legend_format=self.vars['legend_format'])
         
            
                 
