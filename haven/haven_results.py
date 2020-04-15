@@ -74,11 +74,13 @@ class ResultManager:
         self.mode_key = mode_key
         self.has_score_list = has_score_list
 
-        if exp_ids:
+        # get exp _list
+        if exp_ids is not None:
             assert exp_list is None, "settings exp_ids require exp_list=None"
+            assert exp_groups is None, "settings exp_ids require exp_groups=None"
             exp_list = []
             for exp_id in exp_ids:
-                exp_list += [hu.load_pkl(os.path.join(savedir_base, exp_id, 'exp_dict.json'))]
+                exp_list += [hu.load_json(os.path.join(savedir_base, exp_id, 'exp_dict.json'))]
         else:
             if exp_list is None:
                 exp_list = get_exp_list(savedir_base=savedir_base, verbose=verbose)
