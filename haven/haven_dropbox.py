@@ -40,7 +40,8 @@ def upload_file_to_dropbox(src_fname, out_fname, access_token):
         dbx.files_upload(f.read(), out_fname)
 
 
-def zipdir(exp_id_list, savedir_base, src_fname, add_jupyter=True, verbose=1):
+def zipdir(exp_id_list, savedir_base, src_fname, add_jupyter=True, verbose=1, 
+           fname_list=None, dropbox_path='/shared', access_token=None):
     import zipfile
     zipf = zipfile.ZipFile(src_fname, 'w', zipfile.ZIP_DEFLATED)
 
@@ -60,12 +61,16 @@ def zipdir(exp_id_list, savedir_base, src_fname, add_jupyter=True, verbose=1):
         tqdm_bar = tqdm.tqdm
     else:
         tqdm_bar = lambda x: x
-        
+    
+    fname_all = ['score_list.pkl', "exp_dict.json"] 
+    if isinstance(fname_list, list):
+        fname_all += fname_list
+
     for exp_id in tqdm_bar(exp_id_list):
         if not os.path.isdir(os.path.join(savedir_base, exp_id)):
             continue
             
-        for fname in ['score_list.pkl', "exp_dict.json"]:
+        for fname in fname_all:
             abs_path = os.path.join(savedir_base, exp_id, fname)
             rel_path = os.path.join( "results", exp_id, fname)
             if os.path.exists(abs_path):
@@ -76,3 +81,8 @@ def zipdir(exp_id_list, savedir_base, src_fname, add_jupyter=True, verbose=1):
     zipf.close()
     if verbose:
         print('Zipped: %d/%d exps in %s' % (n_zipped, len(exp_id_list), src_fname))
+
+    if access_token is not None and access_token != '':
+        out_fname = os.path.join(dropbox_path, src_fname)
+        upload_file_to_dropbox(src_fname, out_fname, access_token)
+        print('saved: https://www.dropbox.com/home/%s' % out_fname)

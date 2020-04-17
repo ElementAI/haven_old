@@ -850,6 +850,7 @@ def get_plot(exp_list, savedir_base,
              verbose=True,
              show_legend=True,
              legend_format=None,
+             title_format=None,
              cmap=None):
     """Plots the experiment list in a single figure.
     
@@ -891,8 +892,8 @@ def get_plot(exp_list, savedir_base,
         [description], by default None
     legend_kwargs : [type], optional
         [description], by default None
-    legend_format: [str], optional
-        [description], formatting of the legend, by default None
+    title_format: [str], optional
+        [description], formatting of the title, by default None
     cmap: [str], optional
         [description], specify colormap, by default None
     
@@ -1076,7 +1077,7 @@ def get_plot(exp_list, savedir_base,
 
     # default properties
     if title_list is not None:
-        title = get_label(title_list, exp_dict)
+        title = get_label(title_list, exp_dict, format_str=title_format)
     else:
         title = ''
 

@@ -294,18 +294,50 @@ class DashboardManager:
             l_savedir_base = widgets.Label(value="savedir_base:", layout=self.layout_label,)
             l_filterby_list= widgets.Label(value="filterby_list:", layout=self.layout_label,)
             
+
             bdownload = widgets.Button(description="Zip to Download Experiments", 
                                     layout=self.layout_button)
+                                    
             bdownload_out = widgets.Output(layout=self.layout_button)
-            
+            l_fname_list = widgets.Text(
+                value=str(self.vars.get('fname_list', '')),
+                layout=self.layout_dropdown,
+                description='fname_list:',
+                disabled=False
+                    )
+
+            l_dropbox_path = widgets.Text(
+                value=str(self.vars.get('dropbox_path', '/shared')),
+                description='dropbox_path:',
+                layout=self.layout_dropdown,
+                disabled=False
+                    )
+            l_access_token_path = widgets.Text(
+                value=str(self.vars.get('access_token', '')),
+                description='access_token:',
+                layout=self.layout_dropdown,
+                disabled=False
+                    )
             def on_download_clicked(b):
                 fname = 'results.zip'
                 bdownload_out.clear_output()
+                self.vars['fname_list'] = get_list_from_str(l_fname_list.value)
+                self.vars['dropbox_path'] = l_dropbox_path.value
+                self.vars['access_token'] = l_access_token_path.value
                 with bdownload_out:
-                    self.rm.to_zip(savedir_base='', fname=fname)
+                    self.rm.to_zip(savedir_base='', fname=fname, 
+                                   fname_list=self.vars['fname_list'],
+                                   dropbox_path=self.vars['dropbox_path'],
+                                   access_token=self.vars['access_token'])
                 bdownload_out.clear_output()
                 with bdownload_out:
                     display('%d exps zipped.' % len(self.rm.exp_list))
+                    
+                
+                if self.vars['access_token'] is not None and self.vars['access_token'] != '': 
+                    os.remove('results.zip')
+                    display('result.zip sent to dropbox at %s.' % self.vars['dropbox_path'])
+                else:
                     display(FileLink(fname, result_html_prefix="Download: "))
 
             bdownload.on_click(on_download_clicked)
@@ -313,6 +345,7 @@ class DashboardManager:
             display(widgets.VBox([
                             widgets.HBox([l_savedir_base, self.t_savedir_base, ]), 
                             widgets.HBox([l_filterby_list, self.t_filterby_list,  ]),
+                            widgets.HBox([l_fname_list, l_dropbox_path, l_access_token_path]),
                             widgets.VBox([bdownload, bdownload_out]) 
             ]))
 
@@ -439,6 +472,12 @@ class DashboardManager:
             layout=self.layout_dropdown,
             disabled=False
                 )
+        ltitle_format = widgets.Text(
+            value=str(self.vars.get('title_format', '')),
+            description='title_format:',
+            layout=self.layout_dropdown,
+            disabled=False
+                )
 
         lcmap = widgets.Text(
             value=str(self.vars.get('cmap', 'jet')),
@@ -523,8 +562,9 @@ class DashboardManager:
         button = widgets.VBox([widgets.HBox([brefresh]),
                 widgets.HBox([t_title_list, d_style]),
                 widgets.HBox([t_y_metric, t_x_metric, ]),
-                widgets.HBox([t_groupby_list, llegend_list, llegend_format]),
+                widgets.HBox([t_groupby_list, llegend_list, ]),
                 widgets.HBox([t_mode, t_bar_agg]),
+                widgets.HBox([ltitle_format, llegend_format]),
                 widgets.HBox([bdownload, bdownload_out]) 
                 ])
 
@@ -558,6 +598,7 @@ class DashboardManager:
                 self.vars['mode'] = t_mode.value
                 self.vars['title_list'] = get_list_from_str(t_title_list.value)
                 self.vars['bar_agg'] = t_bar_agg.value
+                self.vars['title_format'] = ltitle_format.value
                 self.vars['cmap'] = lcmap.value
 
                 self.rm_original.fig_list = self.rm.get_plot_all(y_metric_list=self.vars['y_metrics'], 
@@ -570,6 +611,7 @@ class DashboardManager:
                     figsize=self.vars['figsize'],
                     title_list=self.vars['title_list'],
                     legend_format=self.vars['legend_format'],
+                    title_format=self.vars['title_format'],
                     cmap=self.vars['cmap'])
         
            
