@@ -468,7 +468,7 @@ class DashboardManager:
                 if len(table_dict['failed']) == 0:
                     display('no failed experiments')
                 else:
-                    display(table_dict['failed'])
+                    # display(table_dict['failed'])
                     for i, failed in enumerate(table_dict['logs_failed']):
                         print('\nFailed %d/%d' % (i, n_failed), '='*50)
                         print('exp_id:', failed['exp_id'])
