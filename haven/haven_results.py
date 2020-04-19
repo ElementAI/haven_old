@@ -24,7 +24,8 @@ class ResultManager:
                  has_score_list=False,
                  exp_groups=None,
                  mode_key=None,
-                 exp_ids=None):
+                 exp_ids=None,
+                 save_history=False):
         """[summary]
         
         Parameters
@@ -73,7 +74,7 @@ class ResultManager:
         # rest
         self.mode_key = mode_key
         self.has_score_list = has_score_list
-
+        self.save_history = save_history
         # get exp _list
         if exp_ids is not None:
             assert exp_list is None, "settings exp_ids require exp_list=None"

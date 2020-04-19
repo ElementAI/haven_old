@@ -329,10 +329,10 @@ class JobManager:
                 if isinstance(columns, list) and k not in columns:
                     continue
                 result_dict[k] = exp_dict[k]
-            
+            result_dict['exp_dict'] = exp_dict
             exp_id = hu.hash_dict(exp_dict)
             savedir = os.path.join(self.savedir_base, exp_id)
-            result_dict["exp_id"] = '\n'.join(wrap(exp_id, 8))
+            result_dict["exp_id"] = exp_id
             
             fname = get_job_fname(savedir, job_fname=self.job_fname)
 

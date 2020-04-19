@@ -299,6 +299,12 @@ class DashboardManager:
                                     layout=self.layout_button)
                                     
             bdownload_out = widgets.Output(layout=self.layout_button)
+
+            bdownload_dropbox = widgets.Button(description="Upload to Dropbox", 
+                                    layout=self.layout_button)
+                                    
+            bdownload_out_dropbox  = widgets.Output(layout=self.layout_button)
+
             l_fname_list = widgets.Text(
                 value=str(self.vars.get('fname_list', '')),
                 layout=self.layout_dropdown,
@@ -318,36 +324,54 @@ class DashboardManager:
                 layout=self.layout_dropdown,
                 disabled=False
                     )
-            def on_download_clicked(b):
+            def on_upload_clicked(b):
                 fname = 'results.zip'
-                bdownload_out.clear_output()
+                bdownload_out_dropbox.clear_output()
                 self.vars['fname_list'] = get_list_from_str(l_fname_list.value)
                 self.vars['dropbox_path'] = l_dropbox_path.value
                 self.vars['access_token'] = l_access_token_path.value
-                with bdownload_out:
+                with bdownload_out_dropbox:
                     self.rm.to_zip(savedir_base='', fname=fname, 
                                    fname_list=self.vars['fname_list'],
                                    dropbox_path=self.vars['dropbox_path'],
                                    access_token=self.vars['access_token'])
+
+                os.remove('results.zip')
+                display('result.zip sent to dropbox at %s.' % self.vars['dropbox_path'])
+
+
+            def on_download_clicked(b):
+                fname = 'results.zip'
+                bdownload_out.clear_output()
+                self.vars['fname_list'] = get_list_from_str(l_fname_list.value)
+
+                with bdownload_out:
+                    self.rm.to_zip(savedir_base='', fname=fname, 
+                                   fname_list=self.vars['fname_list'])
                 bdownload_out.clear_output()
                 with bdownload_out:
                     display('%d exps zipped.' % len(self.rm.exp_list))
+                display(FileLink(fname, result_html_prefix="Download: "))
+                # bdownload_out.clear_output()
+                # with bdownload_out:
+                #     display('%d exps zipped.' % len(self.rm.exp_list))
                     
                 
-                if self.vars['access_token'] is not None and self.vars['access_token'] != '': 
-                    os.remove('results.zip')
-                    display('result.zip sent to dropbox at %s.' % self.vars['dropbox_path'])
-                else:
-                    display(FileLink(fname, result_html_prefix="Download: "))
+
+                
 
             bdownload.on_click(on_download_clicked)
-
+            bdownload_zip = widgets.VBox([bdownload, bdownload_out])
+            bdownload_dropbox.on_click(on_upload_clicked)
+            bdownload_dropbox_vbox = widgets.VBox([ bdownload_dropbox, bdownload_out_dropbox])
             display(widgets.VBox([
                             widgets.HBox([l_savedir_base, self.t_savedir_base, ]), 
                             widgets.HBox([l_filterby_list, self.t_filterby_list,  ]),
                             widgets.HBox([l_fname_list, l_dropbox_path, l_access_token_path]),
-                            widgets.VBox([bdownload, bdownload_out]) 
-            ]))
+                            widgets.HBox([bdownload_zip,
+                                        bdownload_dropbox_vbox])
+            ]) 
+            )
 
 
 
@@ -419,22 +443,46 @@ class DashboardManager:
             table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
                                             username=self.vars.get('username'))
             output_plot.clear_output()
+            n_logs = len(table_dict['logs'])
             with output_plot:
-                for logs in table_dict['logs']:
-                    pprint.pprint(logs)        
+                for i, logs in enumerate(table_dict['logs']):
+                        print('\nLogs %d/%d' % (i, n_logs), '='*50)
+                        print('exp_id:', logs['exp_id'])
+                        print('job_id:', logs['job_id'])
+
+                        print('\nexp_dict')
+                        print('-'*50)
+                        pprint.pprint(logs['exp_dict'])
+                        
+                        print('\nLogs')
+                        print('-'*50)
+                        pprint.pprint(logs['logs'])     
         
         def on_failed_clicked(b):
             self.update_rm()
             table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
                                             username=self.vars.get('username'))
             output_plot.clear_output()
+            n_failed = len(table_dict['logs_failed'])
             with output_plot:
                 if len(table_dict['failed']) == 0:
                     display('no failed experiments')
                 else:
                     display(table_dict['failed'])
-                    for failed in table_dict['logs_failed']:
-                        pprint.pprint(failed)
+                    for i, failed in enumerate(table_dict['logs_failed']):
+                        print('\nFailed %d/%d' % (i, n_failed), '='*50)
+                        print('exp_id:', failed['exp_id'])
+                        print('job_id:', failed['job_id'])
+
+                        print('\nexp_dict')
+                        print('-'*50)
+                        pprint.pprint(failed['exp_dict'])
+                        
+                        print('\nLogs')
+                        print('-'*50)
+                        pprint.pprint(failed['logs'])
+
+                        
 
         # Add call listeners
         brefresh.on_click(on_refresh_clicked)
