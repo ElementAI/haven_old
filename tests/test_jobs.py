@@ -11,15 +11,15 @@ from haven import haven_utils as hu
 from haven import haven_results as hr
 from haven import haven_chk as hc
 from haven import haven_jobs as hjb
+from haven import haven_orkestrator as ho
 from haven import haven_jupyter as hj
 
 
 class Test(unittest.TestCase):
 
     def test_submit_job(self):
-        hjb.add_job_utils()
 
-        job_config = {'volume': ['/mnt:/mnt'],
+        job_config = {'data': ['/mnt:/mnt'],
                 'image': 'images.borgy.elementai.net/issam/main',
                 'bid': '5',
                 'restartable': '1',
@@ -37,8 +37,8 @@ class Test(unittest.TestCase):
         exp_list = [{'model':{'name':'mlp', 'n_layers':30}, 
                     'dataset':'mnist', 'batch_size':1}]
         savedir_base = '/mnt/datasets/public/issam/tmp'
-        job_config = {'volume': ['/mnt:/mnt'],
-                    'image': 'images.borgy.elementai.net/issam.laradji/main',
+        job_config = {'data': ['/mnt:/mnt'],
+                    'image': 'registry.console.elementai.com/75ce4cee-6829-4274-80e1-77e89559ddfb',
                     'bid': '1',
                     'restartable': '1',
                     'gpu': '1',

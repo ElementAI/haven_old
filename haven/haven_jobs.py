@@ -13,6 +13,7 @@ import numpy as np
 import getpass
 import pprint
 from . import haven_jupyter as hj
+from . import haven_orkestrator as ho
 
 
 def run_exp_list_jobs(exp_list,
@@ -45,7 +46,7 @@ def run_exp_list_jobs(exp_list,
 
     >>> elif args.run_jobs:
     >>>    from haven import haven_jobs as hjb
-    >>>    job_config = {'volume': <volume>,
+    >>>    job_config = {'data': <data>,
     >>>                  'image': <image>,
     >>>                  'bid': '1',
     >>>                  'restartable': '1',
@@ -138,7 +139,7 @@ class JobManager:
                  job_config=None, 
                  username=None, 
                  verbose=1,
-                 job_fname=None):
+                 job_fname='job_dict'):
         """[summary]
         
         Parameters
@@ -167,9 +168,7 @@ class JobManager:
         self.savedir_base = savedir_base
 
         # create an instance of the API class
-        add_job_utils()
-        import haven_jobs_utils as hju
-        self.api = hju.get_api(self.username)
+        self.api = ho.get_api(self.username)
 
     def submit_jobs(self, job_command, reset=0):
 
@@ -190,9 +189,6 @@ class JobManager:
         return submit_dict
 
     def kill_jobs(self):
-        add_job_utils()
-        import haven_jobs_utils as hju
-
         hu.check_duplicates(self.exp_list)
 
         pr = hu.Parallel()
@@ -205,7 +201,7 @@ class JobManager:
 
             if os.path.exists(fname):
                 job_id = hu.load_json(fname)['job_id']
-                pr.add(hju.kill_job, self.api, job_id)
+                pr.add(ho.kill_job, self.api, job_id)
                 submit_dict[exp_id] = 'KILLED'
             else:
                 submit_dict[exp_id] = 'NoN-Existent'
@@ -223,9 +219,6 @@ class JobManager:
         It checks if the experiment exist and manages the special casses, e.g.,
         new experiment, reset, failed, job is already running, completed
         """
-        add_job_utils()
-        import haven_jobs_utils as hju
-
         # Define paths
         savedir = os.path.join(self.savedir_base, hu.hash_dict(exp_dict))
         fname = get_job_fname(savedir, job_fname=self.job_fname)
@@ -239,7 +232,7 @@ class JobManager:
         elif reset:
             # Check if the job already exists
             job_id = hu.load_json(fname).get("job_id")
-            hju.kill_job(self.api, job_id)
+            ho.kill_job(self.api, job_id)
             hc.delete_and_backup_experiment(savedir)
 
             job_dict = self.launch_job(exp_dict, savedir, command, job=None)
@@ -248,7 +241,7 @@ class JobManager:
 
         else:
             job_id = hu.load_json(fname).get("job_id")
-            job = hju.get_job(self.api, job_id)
+            job = ho.get_job(self.api, job_id)
 
             if job.alive or job.state == 'SUCCEEDED':
                 # If the job is alive, do nothing
@@ -267,9 +260,6 @@ class JobManager:
 
     def launch_job(self, exp_dict, savedir, command, job=None):
         """Submit a job job and save job dict and exp_dict."""
-        add_job_utils()
-        import haven_jobs_utils as hju
-
         # Check for duplicates
         if job is not None:
             assert self._assert_no_duplicates(job)
@@ -285,7 +275,7 @@ class JobManager:
         hu.copy_code(self.workdir + "/", workdir_job)
 
         # Run  command
-        job_command = hju.get_job_command(self.job_config, command, savedir, workdir=workdir_job)
+        job_command = ho.get_job_command(self.job_config, command, savedir, workdir=workdir_job)
         job_id = hu.subprocess_call(job_command).replace("\n", "")
 
         # Verbose
@@ -307,8 +297,6 @@ class JobManager:
         [type]
             [description]
         """
-        add_job_utils()
-        import haven_jobs_utils as hju
         # get job ids
         job_id_list = []
         for exp_dict in self.exp_list:
@@ -319,7 +307,7 @@ class JobManager:
             if os.path.exists(fname):
                 job_id_list += [hu.load_json(fname)["job_id"]]
 
-        jobs_dict = hju.get_jobs_dict(self.api, job_id_list)
+        jobs_dict = ho.get_jobs_dict(self.api, job_id_list)
 
         # fill summary
         summary_dict = {'table':[], 'status':[], 'logs_failed':[], 'logs':[]}
@@ -397,11 +385,8 @@ class JobManager:
         return summary_dict
 
     def _assert_no_duplicates(self, job_new=None, max_jobs=500):
-        add_job_utils()
-        import haven_jobs_utils as hju
-
         # Get the job list
-        jobList = hju.get_jobs(self.api, self.username)
+        jobList = ho.get_jobs(self.api, self.username)
 
         # Check if duplicates already exist in job
         command_dict = {}
@@ -422,63 +407,12 @@ class JobManager:
 
         return True
 
-
-def submit_job(command, job_config, workdir, savedir_logs=None):
-    """
-    Launches a job in borgy
-
-    Parameters
-    ----------
-    command: str
-        command you wish to submit
-    job_config: dict
-        dictionary that should contain keys that correspond to borgy cli's arguments
-    workdir: str
-        path to where the borgy should run the code
-    savedir_logs: str
-        path to where the logs are exported (if needed)
-
-    Example
-    -------
-        import os
-        import haven_jobs_utils as hju
-        
-        job_config = {'volume': ['/mnt:/mnt'],
-                'image': 'images.borgy.elementai.net/issam/main',
-                'bid': '5',
-                'restartable': '1',
-                'gpu': '1',
-                'mem': '50',
-                'cpu': '2'}
-                
-        command = 'echo $PATH'
-        job_id = hju.submit_job(command=command, 
-                       job_config=job_config, 
-                       workdir=os.path.dirname(os.path.realpath(__file__)))
-    """
-    import haven_jobs_utils as hju
-    borgy_command = hju.get_job_command(job_config, command, savedir_logs, workdir)
-    job_id = hu.subprocess_call(borgy_command).replace("\n", "")
-
-    return job_id
-
-def get_job_fname(savedir, job_fname=None):
-    import haven_jobs_utils as hju
-    if job_fname is None:
-        fname = hju.get_job_fname(savedir) 
+def get_job_fname(savedir, job_fname='job_dict.json'):
+    if os.path.exists(os.path.join(savedir, "borgy_dict.json")):
+        # for backward compatibility
+        fname = os.path.join(savedir, "borgy_dict.json")
     else:
         fname = os.path.join(savedir, job_fname)
+
     return fname
     
-def add_job_utils():
-    """adds the ElementAI plugin for running jobs
-
-    Parameters
-    ----------
-    savedir_base : str
-        [description]
-    """
-    path = '/mnt/datasets/public/issam/haven_utils'
-    if path in sys.path:
-        return
-    sys.path.append(path)

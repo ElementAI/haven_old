@@ -1034,3 +1034,11 @@ def collate_fn(batch, mode='list'):
         
     elif mode == 'default':
         return torch.utils.data.dataloader.default_collate(batch)
+
+def timeit(func, n_times=10, **args):
+    for i in range(n_times):
+        if i ==1:
+            s = time.time()
+        func(**args)
+
+    print('time:', (time.time()-s)/(n_times-1))
