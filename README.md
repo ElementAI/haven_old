@@ -49,9 +49,10 @@ EXP_GROUPS = {'mnist':
 #### 2. Write the Codebase
 
 A minimal codebase can includee 3 files.
-    - `trainval.py` for the main loop training and validation loop
-    - `datasets.py` for selecting the dataset based on the hyperparameter
-    - `models.py` for selecting the model based on the hyperparameter
+
+- `trainval.py` for the main loop training and validation loop
+- `datasets.py` for selecting the dataset based on the hyperparameter
+- `models.py` for selecting the model based on the hyperparameter
 
 ##### 2.1 Create the training and validation loop
 
