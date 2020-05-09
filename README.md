@@ -28,14 +28,14 @@ The following are example projects built using this library.
 - [Object Counting](https://github.com/ElementAI/haven/tree/master/examples/object_counting)
 
 
-#### Usage
+### Usage
 
 A minimal codebase can include the following 4 files. They are hyper-linked to a template source code.
 
-- [`exp_configs.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/exp_configs.py) contains the experiment groups
-- [`trainval.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/trainval.py) contains the main training and validation loop
-- [`datasets.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/datasets.py) contains the code for acquiring a Pytorch dataset
-- [`models.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/models.py) contains the code for acquiring a Pytorch model
+- [`exp_configs.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/exp_configs.py) contains experiment groups for MNIST.
+- [`trainval.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/trainval.py) contains the main training and validation loop for an experiment.
+- [`datasets.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/datasets.py) contains the code for acquiring a Pytorch dataset.
+- [`models.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/models.py) contains the code for acquiring a Pytorch model.
 
 #### 1. Run the Experiments
 
