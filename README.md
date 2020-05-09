@@ -11,6 +11,8 @@
 
 A library for defining hyperparameters, launching and managing many experiments, and visualizing their results.
 
+If you have access to the orkestrator, you can run and manage thousands of experiments in parallel.
+
 In the example below, we will write a minimal [codebase](https://github.com/ElementAI/haven/tree/master/examples/minimal) to get us started. 
 
 ### Getting Started
@@ -351,7 +353,7 @@ The following command launches the mnist experiments and saves their results und
 python trainval.py -e mnist -sb ../results -r 1
 ```
 
-##### 3.3 Using a job manager
+##### 3.3 Using the orkestrator
 
 The experiments can be ran in parallel using a job scheduler such as slurm or the orkestrator. The job scheduler can be used with the following script.
 
