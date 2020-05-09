@@ -54,12 +54,12 @@ python trainval.py -e mnist -sb ../results -r 1
 
 ##### 2.2 Using the orkestrator
 
-The following script uses the orkestrator to run all the experiments in parallel. Note that you will be able to view their status and logs using the visualization script in Section 4. To request access to the orkestrator please visit the [orkestrator website](https://www.elementai.com/products/ork).
+The orkestrator allows us to run all the experiments in parallel. Note that we will be able to view their status and logs using the visualization script in Section 4. To request access to the orkestrator please visit the [orkestrator website](https://www.elementai.com/products/ork).
 
-First,  a job configuration needs to be set and added to [`trainval.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/trainval.py) (see example),
+Define a job configuration  and add it to [`trainval.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/trainval.py) (see example),
 
 ```
-job_config = {'volume': <volume>,
+job_config = {'data': <data>,
             'image': <docker image>,
             'bid': '1',
             'restartable': '1',
@@ -68,12 +68,12 @@ job_config = {'volume': <volume>,
             'cpu': '2'}
 ```
 
-Then, run the following command,
+Then run the following command,
 
 ```
 python trainval.py -e mnist -sb ../results -r 1 -j 1
 ```
-The `-j 1` argument launches each experiment in `exp_list` independently and a job id is assigned to the experiment. 
+The `-j 1` argument launches each experiment in `exp_list` concurrently and a job id is assigned to each experiment. 
 
 #### 3. Visualize the Results
 
