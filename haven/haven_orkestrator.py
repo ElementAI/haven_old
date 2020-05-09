@@ -1,7 +1,7 @@
 from . import haven_utils as hu
 from . import haven_chk as hc
 import os
-import borgy_job_service_client
+import eai_toolkit_client
 import time
 import copy
 import pandas as pd
@@ -42,7 +42,7 @@ def submit_job(command, job_config, workdir, savedir_logs=None):
         job_id = hju.submit_job(command=command, 
                        job_config=job_config, 
                        workdir=os.path.dirname(os.path.realpath(__file__)))
-    """
+    """]
     eai_command = get_job_command(job_config, command, savedir_logs, workdir)
     job_id = hu.subprocess_call(eai_command).replace("\n", "")
 
@@ -51,17 +51,30 @@ def submit_job(command, job_config, workdir, savedir_logs=None):
 
 def get_api(username):
     # Get Borgy API
-    config = borgy_job_service_client.Configuration()
-    config.host = "https://job-service.borgy.elementai.net"
+    jobs_url = 'https://console.elementai.com'
+    config = eai_toolkit_client.Configuration()
+    config.host = jobs_url
 
-    api_client = borgy_job_service_client.ApiClient(config)
-
-    api_client = borgy_job_service_client.ApiClient(config)
-    api_client.set_default_header('X-User', username)
-
+    api_client = eai_toolkit_client.ApiClient(config)
+    api_client.set_default_header('Authorization', 'issam')
     # create an instance of the API class
-    return borgy_job_service_client.JobsApi(api_client)
+    api = eai_toolkit_client.JobApi(api_client)
+    api.v1_job_get_by_id('b42a6f3f-e257-45ff-869e-cf83021881c6')
+    return api 
 
+# def get_api(username):
+#     # Get Borgy API
+#     config = borgy_job_service_client.Configuration()
+#     config.host = "https://job-service.borgy.elementai.net"
+
+#     api_client = borgy_job_service_client.ApiClient(config)
+
+#     api_client = borgy_job_service_client.ApiClient(config)
+#     api_client.set_default_header('X-User', username)
+
+#     # create an instance of the API class
+#     return borgy_job_service_client.JobsApi(api_client)
+    
 def get_jobs_dict(api, job_id_list, query_size=20):
     # get jobs
     jobs = []
@@ -78,15 +91,13 @@ def get_jobs_dict(api, job_id_list, query_size=20):
 
 def get_job(api, job_id):
     """Get a Borgy job."""
-    return api.v1_jobs_job_id_get(job_id)
+    return api.v1_job_get_by_id(job_id)
 
 def get_jobs(api, username):
     return api.v1_jobs_get(
             q="alive=true AND name='{}' "
             "ORDER BY createdOn "
             "DESC LIMIT 1000".format(username))
-
-
 
 def get_job_command(job_config, command, savedir, workdir):
     """Compose the borgy submit command."""
@@ -128,7 +139,7 @@ def kill_job(api, job_id):
     if not job.alive:
         print('%s is already dead' % job_id)
     else:
-        hu.subprocess_call("borgy kill %s" % job_id)
+        api.v1_job_delete_by_id(job_id)
         print('%s CANCELLING...' % job_id)
         job = get_job(api, job_id)
         while job.state == "CANCELLING":

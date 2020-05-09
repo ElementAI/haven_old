@@ -27,7 +27,7 @@ class Test(unittest.TestCase):
                 'mem': '2',
                 'cpu': '1'}
         command = 'echo $PATH'
-        job_id = hjb.submit_job(command=command, 
+        job_id = ho.submit_job(command=command, 
                        job_config=job_config, 
                        workdir=os.path.dirname(os.path.realpath(__file__)))
         print(job_id)
