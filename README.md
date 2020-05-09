@@ -31,6 +31,8 @@ The following are example projects built using this library.
 
 ### Usage
 
+#### 1. Write the codebase
+
 A minimal codebase can include the following 4 files. Each of these files is hyper-linked to a template source code.
 
 - [`exp_configs.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/exp_configs.py) contains experiment groups for MNIST.
@@ -40,7 +42,7 @@ A minimal codebase can include the following 4 files. Each of these files is hyp
 
 #### 1. Run the Experiments
 
-To run the `mnist` experiment group, follow the two steps below.
+After writing the codebase, we can run the `mnist` experiment group by following one of the two steps below.
 
 ##### 2.1 Run trainval.py in Command Line
 
@@ -54,27 +56,24 @@ python trainval.py -e mnist -sb ../results -r 1
 
 The following script uses the orkestrator to run all the experiments in parallel. Note that you will be able to view their status and logs using the visualization script in Section 4. To request access to the orkestrator please visit the [orkestrator website](https://www.elementai.com/products/ork).
 
-```python
-# launch jobs
-elif args.run_jobs:
-        # launch jobs
-        from haven import haven_jobs as hjb
-        run_command = ('python trainval.py -ei <exp_id> -sb %s -d %s -nw 1' %  (args.savedir_base, args.datadir_base))
-        job_config = {'volume': <volume>,
-                    'image': <docker image>,
-                    'bid': '1',
-                    'restartable': '1',
-                    'gpu': '4',
-                    'mem': '30',
-                    'cpu': '2'}
-        workdir = os.path.dirname(os.path.realpath(__file__))
+First,  a job configuration needs to be set and added to [`trainval.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/trainval.py) (see example),
 
-        hjb.run_exp_list_jobs(exp_list, 
-                            savedir_base=args.savedir_base, 
-                            workdir=workdir,
-                            run_command=run_command,
-                            job_config=job_config)
 ```
+job_config = {'volume': <volume>,
+            'image': <docker image>,
+            'bid': '1',
+            'restartable': '1',
+            'gpu': '4',
+            'mem': '30',
+            'cpu': '2'}
+```
+
+Then, run the following command,
+
+```
+python trainval.py -e mnist -sb ../results -r 1 -j 1
+```
+The `-j 1` argument launches each experiment in `exp_list` independently and a job id is assigned to the experiment. 
 
 #### 3. Visualize the Results
 
