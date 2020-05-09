@@ -9,7 +9,7 @@
 </table> -->
 # Haven 
 
-A library for defining hyperparameters, launching and managing many experiments, and visualizing their results. If you have access to the orkestrator, you can run and manage thousands of experiments in parallel.
+A library for defining hyperparameters, launching and managing many experiments, and visualizing their results. If you have access to the [orkestrator](https://www.elementai.com/products/ork), you can run and manage thousands of experiments in parallel.
 
 ### Install
 ```
