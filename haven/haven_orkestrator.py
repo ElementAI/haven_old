@@ -42,7 +42,8 @@ def submit_job(command, job_config, workdir, savedir_logs=None):
         job_id = hju.submit_job(command=command, 
                        job_config=job_config, 
                        workdir=os.path.dirname(os.path.realpath(__file__)))
-    """]
+    """
+    get_api('issam')
     eai_command = get_job_command(job_config, command, savedir_logs, workdir)
     job_id = hu.subprocess_call(eai_command).replace("\n", "")
 
@@ -56,7 +57,8 @@ def get_api(username):
     config.host = jobs_url
 
     api_client = eai_toolkit_client.ApiClient(config)
-    api_client.set_default_header('Authorization', 'issam')
+    api_client.set_default_header('Authorization', 
+            'Bearer {}:{}'.format(os.getenv("EAI_TOOLKIT_ACCESS_KEY"), os.getenv("EAI_TOOLKIT_SECRET_KEY")))
     # create an instance of the API class
     api = eai_toolkit_client.JobApi(api_client)
     api.v1_job_get_by_id('b42a6f3f-e257-45ff-869e-cf83021881c6')

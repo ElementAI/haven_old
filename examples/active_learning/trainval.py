@@ -140,7 +140,6 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--datadir_base', required=True)
     parser.add_argument("-r", "--reset",  default=0, type=int)
     parser.add_argument("-ei", "--exp_id", default=None)
-    parser.add_argument("-v", "--view_experiments", default=None)
     parser.add_argument("-j", "--run_jobs", default=None)
 
     args = parser.parse_args()
