@@ -446,7 +446,7 @@ class DashboardManager:
             n_logs = len(table_dict['logs'])
             with output_plot:
                 for i, logs in enumerate(table_dict['logs']):
-                        print('\nLogs %d/%d' % (i, n_logs), '='*50)
+                        print('\nLogs %d/%d' % (i+1, n_logs), '='*50)
                         print('exp_id:', logs['exp_id'])
                         print('job_id:', logs['job_id'])
 
@@ -470,7 +470,7 @@ class DashboardManager:
                 else:
                     # display(table_dict['failed'])
                     for i, failed in enumerate(table_dict['logs_failed']):
-                        print('\nFailed %d/%d' % (i, n_failed), '='*50)
+                        print('\nFailed %d/%d' % (i+1, n_failed), '='*50)
                         print('exp_id:', failed['exp_id'])
                         print('job_id:', failed['job_id'])
 
@@ -676,7 +676,7 @@ class DashboardManager:
             
     def images_tab(self, output):
         tfigsize = widgets.Text(
-            value=str(self.vars.get('figsize_images', '(10,5)')),
+            value=str(self.vars.get('figsize', '(10,5)')),
             description='figsize:',
             disabled=False
                 )
@@ -702,13 +702,15 @@ class DashboardManager:
             description='dirname:',
             disabled=False
                 )
-        
+        bdownload = widgets.Button(description="Download Images", 
+                                    layout=self.layout_button)
+        bdownload_out = widgets.Output(layout=self.layout_button)
         brefresh = widgets.Button(description="Display")
         button = widgets.VBox([brefresh,
                 widgets.HBox([t_n_exps, t_n_images]),
                 widgets.HBox([tfigsize, llegend_list, ]),
                 widgets.HBox([t_dirname, ]),
-                
+                widgets.HBox([bdownload, bdownload_out]) 
                             ])
 
         output_plot = widgets.Output()
@@ -722,19 +724,39 @@ class DashboardManager:
             output_plot.clear_output()
             with output_plot:
                 w, h = tfigsize.value.strip('(').strip(')').split(',')
-                self.vars['figsize_images'] = (int(w), int(h))
+                self.vars['figsize'] = (int(w), int(h))
                 self.vars['legend_list'] = get_list_from_str(llegend_list.value)
                 self.vars['n_images'] = int(t_n_images.value)
                 self.vars['n_exps'] = int(t_n_exps.value)
                 self.vars['dirname'] = t_dirname.value
-                self.rm.get_images(legend_list=self.vars['legend_list'], 
+                self.rm_original.fig_image_list =  self.rm.get_images(legend_list=self.vars['legend_list'], 
                         n_images=self.vars['n_images'],
                         n_exps=self.vars['n_exps'],
-                        figsize=self.vars['figsize_images'],
+                        figsize=self.vars['figsize'],
                         dirname=self.vars['dirname'])
                 show_inline_matplotlib_plots()
                 
         brefresh.on_click(on_clicked)
+
+        
+        
+
+        def on_download_clicked(b):
+            fname = 'images'
+            from matplotlib.backends.backend_pdf import PdfPages
+            import matplotlib.pyplot as plt
+
+            pp = PdfPages(fname)
+            for fig in self.rm_original.fig_image_list:
+                fig.savefig(pp, format='pdf')
+            pp.close()
+
+            bdownload_out.clear_output()
+          
+            with bdownload_out:
+                display(FileLink(fname, result_html_prefix="Download: "))
+
+        bdownload.on_click(on_download_clicked)
 
 
 def get_dict_from_str(string):
