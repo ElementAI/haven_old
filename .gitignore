@@ -6,6 +6,7 @@ __pycache__/
 .idea
 # C extensions
 *.so
+eai_toolkit_client/
 .jupyter_server/
 .vscode
 .tmp/
