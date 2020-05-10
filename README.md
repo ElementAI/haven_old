@@ -41,7 +41,7 @@ A [minimal](https://github.com/ElementAI/haven/tree/master/examples/minimal) cod
 - [`datasets.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/datasets.py) contains the code for acquiring a Pytorch dataset.
 - [`models.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/models.py) contains the code for acquiring a Pytorch model.
 
-#### 1. Run the Experiments
+#### 2. Run the Experiments
 
 After writing the codebase, we can run the `mnist` experiment group by following one of the two steps below.
 
