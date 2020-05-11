@@ -36,14 +36,11 @@ The following are example projects built using this library.
 
 A [minimal](https://github.com/ElementAI/haven/tree/master/examples/minimal) codebase can include the following 4 files. Each of these files is hyper-linked to a template source code.
 
-- [`exp_configs.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/exp_configs.py) contains experiment groups for MNIST. Below we define two sets of hyper-parameters for different learning rates.
+- [`exp_configs.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/exp_configs.py) contains experiment groups for MNIST. Below we define two sets of hyper-parameters for experiment group `mnist`.
 ```python
 EXP_GROUPS = {'mnist':
-                [
-                 {'lr':1e-3, 'model':'mlp', 'dataset':'mnist'},
-                 {'lr':1e-4, 'model':'mlp', 'dataset':'mnist'}
-                  ]
-}
+                [{'lr':1e-3, 'model':'mlp', 'dataset':'mnist'},
+                 {'lr':1e-4, 'model':'mlp', 'dataset':'mnist'}]}
 ```
 - [`trainval.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/trainval.py) contains the main training and validation loop for an experiment.
 - [`datasets.py`](https://github.com/ElementAI/haven/tree/master/examples/minimal/datasets.py) contains the code for acquiring a Pytorch dataset.
