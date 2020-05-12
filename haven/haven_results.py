@@ -154,7 +154,7 @@ class ResultManager:
         return fig_list
 
     def get_plot_all(self, y_metric_list, order='groups_by_metrics', 
-                     groupby_list=None,
+                     groupby_list=None, ylim_list=None, xlim_list=None,
                      **kwargs):
         """[summary]
         
@@ -182,7 +182,7 @@ class ResultManager:
             y_metric_list = [y_metric_list]
 
         if order == 'groups_by_metrics':
-            for exp_list in exp_groups:   
+            for j, exp_list in enumerate(exp_groups):   
                 fig, ax_list = plt.subplots(nrows=1, ncols=len(y_metric_list), figsize=figsize)
                 if not hasattr(ax_list, 'size'):
                     ax_list = [ax_list]
@@ -191,22 +191,38 @@ class ResultManager:
                         show_legend = True
                     else:
                         show_legend = False
-
+                    
+                    ylim = None
+                    xlim = None
+                    if ylim_list is not None:
+                        ylim = ylim_list[j][i]
+                    if xlim_list is not None:
+                        xlim = xlim_list[j][i]
+                    
                     fig, _ = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, y_metric=y_metric, 
                                     fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
                                     show_legend=show_legend,
+                                    ylim=ylim, xlim=xlim,
                                     **kwargs)
                 fig_list += [fig]
 
         elif order == 'metrics_by_groups':
 
-            for y_metric in y_metric_list:   
+            for j, y_metric in enumerate(y_metric_list):   
                 fig, ax_list = plt.subplots(nrows=1, ncols=len(exp_groups) , figsize=figsize)
                 if not hasattr(ax_list, 'size'):
                     ax_list = [ax_list]
                 for i, exp_list in enumerate(exp_groups): 
+                    ylim = None
+                    xlim = None
+                    if ylim_list is not None:
+                        ylim = ylim_list[j][i]
+                    if xlim_list is not None:
+                        xlim = xlim_list[j][i]
+
                     fig, _ = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, y_metric=y_metric, 
                                     fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
+                                    ylim=ylim, xlim=xlim,
                                     **kwargs)
                 fig_list += [fig]
 
@@ -396,7 +412,7 @@ def get_str(h_dict, k_list):
     
     return get_str(h_dict.get(k), k_list[1:])
 
-def get_best_exp_dict(exp_list, savedir_base, metric, min_or_max='min', return_scores=False, verbose=True):
+def get_best_exp_dict(exp_list, savedir_base, metric, min_or_max='min', filterby_list=None, return_scores=False, verbose=True):
     """Obtain best the experiment for a specific metric.
 
     Parameters
@@ -419,6 +435,7 @@ def get_best_exp_dict(exp_list, savedir_base, metric, min_or_max='min', return_s
         best_score = 0.
     
     exp_dict_best = None
+    exp_list = filter_exp_list(exp_list, filterby_list, verbose=verbose)
     for exp_dict in exp_list:
         exp_id = hu.hash_dict(exp_dict)
         savedir = os.path.join(savedir_base, exp_id)
@@ -1035,6 +1052,7 @@ def get_plot(exp_list, savedir_base,
                         color = map_dict.get('color', color)
                         linewidth = map_dict.get('linewidth', linewidth)
                         markevery = map_dict.get('markevery', markevery)
+                        markersize = map_dict.get('markersize', markersize)
                         break
         
             # plot
