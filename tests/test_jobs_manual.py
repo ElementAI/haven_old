@@ -3,6 +3,7 @@ import numpy as np
 import os, sys
 import torch
 import shutil, time
+import copy
 
 path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, path)
@@ -20,23 +21,40 @@ if __name__ == '__main__':
     exp_list = [{'model':{'name':'mlp', 'n_layers':30}, 
                 'dataset':'mnist', 'batch_size':1}]
     savedir_base = '/mnt/datasets/public/issam/tmp'
-    job_config = {'data': ['/mnt:/mnt'],
-                'image': 'registry.console.elementai.com/75ce4cee-6829-4274-80e1-77e89559ddfb',
-                'bid': '1',
-                'restartable': '1',
-                'gpu': '1',
-                'mem': '20',
-                'cpu': '2',
+    job_config = {
+            'image': 'registry.console.elementai.com/shared.image/process-agent',
+            'data': ['eai.issam.tmp:/mnt/datasets/public/issam/tmp'],
+            'options': {
+                'resources': {
+                'gpu-mem': 16,
+                'cuda-version': '10.1'
                 }
+            },
+            'resources': {
+                'cpu': 8,
+                'mem': 12,
+                'gpu': 2
+            },
+            'environment_vars': ['HOME=/home/toolkit'],
+            'interactive': False,
+            }
+
+    # run
     run_command = ('python example.py -ei <exp_id> -sb %s' %  (savedir_base))
-    
+    account_id=None
+    token=None
+
     hjb.run_exp_list_jobs(exp_list, 
                         savedir_base=savedir_base, 
                         workdir=os.path.dirname(os.path.realpath(__file__)),
                         run_command=run_command,
                         job_config=job_config,
                         force_run=False,
-                        wait_seconds=0)
+                        wait_seconds=0,
+                        account_id=account_id,
+                        token=token
+                        )
+
     assert(os.path.exists(os.path.join(savedir_base, hu.hash_dict(exp_list[0]), 'borgy_dict.json')))
     jm = hjb.JobManager(exp_list=exp_list, savedir_base=savedir_base)
     jm_summary_list = jm.get_summary()

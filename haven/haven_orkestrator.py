@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np 
 import getpass
 import pprint
+from eai_toolkit_client.rest import ApiException
 
 
 def submit_job(command, job_config, workdir, savedir_logs=None):
@@ -43,25 +44,28 @@ def submit_job(command, job_config, workdir, savedir_logs=None):
                        job_config=job_config, 
                        workdir=os.path.dirname(os.path.realpath(__file__)))
     """
-    get_api('issam')
     eai_command = get_job_command(job_config, command, savedir_logs, workdir)
     job_id = hu.subprocess_call(eai_command).replace("\n", "")
 
     return job_id
 
 
-def get_api(username):
+def get_api(token=None):
     # Get Borgy API
     jobs_url = 'https://console.elementai.com'
     config = eai_toolkit_client.Configuration()
     config.host = jobs_url
 
     api_client = eai_toolkit_client.ApiClient(config)
+    # api_client.set_default_header('Authorization', 
+    #         'Bearer {}:{}'.format(os.getenv("EAI_TOOLKIT_ACCESS_KEY"), os.getenv("EAI_TOOLKIT_SECRET_KEY")))
+    if token is None:
+        token = os.getenv('EAI_TOOLKIT_TOKEN')
     api_client.set_default_header('Authorization', 
-            'Bearer {}:{}'.format(os.getenv("EAI_TOOLKIT_ACCESS_KEY"), os.getenv("EAI_TOOLKIT_SECRET_KEY")))
+            'Bearer {}'.format(token))
     # create an instance of the API class
     api = eai_toolkit_client.JobApi(api_client)
-    api.v1_job_get_by_id('b42a6f3f-e257-45ff-869e-cf83021881c6')
+    # api.v1_job_get_by_id('0edf2aa7-5e38-4340-abb9-9e703f446c7f')
     return api 
 
 # def get_api(username):
@@ -92,14 +96,32 @@ def get_jobs_dict(api, job_id_list, query_size=20):
     return jobs_dict
 
 def get_job(api, job_id):
-    """Get a Borgy job."""
-    return api.v1_job_get_by_id(job_id)
+    """Get job information."""
+    try:
+        return api.v1_job_get_by_id(job_id)
+    except ApiException as e:
+        raise ValueError("job id %s not found." % job_id)
 
 def get_jobs(api, username):
     return api.v1_jobs_get(
             q="alive=true AND name='{}' "
             "ORDER BY createdOn "
             "DESC LIMIT 1000".format(username))
+
+def get_job_spec(job_config, command, savedir, workdir):
+    job_config['workdir'] = workdir
+    
+    path_log = os.path.join(savedir, "logs.txt")
+    path_err = os.path.join(savedir, "err.txt")
+    command_with_logs = '"%s 1>%s 2>%s"' % (command, path_log, path_err)
+
+    job_config['command'] = ['/bin/bash', '-c', command_with_logs]
+
+    job_config['resources'] = eai_toolkit_client.JobSpecResources(**job_config['resources'])
+    job_spec = eai_toolkit_client.JobSpec(**job_config)
+
+    # Return the Borgy command in Byte format
+    return job_spec
 
 def get_job_command(job_config, command, savedir, workdir):
     """Compose the borgy submit command."""

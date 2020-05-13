@@ -53,7 +53,11 @@ class Test(unittest.TestCase):
                             run_command=run_command,
                             job_config=job_config,
                             force_run=True,
-                            wait_seconds=0)
+                            wait_seconds=0,
+                            # account_id='eai.issam',
+                            # token='p1aZ2DXwx38nU0NGRkFtYttmPry804ldvXns9RPEIDc.PqUFo-SJ4p79bG6N5Cj_hzQJJbY-watYGAFfQe0_y7U'
+                            )
+                            
         assert(os.path.exists(os.path.join(savedir_base, hu.hash_dict(exp_list[0]), 'borgy_dict.json')))
         jm = hjb.JobManager(exp_list=exp_list, savedir_base=savedir_base)
         jm_summary_list = jm.get_summary()

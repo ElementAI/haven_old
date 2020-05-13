@@ -24,7 +24,9 @@ def run_exp_list_jobs(exp_list,
                       force_run=False,
                       wait_seconds=3,
                       username=None,
-                      job_fname=None):
+                      job_fname='job_dict.json',
+                      account_id=None,
+                      token=None):
     """Run the experiments in the cluster.
 
     Parameters
@@ -67,7 +69,9 @@ def run_exp_list_jobs(exp_list,
                 job_config=job_config, 
                 username=username, 
                 verbose=1,
-                job_fname=job_fname)
+                job_fname=job_fname,
+                account_id=account_id,
+                token=token)
                 
     print('%d experiments.' % len(exp_list))
     prompt = ("Type one of the following:\n"
@@ -139,7 +143,9 @@ class JobManager:
                  job_config=None, 
                  username=None, 
                  verbose=1,
-                 job_fname='job_dict'):
+                 job_fname='job_dict.json',
+                 account_id=None,
+                 token=None):
         """[summary]
         
         Parameters
@@ -166,9 +172,10 @@ class JobManager:
         self.workdir = workdir
         self.verbose = verbose
         self.savedir_base = savedir_base
+        self.account_id = account_id or os.getenv('EAI_TOOLKIT_ACCOUNT_ID')
 
         # create an instance of the API class
-        self.api = ho.get_api(self.username)
+        self.api = ho.get_api(token=token)
 
     def submit_jobs(self, job_command, reset=0):
 
@@ -258,7 +265,7 @@ class JobManager:
         submit_dict[job_id] = message
 
 
-    def launch_job(self, exp_dict, savedir, command, job=None):
+    def launch_job(self, exp_dict, savedir, command, job=None, toolkit_mode=True):
         """Submit a job job and save job dict and exp_dict."""
         # Check for duplicates
         if job is not None:
@@ -275,8 +282,12 @@ class JobManager:
         hu.copy_code(self.workdir + "/", workdir_job)
 
         # Run  command
-        job_command = ho.get_job_command(self.job_config, command, savedir, workdir=workdir_job)
-        job_id = hu.subprocess_call(job_command).replace("\n", "")
+        if not toolkit_mode:
+            job_command = ho.get_job_command(self.job_config, command, savedir, workdir=workdir_job)
+            job_id = hu.subprocess_call(job_command).replace("\n", "")
+        else:
+            job_spec = ho.get_job_spec(self.job_config, command, savedir, workdir=workdir_job)
+            job_id = self.api.v1_account_job_post(account_id=self.account_id, human=1, job_spec=job_spec)
 
         # Verbose
         if self.verbose:
