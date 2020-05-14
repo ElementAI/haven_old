@@ -265,7 +265,8 @@ class JobManager:
         submit_dict[job_id] = message
 
 
-    def launch_job(self, exp_dict, savedir, command, job=None, toolkit_mode=True):
+    def launch_job(self, exp_dict, savedir, command, job=None,
+                   toolkit_mode=True):
         """Submit a job job and save job dict and exp_dict."""
         # Check for duplicates
         if job is not None:

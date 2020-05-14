@@ -1,6 +1,6 @@
 from setuptools import setup
 
-setup(name='havenai',
+setup(name='havenai-dev',
       version='0.6.0',
       description='Manage large-scale experiments',
       url='https://github.com/ElementAI/haven',
