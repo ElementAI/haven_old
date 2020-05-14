@@ -93,7 +93,7 @@ def get_job(api, job_id):
 
 def get_jobs(api):
     return api.v1_cluster_job_get(limit=1000, 
-            order='runs.createdOn',
+            order='-created',
             q="alive_recently=True" ).items
            
 
