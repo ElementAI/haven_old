@@ -72,13 +72,15 @@ def get_api(token=None):
     
 def get_jobs_dict(api, job_id_list, query_size=20):
     # get jobs
+    "id__in=64c29dc7-b030-4cb0-8c51-031db029b276,52329dc7-b030-4cb0-8c51-031db029b276"
+
     jobs = []
     for i in range(0, len(job_id_list), query_size):
-        job_id_string = "id IN ("
+        job_id_string = "id__in="
         for job_id in  job_id_list[i:i + query_size]:
-            job_id_string += "'%s', " % job_id
-        job_id_string = job_id_string[:-2] + ")"
-        jobs += api.v1_cluster_job_get(q=job_id_string)
+            job_id_string += "%s," % job_id
+        job_id_string = job_id_string[:-1]
+        jobs += api.v1_cluster_job_get(q=job_id_string).items
 
     jobs_dict = {job.id: job for job in jobs}
 
@@ -92,7 +94,7 @@ def get_job(api, job_id):
         raise ValueError("job id %s not found." % job_id)
 
 def get_jobs(api):
-    return api.v1_cluster_job_get(limit=1000, 
+    return api.v1_me_job_get(limit=1000, 
             order='-created',
             q="alive_recently=True" ).items
            

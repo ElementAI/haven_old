@@ -53,7 +53,7 @@ if __name__ == '__main__':
                         token=None
                         )
 
-    assert(os.path.exists(os.path.join(savedir_base, hu.hash_dict(exp_list[0]), 'borgy_dict.json')))
+    assert(os.path.exists(os.path.join(savedir_base, hu.hash_dict(exp_list[0]), 'job_dict.json')))
     jm = hjb.JobManager(exp_list=exp_list, savedir_base=savedir_base)
     jm_summary_list = jm.get_summary()
     rm = hr.ResultManager(exp_list=exp_list, savedir_base=savedir_base)

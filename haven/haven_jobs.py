@@ -354,7 +354,10 @@ class JobManager:
                 
                 summary_dict['table'] += [copy.deepcopy(result_dict)]
                 
-                result_dict["command"] = job.command[2]
+                if hasattr(job, 'command'):
+                    result_dict["command"] = job.command[2]
+                else:
+                    result_dict["command"] = None
                 if job.state == "FAILED":
                     fname = os.path.join(savedir, "err.txt")
                     if os.path.exists(fname):
@@ -402,13 +405,16 @@ class JobManager:
         # Check if duplicates already exist in job
         command_dict = {}
         for job in jobList:
-            job_python_command = job.command[2]
+            if hasattr(job, 'command'):
+                job_python_command = job.command[2]
+            else:
+                job_python_command = None
             if job_python_command not in command_dict:
                 command_dict[job_python_command] = job
             else:
                 print("Job state", job.state, "Job command",
-                      job.command[2])
-                raise ValueError("Job %s is duplicated" % job.id)
+                      job_python_command)
+                raise ValueError("Job %s is duplicated" % job_python_command)
 
         # Check if the new job causes duplicate
         if job_new is not None:
