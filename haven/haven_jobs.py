@@ -287,8 +287,8 @@ class JobManager:
             job_id = hu.subprocess_call(job_command).replace("\n", "")
         else:
             job_spec = ho.get_job_spec(self.job_config, command, savedir, workdir=workdir_job)
-            job_id = self.api.v1_account_job_post(account_id=self.account_id, human=1, job_spec=job_spec)
-
+            job = self.api.v1_account_job_post(account_id=self.account_id, human=1, job_spec=job_spec)
+            job_id = job.id
         # Verbose
         if self.verbose:
             print("Job_id: %s command: %s" % (job_id, command))
@@ -397,7 +397,7 @@ class JobManager:
 
     def _assert_no_duplicates(self, job_new=None, max_jobs=500):
         # Get the job list
-        jobList = ho.get_jobs(self.api, self.username)
+        jobList = ho.get_jobs(self.api)
 
         # Check if duplicates already exist in job
         command_dict = {}

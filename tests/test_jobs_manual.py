@@ -41,9 +41,7 @@ if __name__ == '__main__':
 
     # run
     run_command = ('python example.py -ei <exp_id> -sb %s' %  (savedir_base))
-    account_id=None
-    token=None
-
+    account_id = 'eai.issam'
     hjb.run_exp_list_jobs(exp_list, 
                         savedir_base=savedir_base, 
                         workdir=os.path.dirname(os.path.realpath(__file__)),
@@ -52,7 +50,7 @@ if __name__ == '__main__':
                         force_run=False,
                         wait_seconds=0,
                         account_id=account_id,
-                        token=token
+                        token=None
                         )
 
     assert(os.path.exists(os.path.join(savedir_base, hu.hash_dict(exp_list[0]), 'borgy_dict.json')))

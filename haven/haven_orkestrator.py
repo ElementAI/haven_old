@@ -50,6 +50,7 @@ def submit_job(command, job_config, workdir, savedir_logs=None):
     return job_id
 
 
+
 def get_api(token=None):
     # Get Borgy API
     jobs_url = 'https://console.elementai.com'
@@ -60,26 +61,14 @@ def get_api(token=None):
     # api_client.set_default_header('Authorization', 
     #         'Bearer {}:{}'.format(os.getenv("EAI_TOOLKIT_ACCESS_KEY"), os.getenv("EAI_TOOLKIT_SECRET_KEY")))
     if token is None:
-        token = os.getenv('EAI_TOOLKIT_TOKEN')
+        token = hu.subprocess_call('eai login token -H').split(' ')[-1].replace('\n', '')
+
     api_client.set_default_header('Authorization', 
             'Bearer {}'.format(token))
     # create an instance of the API class
     api = eai_toolkit_client.JobApi(api_client)
     # api.v1_job_get_by_id('0edf2aa7-5e38-4340-abb9-9e703f446c7f')
     return api 
-
-# def get_api(username):
-#     # Get Borgy API
-#     config = borgy_job_service_client.Configuration()
-#     config.host = "https://job-service.borgy.elementai.net"
-
-#     api_client = borgy_job_service_client.ApiClient(config)
-
-#     api_client = borgy_job_service_client.ApiClient(config)
-#     api_client.set_default_header('X-User', username)
-
-#     # create an instance of the API class
-#     return borgy_job_service_client.JobsApi(api_client)
     
 def get_jobs_dict(api, job_id_list, query_size=20):
     # get jobs
@@ -89,7 +78,7 @@ def get_jobs_dict(api, job_id_list, query_size=20):
         for job_id in  job_id_list[i:i + query_size]:
             job_id_string += "'%s', " % job_id
         job_id_string = job_id_string[:-2] + ")"
-        jobs += api.v1_jobs_get(q=job_id_string)
+        jobs += api.v1_cluster_job_get(q=job_id_string)
 
     jobs_dict = {job.id: job for job in jobs}
 
@@ -102,11 +91,11 @@ def get_job(api, job_id):
     except ApiException as e:
         raise ValueError("job id %s not found." % job_id)
 
-def get_jobs(api, username):
-    return api.v1_jobs_get(
-            q="alive=true AND name='{}' "
-            "ORDER BY createdOn "
-            "DESC LIMIT 1000".format(username))
+def get_jobs(api):
+    return api.v1_cluster_job_get(limit=1000, 
+            order='runs.createdOn',
+            q="alive_recently=True" ).items
+           
 
 def get_job_spec(job_config, command, savedir, workdir):
     job_config['workdir'] = workdir
