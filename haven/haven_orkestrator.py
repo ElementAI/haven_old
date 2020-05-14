@@ -8,6 +8,7 @@ import pandas as pd
 import numpy as np 
 import getpass
 import pprint
+import requests
 from eai_toolkit_client.rest import ApiException
 
 
@@ -58,16 +59,28 @@ def get_api(token=None):
     config.host = jobs_url
 
     api_client = eai_toolkit_client.ApiClient(config)
-    # api_client.set_default_header('Authorization', 
-    #         'Bearer {}:{}'.format(os.getenv("EAI_TOOLKIT_ACCESS_KEY"), os.getenv("EAI_TOOLKIT_SECRET_KEY")))
-    if token is None:
-        token = hu.subprocess_call('eai login token -H').split(' ')[-1].replace('\n', '')
 
-    api_client.set_default_header('Authorization', 
-            'Bearer {}'.format(token))
+    if token is None:
+        try:
+            token_url = 'https://internal.console.elementai.com/v1/token'
+            r = requests.get(token_url)
+            r.raise_for_status()
+            token = r.text
+        except requests.exceptions.HTTPError as errh:
+            # Perhaps do something for each error
+            raise SystemExit(errh)
+        except requests.exceptions.ConnectionError as errc:
+            raise SystemExit(errc)
+        except requests.exceptions.Timeout as errt:
+            raise SystemExit(errt)
+        except requests.exceptions.RequestException as err:
+            raise SystemExit(err)
+
+    api_client.set_default_header('Authorization', 'Bearer {}'.format(token))
+
     # create an instance of the API class
     api = eai_toolkit_client.JobApi(api_client)
-    # api.v1_job_get_by_id('0edf2aa7-5e38-4340-abb9-9e703f446c7f')
+
     return api 
     
 def get_jobs_dict(api, job_id_list, query_size=20):
