@@ -109,20 +109,21 @@ def get_job(api, job_id):
 def get_jobs(api):
     return api.v1_me_job_get(limit=1000, 
             order='-created',
-            q="alive_recently=True" ).items
+            q="alive_recently=True").items
            
 
 def get_job_spec(job_config, command, savedir, workdir):
-    job_config['workdir'] = workdir
+    _job_config = copy.deepcopy(job_config)
+    _job_config['workdir'] = workdir
     
     path_log = os.path.join(savedir, "logs.txt")
     path_err = os.path.join(savedir, "err.txt")
     command_with_logs = '"%s 1>%s 2>%s"' % (command, path_log, path_err)
 
-    job_config['command'] = ['/bin/bash', '-c', command_with_logs]
+    _job_config['command'] = ['/bin/bash', '-c', command_with_logs]
 
-    job_config['resources'] = eai_toolkit_client.JobSpecResources(**job_config['resources'])
-    job_spec = eai_toolkit_client.JobSpec(**job_config)
+    _job_config['resources'] = eai_toolkit_client.JobSpecResources(**_job_config['resources'])
+    job_spec = eai_toolkit_client.JobSpec(**_job_config)
 
     # Return the Borgy command in Byte format
     return job_spec

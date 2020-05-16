@@ -20,28 +20,26 @@ if __name__ == '__main__':
     # return
     exp_list = [{'model':{'name':'mlp', 'n_layers':30}, 
                 'dataset':'mnist', 'batch_size':1}]
-    savedir_base = '/mnt/datasets/public/issam/tmp'
+    savedir_base = '/home/toolkit/home_mnt/data/experiments'
     job_config = {
-            'image': 'registry.console.elementai.com/shared.image/process-agent',
-            'data': ['eai.issam.tmp:/mnt/datasets/public/issam/tmp'],
-            'options': {
-                'resources': {
+        'image': 'registry.console.elementai.com/mila.mattie_sandbox.fewshotgan/fewshot-gan',
+        'data': ['mila.mattie_sandbox.fewshotgan.home:/home/toolkit/home_mnt'],
+        'options': {
+            'resources': {
                 'gpu-mem': 16,
                 'cuda-version': '10.1'
-                }
-            },
-            'resources': {
-                'cpu': 8,
-                'mem': 12,
-                'gpu': 2
-            },
-            'environment_vars': ['HOME=/home/toolkit'],
-            'interactive': False,
             }
+        },
+        'resources': {
+            'cpu': 8,
+            'mem': 12,
+            'gpu': 2
+        },
+        'interactive': False,
+    }
 
     # run
-    run_command = ('python example.py -ei <exp_id> -sb %s' %  (savedir_base))
-    account_id = 'eai.issam'
+    run_command = ('python3.6 example.py -ei <exp_id> -sb %s' %  (savedir_base))
     hjb.run_exp_list_jobs(exp_list, 
                         savedir_base=savedir_base, 
                         workdir=os.path.dirname(os.path.realpath(__file__)),
@@ -49,7 +47,7 @@ if __name__ == '__main__':
                         job_config=job_config,
                         force_run=False,
                         wait_seconds=0,
-                        account_id=account_id,
+                        account_id='mila.mattie_sandbox.fewshotgan',
                         token=None
                         )
 
@@ -62,4 +60,3 @@ if __name__ == '__main__':
 
     jm.kill_jobs()
     assert('CANCELLED' in jm.get_summary()['status'][0])
-    
