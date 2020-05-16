@@ -299,7 +299,7 @@ class JobManager:
 
         return job_dict
 
-    def get_summary(self, failed_only=False, columns=None, max_lines=10):
+    def get_summary(self, failed_only=False, columns=None, max_lines=10, wrap_size=8, add_prefix=False):
         """[summary]
         
         Returns
@@ -328,11 +328,17 @@ class JobManager:
             for k in exp_dict:
                 if isinstance(columns, list) and k not in columns:
                     continue
-                result_dict[k] = exp_dict[k]
+                if add_prefix:
+                    k_new = "(hparam) " + k
+                else:
+                    k_new = k
+                result_dict[k_new] = exp_dict[k]
+            
+            result_dict = hu.flatten_column(result_dict)
             result_dict['exp_dict'] = exp_dict
             exp_id = hu.hash_dict(exp_dict)
             savedir = os.path.join(self.savedir_base, exp_id)
-            result_dict["exp_id"] = exp_id
+            result_dict["exp_id"] = '\n'.join(wrap(exp_id, wrap_size))
             
             fname = get_job_fname(savedir, job_fname=self.job_fname)
 
@@ -387,6 +393,7 @@ class JobManager:
         else:
             df['job_state'] = None
 
+        df =  hu.sort_df_columns(df)
         summary_dict['status'] = status
         summary_dict['table'] = df
         summary_dict['queuing'] = df[df['job_state']=='QUEUING'] 

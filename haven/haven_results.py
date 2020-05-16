@@ -311,11 +311,11 @@ class ResultManager:
         """
         return get_images(exp_list=self.exp_list, savedir_base=self.savedir_base, verbose=self.verbose, **kwargs)
 
-    def get_job_summary(self, columns=None, **kwargs):
+    def get_job_summary(self, columns=None, add_prefix=False, **kwargs):
         """[summary]
         """
         jm = hjb.JobManager(self.exp_list, self.savedir_base, **kwargs)
-        summary_list = jm.get_summary(columns=columns)
+        summary_list = jm.get_summary(columns=columns, add_prefix=add_prefix)
         return summary_list
             
     def to_zip(self, savedir_base='', fname='tmp.zip', **kwargs):
@@ -736,7 +736,7 @@ def get_exp_list_df(exp_list, filterby_list=None, columns=None, verbose=True):
 def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
                  score_columns=None,
                  verbose=True, wrap_size=8, hparam_diff=0, flatten_columns=True,
-                 show_meta=True, show_max_min=True):
+                 show_meta=True, show_max_min=True, add_prefix=False):
     """Get a table showing the scores for the given list of experiments 
 
     Parameters
@@ -783,7 +783,11 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
         for k in exp_dict:
             if isinstance(columns, list) and k not in columns:
                 continue
-            result_dict[k] = exp_dict[k]
+            if add_prefix:
+                k_new = "(hparam) " + k
+            else:
+                k_new = k
+            result_dict[k_new] = exp_dict[k]
 
         if os.path.exists(score_list_fname) and show_meta:
             result_dict['started_at'] = hu.time_to_montreal(exp_dict_fname)
@@ -805,19 +809,21 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
                         v = v[~np.isnan(v)]
 
                     if len(v):
+                        if add_prefix:
+                            k_new = "(metric) " +k
+                        else:
+                            k_new = k
+
                         if "float" in str(v.dtype):
-                            result_dict[k] = v[-1]
+                            result_dict[k_new] = v[-1]
                             if show_max_min:
-                                result_dict[k+' (max)'] = v.max()
-                                result_dict[k+' (min)'] = v.min()
+                                result_dict[k_new+' (max)'] = v.max()
+                                result_dict[k_new+' (min)'] = v.min()
                                 
                         else:
-                            result_dict[k] = v[-1]
+                            result_dict[k_new] = v[-1]
         if flatten_columns:
-            new_dict = {}
-            for k, v in result_dict.items():
-                new_dict.update(hu.flatten_dict(k, v))
-            result_dict = new_dict
+            result_dict = hu.flatten_column(result_dict)
 
         result_list += [result_dict]
 
@@ -828,15 +834,13 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
     del df['creation_time']
 
     # wrap text for prettiness
-    for c in df.columns:
-        if df[c].dtype == 'O':
-            # df[c] = df[c].str.wrap(wrap_size)
-            df[c] = df[c].apply(pprint.pformat)
+    df = hu.pretty_print_df(df)
 
     if hparam_diff > 0 and len(df) > 1:
         cols = hu.get_diff_columns(df, min_threshold=hparam_diff, max_threshold='auto')
         df = df[cols]
 
+    df =  hu.sort_df_columns(df)
     return df
 
 

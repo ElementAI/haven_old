@@ -374,6 +374,36 @@ class Parallel:
             thread.join()
 
 
+def pretty_print_df(df):
+    # wrap text for prettiness
+    for c in df.columns:
+        if df[c].dtype == 'O':
+            # df[c] = df[c].str.wrap(wrap_size)
+            df[c] = df[c].apply(pprint.pformat)
+    return df 
+
+def flatten_column(result_dict):
+    new_dict = {}
+
+    for k, v in result_dict.items():
+        new_dict.update(flatten_dict(k, v))
+
+    result_dict = new_dict
+    return result_dict
+
+def sort_df_columns(table):
+    first = ['exp_id', 'job_id', 'job_state', 'restarts', 'started_at']
+    col_list = []
+    for col in first:
+        if col in table.columns:
+            col_list += [col]
+    for col in table.columns:
+        if col in first:
+            continue
+        col_list += [col]
+        
+    return table[col_list]
+
 def subprocess_call(cmd_string):
     """Run a terminal process.
 
