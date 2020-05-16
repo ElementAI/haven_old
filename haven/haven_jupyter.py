@@ -611,13 +611,12 @@ class DashboardManager:
         bdownload.on_click(on_download_clicked)
 
         brefresh = widgets.Button(description="Display Plot")
-        button = widgets.VBox([widgets.HBox([brefresh]),
+        button = widgets.VBox([widgets.HBox([brefresh, bdownload, bdownload_out]),
                 widgets.HBox([t_title_list, d_style]),
                 widgets.HBox([t_y_metric, t_x_metric, ]),
                 widgets.HBox([t_groupby_list, llegend_list, ]),
                 widgets.HBox([t_mode, t_bar_agg]),
                 widgets.HBox([ltitle_format, llegend_format]),
-                widgets.HBox([bdownload, bdownload_out]) 
                 ])
 
         output_plot = widgets.Output()
@@ -710,11 +709,10 @@ class DashboardManager:
                                     layout=self.layout_button)
         bdownload_out = widgets.Output(layout=self.layout_button)
         brefresh = widgets.Button(description="Display Images")
-        button = widgets.VBox([brefresh,
+        button = widgets.VBox([widgets.HBox([brefresh, bdownload, bdownload_out]),
                 widgets.HBox([t_n_exps, t_n_images]),
                 widgets.HBox([tfigsize, llegend_list, ]),
                 widgets.HBox([t_dirname, ]),
-                widgets.HBox([bdownload, bdownload_out]) 
                             ])
 
         output_plot = widgets.Output()
