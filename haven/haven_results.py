@@ -775,7 +775,8 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
 
         exp_id = hu.hash_dict(exp_dict)
         if show_meta:
-            result_dict["exp_id"] = '\n'.join(wrap(exp_id, wrap_size))
+            # result_dict["exp_id"] = '\n'.join(wrap(exp_id, wrap_size))
+            result_dict["exp_id"] = exp_id
         savedir = os.path.join(savedir_base, exp_id)
         score_list_fname = os.path.join(savedir, "score_list.pkl")
         exp_dict_fname = os.path.join(savedir, "exp_dict.json")

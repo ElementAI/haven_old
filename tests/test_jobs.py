@@ -57,6 +57,7 @@ class Test(unittest.TestCase):
         assert(os.path.exists(os.path.join(savedir_base, hu.hash_dict(exp_list[0]), 'borgy_dict.json')))
         jm = hjb.JobManager(exp_list=exp_list, savedir_base=savedir_base)
         jm_summary_list = jm.get_summary()
+        print(jm.get_summary()['status'])
         rm = hr.ResultManager(exp_list=exp_list, savedir_base=savedir_base)
         rm_summary_list = rm.get_job_summary()
         assert(rm_summary_list['table'].equals(jm_summary_list['table']))
