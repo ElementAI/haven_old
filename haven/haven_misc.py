@@ -55,7 +55,7 @@ def get_bar_chart(score_list, label_list, sep, ylabel, fontsize, title, width, l
         index = ind[i]
         value = score_list[i]
     
-        ax.text(x=index + width - .025 , y = y, s=f"{value}" , fontdict=dict(fontsize=fontsize+2), color='white')
+        ax.text(x=index + width - .025 , y = y, s=f"{value}" , fontdict=dict(fontsize=(fontsize or 10)+2), color='white')
 
     ax.tick_params(axis='x', labelsize=fontsize)
     ax.tick_params(axis='y', labelsize=fontsize)

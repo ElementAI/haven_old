@@ -110,12 +110,15 @@ def run_exp_list_jobs(exp_list,
         return
 
     elif command == 'reset':
+        jm.verbose = False
         jm.submit_jobs(job_command=run_command, reset=1)
 
     elif command == 'run':
+        jm.verbose = False
         jm.submit_jobs(job_command=run_command, reset=0)
 
     elif command == 'kill':
+        jm.verbose = False
         jm.kill_jobs()
 
     # view

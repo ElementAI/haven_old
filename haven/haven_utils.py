@@ -997,6 +997,19 @@ def as_double_list(v):
 
     return v
 
+def ignore_duplicates(list_of_dicts):
+    # ensure no duplicates in exp_list
+    dict_list = []
+    hash_list = set()
+    for data_dict in list_of_dicts:
+        dict_id = hash_dict(data_dict)
+        if dict_id in hash_list:
+            continue
+        else:
+            hash_list.add(dict_id)
+            dict_list += [data_dict]
+    return dict_list
+
 def check_duplicates(list_of_dicts):
     # ensure no duplicates in exp_list
     hash_list = set()
