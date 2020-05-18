@@ -1253,15 +1253,22 @@ def get_images(exp_list, savedir_base, n_exps=20, n_images=1,
 
         print('%s\nExperiment id: %s' % ("="*100, exp_id,))
         for i in range(ncols):
+            img_fname = os.path.split(img_list[i])[-1]
             fig = plt.figure(figsize=figsize)
-            img = plt.imread(img_list[i])
-            plt.imshow(img)
-            plt.title('%s\n%s:%s' %
-                                (exp_id, label, os.path.split(img_list[i])[-1]))
+            try:
+                img = plt.imread(img_list[i])
+                plt.imshow(img)
+                plt.title('%s\n%s:%s' %
+                                (exp_id, label, img_fname))
 
-            plt.axis('off')
-            plt.tight_layout()
-            fig_list += [fig]
+                plt.axis('off')
+                plt.tight_layout()
+                fig_list += [fig]
+
+            except:
+                print('skipping - %s, image corrupted' % img_fname)
+            
+            
         exp_count += 1
     
     return fig_list

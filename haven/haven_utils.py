@@ -245,7 +245,25 @@ def create_command(base_command, args):
     print('command: %s' % run_command)
     return run_command 
 
-def save_image(fname, img, size=None, makedirs=True):
+def mask_on_image(mask, image):
+    from . import haven_img as hi
+    from skimage.color import label2rgb
+    from skimage.color import color_dict, colorlabel
+    from skimage.segmentation import mark_boundaries
+    default_colors = ['red', 'blue', 'yellow', 'magenta', 'green',
+                     'indigo', 'darkorange', 'cyan', 'pink', 'yellowgreen']
+
+    mask = mask.squeeze().astype(int)
+    image = hi.image_as_uint8(image) / 255.
+    labels = [l for l in np.unique(mask) if l < len(color_dict)]
+    colors =  (default_colors + list(color_dict.keys())[len(default_colors):])
+    colors =  np.array(colors)[labels]
+    
+    image_label_overlay = label2rgb(mask, image=f2l(image).squeeze().clip(0,1), 
+                                    colors=colors, bg_label=0, bg_color=None, kind='overlay')
+    return mark_boundaries(image_label_overlay, mask)
+
+def save_image(fname, img, size=None, points=None, radius=10, mask=None, makedirs=True, return_image=False):
     """Save an image into a file.
 
     Parameters
@@ -257,13 +275,25 @@ def save_image(fname, img, size=None, makedirs=True):
     makedirs : bool, optional
         If enabled creates the folder for saving the file, by default True
     """
+    if points is not None:
+        from . import haven_img as hi
+        if isinstance(img, np.ndarray):
+            img = torch.FloatTensor(img)
+        img = img.squeeze()
+        if img.ndim == 2:
+            img = img[None].repeat(3,1,1)
+        y_list, x_list = np.where(points.squeeze())
+        img = hi.points_on_image(y_list, x_list, img, radius=radius)
+
+    if mask is not None:
+        img = mask_on_image(mask, img)
+
     dirname = os.path.dirname(fname)
     if makedirs and dirname != '':
         os.makedirs(dirname, exist_ok=True)
 
     if img.dtype == 'uint8':
-        img_pil = Image.fromarray(img)
-        img_pil.save(fname)
+        img = Image.fromarray(img)
     else:
         arr = f2l(t2n(img)).squeeze()
         # print(arr.shape)
@@ -273,7 +303,9 @@ def save_image(fname, img, size=None, makedirs=True):
             arr = np.array(arr)
 
         img = Image.fromarray(np.uint8(arr * 255))
-        img.save(fname)
+    if return_image:
+        return img
+    img.save(fname)
 
 
 def load_txt(fname):
