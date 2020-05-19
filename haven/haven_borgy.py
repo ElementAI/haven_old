@@ -15,7 +15,7 @@ except:
 
 # Api
 # ==============
-def get_api(token):
+def get_api(**kwargs):
     # Get Borgy API
     config = borgy_job_service_client.Configuration()
     config.host = "https://job-service.borgy.elementai.net"
@@ -23,7 +23,7 @@ def get_api(token):
     api_client = borgy_job_service_client.ApiClient(config)
 
     api_client = borgy_job_service_client.ApiClient(config)
-    api_client.set_default_header('X-User', token)
+    api_client.set_default_header('X-User', kwargs['username'])
 
     # create an instance of the API class
     return borgy_job_service_client.JobsApi(api_client)

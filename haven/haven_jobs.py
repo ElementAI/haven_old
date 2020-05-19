@@ -14,9 +14,6 @@ import getpass
 import pprint
 from . import haven_jupyter as hj
 
-from . import haven_orkestrator as ho
-from . import haven_borgy as hb
-
 
 def run_exp_list_jobs(exp_list,
                       savedir_base,
@@ -127,11 +124,13 @@ class JobManager:
 
         # create an instance of the API class
         if self.toolkit_mode is False:
+            from . import haven_borgy as hb
             api_funcs = hb
         else:
+            from . import haven_orkestrator as ho
             api_funcs = ho
 
-        self.get_api = lambda token: api_funcs.get_api(token=token or getpass.getuser())
+        self.get_api = lambda token, username: api_funcs.get_api(token=token, username=username)
         self.kill_job = lambda api, job_id: api_funcs.kill_job(api, job_id) 
         self.get_jobs = lambda api, username: api_funcs.get_jobs(api, username) 
         self.get_jobs_dict = lambda api, job_id_list: api_funcs.get_jobs_dict(api, job_id_list) 
@@ -140,9 +139,7 @@ class JobManager:
                                         account_id, command, job_config, workdir, savedir_logs)
         
         # define funcs
-
-
-        self.api = self.get_api(token=token)
+        self.api = self.get_api(token=token, username=self.username)
     
     def run(self, wait_seconds=3):
         assert self.run_command is not None
