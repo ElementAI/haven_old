@@ -18,7 +18,7 @@ except:
 
 # Api
 # ==============
-def get_api(token=None):
+def get_api(**kwargs):
     # Get Borgy API
     jobs_url = 'https://console.elementai.com'
     config = eai_toolkit_client.Configuration()
@@ -26,7 +26,7 @@ def get_api(token=None):
 
     api_client = eai_toolkit_client.ApiClient(config)
 
-    if token is None:
+    if kwargs['token'] is None:
         try:
             token_url = 'https://internal.console.elementai.com/v1/token'
             r = requests.get(token_url)
