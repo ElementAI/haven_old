@@ -7,18 +7,23 @@
     <tbody>
     </tbody>
 </table> -->
-# Haven 
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
-A library for organizing large-scale pytorch experiments. If you have access to the [orkestrator](https://www.elementai.com/products/ork), you can run and manage thousands of experiments in parallel.
+<h1 align="center">Haven</h1>
+<h5 align="center">A workflow for organizing large-scale python experiments. If you have access to the [orkestrator](https://www.elementai.com/products/ork) or slurm, you can run and manage thousands of experiments in parallel.</h5>
 
-### Install
+
+
+## Install
 ```
 $ pip install --upgrade git+https://github.com/ElementAI/haven
 ```
 
 <!-- /home/issam/Research_Ground/haven/ -->
 
-### Examples
+## Motivation
+
+## Projects built on Haven
 
 The following are example projects built using this library.
 
@@ -30,7 +35,7 @@ The following are example projects built using this library.
 - [Instance Segmentation](https://github.com/ElementAI/haven/tree/master/examples/semseg) - train Mask-RCNN on Pascal.
 
 
-### Usage
+## Quick Start
 
 #### 1. Write the codebase
 

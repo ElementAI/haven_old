@@ -397,13 +397,13 @@ class DashboardManager:
         blogs = widgets.Button(description="Jobs Logs")
         bfailed = widgets.Button(description="Jobs Failed")
 
-        b_meta = widgets.Button(description="Show exp_id")
-        b_diff = widgets.Button(description="Filter Columns")
+        brefresh = widgets.Button(description="Display Table")
+        b_meta = widgets.Button(description="Display Meta Table")
+        b_diff = widgets.Button(description="Display Filtered Table")
 
-        brefresh = widgets.Button(description="Display")
+        
 
-        button = widgets.VBox([widgets.HBox([brefresh]),
-                               widgets.HBox([b_meta, b_diff]),
+        button = widgets.VBox([widgets.HBox([brefresh, b_diff, b_meta]),
                                widgets.HBox([bstatus, blogs, bfailed]),
                                widgets.HBox([d_columns_txt, d_score_columns_txt]),
                                widgets.HBox([d_columns, d_score_columns ]),
@@ -422,8 +422,8 @@ class DashboardManager:
             score_table = self.rm.get_score_table(columns=self.vars.get('columns'), 
                                             score_columns=self.vars.get('score_columns'),
                                             hparam_diff=self.vars.get('hparam_diff', 0),
-                                            show_meta=self.vars.get('show_meta', 0))
-
+                                            show_meta=self.vars.get('show_meta', 0),
+                                            add_prefix=True)
             output_plot.clear_output()
             with output_plot:
                 display(score_table) 
@@ -431,12 +431,14 @@ class DashboardManager:
         def on_table_clicked(b):
             self.update_rm()
             table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
-                                            username=self.vars.get('username'))
-
+                                            username=self.vars.get('username'), add_prefix=True)
+            if "exp_dict" in table_dict['table'].columns:
+                del table_dict['table']['exp_dict']
+            
             output_plot.clear_output()
             with output_plot:
                 display(table_dict['status'])
-                display(table_dict['table'])   
+                display(table_dict['table'].head())   
 
         def on_logs_clicked(b):
             self.update_rm()
@@ -446,17 +448,18 @@ class DashboardManager:
             n_logs = len(table_dict['logs'])
             with output_plot:
                 for i, logs in enumerate(table_dict['logs']):
-                        print('\nLogs %d/%d' % (i+1, n_logs), '='*50)
-                        print('exp_id:', logs['exp_id'])
-                        print('job_id:', logs['job_id'])
+                    print('\nLogs %d/%d' % (i+1, n_logs), '='*50)
+                    print('exp_id:', logs['exp_id'])
+                    print('job_id:', logs['job_id'])
+                    print('job_state:', logs['job_state'])
 
-                        print('\nexp_dict')
-                        print('-'*50)
-                        pprint.pprint(logs['exp_dict'])
-                        
-                        print('\nLogs')
-                        print('-'*50)
-                        pprint.pprint(logs['logs'])     
+                    print('\nexp_dict')
+                    print('-'*50)
+                    pprint.pprint(logs['exp_dict'])
+                    
+                    print('\nLogs')
+                    print('-'*50)
+                    pprint.pprint(logs['logs'])     
         
         def on_failed_clicked(b):
             self.update_rm()
@@ -473,6 +476,7 @@ class DashboardManager:
                         print('\nFailed %d/%d' % (i+1, n_failed), '='*50)
                         print('exp_id:', failed['exp_id'])
                         print('job_id:', failed['job_id'])
+                        print('job_state:', failed['job_state'])
 
                         print('\nexp_dict')
                         print('-'*50)
@@ -606,14 +610,13 @@ class DashboardManager:
 
         bdownload.on_click(on_download_clicked)
 
-        brefresh = widgets.Button(description="Display")
-        button = widgets.VBox([widgets.HBox([brefresh]),
+        brefresh = widgets.Button(description="Display Plot")
+        button = widgets.VBox([widgets.HBox([brefresh, bdownload, bdownload_out]),
                 widgets.HBox([t_title_list, d_style]),
                 widgets.HBox([t_y_metric, t_x_metric, ]),
                 widgets.HBox([t_groupby_list, llegend_list, ]),
                 widgets.HBox([t_mode, t_bar_agg]),
                 widgets.HBox([ltitle_format, llegend_format]),
-                widgets.HBox([bdownload, bdownload_out]) 
                 ])
 
         output_plot = widgets.Output()
@@ -705,12 +708,11 @@ class DashboardManager:
         bdownload = widgets.Button(description="Download Images", 
                                     layout=self.layout_button)
         bdownload_out = widgets.Output(layout=self.layout_button)
-        brefresh = widgets.Button(description="Display")
-        button = widgets.VBox([brefresh,
+        brefresh = widgets.Button(description="Display Images")
+        button = widgets.VBox([widgets.HBox([brefresh, bdownload, bdownload_out]),
                 widgets.HBox([t_n_exps, t_n_images]),
                 widgets.HBox([tfigsize, llegend_list, ]),
                 widgets.HBox([t_dirname, ]),
-                widgets.HBox([bdownload, bdownload_out]) 
                             ])
 
         output_plot = widgets.Output()
