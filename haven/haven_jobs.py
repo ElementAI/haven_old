@@ -26,7 +26,6 @@ def run_exp_list_jobs(exp_list,
                       force_run=False,
                       wait_seconds=3,
                       username=None,
-                      job_fname='job_dict.json',
                       account_id=None,
                       token=None,
                       toolkit_mode=False):
@@ -73,7 +72,6 @@ def run_exp_list_jobs(exp_list,
                 job_config=job_config, 
                 username=username, 
                 verbose=1,
-                job_fname=job_fname,
                 account_id=account_id,
                 token=token,
                 force_run=force_run,
@@ -92,7 +90,6 @@ class JobManager:
                  job_config=None, 
                  username=None, 
                  verbose=1,
-                 job_fname='job_dict.json',
                  account_id=None,
                  token=None,
                  force_run=False,
@@ -118,7 +115,6 @@ class JobManager:
 
         self.exp_list = exp_list
         self.username = username or getpass.getuser()
-        self.job_fname = job_fname
         self.job_config = job_config
         self.workdir = workdir
         self.verbose = verbose
@@ -150,15 +146,14 @@ class JobManager:
     
     def run(self, wait_seconds=3):
         assert self.run_command is not None
-        summary_dict = self.get_summary()
+        summary_dict = self.get_summary(get_logs=False)
         print("\nTotal Experiments:", len(self.exp_list))
         print("Experiment Status:", summary_dict['status'])
         prompt = ("\nMenu:\n"
                 "  1)'reset' to reset the experiments; or\n"
                 "  2)'run' to run the remaining experiments and retry the failed ones; or\n"
                 "  3)'status' to view the job status; or\n"
-                "  4)'logs' to view the job logs; or\n"
-                "  5)'kill' to kill the jobs.\n"
+                "  4)'kill' to kill the jobs.\n"
                 "Command: "
                 )
         if not self.force_run:
@@ -173,20 +168,13 @@ class JobManager:
 
         if command == 'status':
             # view experiments
-            if len(summary_dict['table']):
-                print(summary_dict['table'])
-            if len(summary_dict['succeeded']):
-                print(summary_dict['succeeded'])
-            if len(summary_dict['failed']):
-                print(summary_dict['failed'])
+            for state in ['succeeded', 'running', 'queuing', 'failed']:
+                n_jobs = len(summary_dict[state])
+                if n_jobs:
+                    print('\nExperiments %s: %d' %(state, n_jobs))
+                    print(summary_dict[state].head())
 
             print(summary_dict['status'])
-            return
-
-        elif command == 'logs':
-            # view experiments
-            print(summary_dict['logs'])
-            print(summary_dict['logs_failed'])
             return
 
         elif command == 'reset':
@@ -204,7 +192,15 @@ class JobManager:
         # view
         print("Checking job status in %d seconds" % wait_seconds)
         time.sleep(wait_seconds)
-        print(self.get_summary()['table'])
+        summary_dict = self.get_summary()
+        # view experiments
+        for state in ['succeeded', 'running', 'queuing', 'failed']:
+            n_jobs = len(summary_dict[state])
+            if n_jobs:
+                print('\nExperiments %s: %d' %(state, n_jobs))
+                print(summary_dict[state].head())
+
+        print(summary_dict['status'])
 
         # if not self.force_run:
         #     # create jupyter only when user manually runs a command
@@ -238,7 +234,7 @@ class JobManager:
         for exp_dict in self.exp_list:
             exp_id = hu.hash_dict(exp_dict)
             savedir = os.path.join(self.savedir_base, exp_id)
-            fname = get_job_fname(savedir, job_fname=self.job_fname)
+            fname = get_job_fname(savedir)
 
             if os.path.exists(fname):
                 job_id = hu.load_json(fname)['job_id']
@@ -262,7 +258,7 @@ class JobManager:
         """
         # Define paths
         savedir = os.path.join(self.savedir_base, hu.hash_dict(exp_dict))
-        fname = get_job_fname(savedir, job_fname=self.job_fname)
+        fname = get_job_fname(savedir)
         
         if not os.path.exists(fname):
             # Check if the job already exists
@@ -326,11 +322,12 @@ class JobManager:
         job_dict = {"job_id": job_id, 
                     "command":command}
 
-        hu.save_json(get_job_fname(savedir, job_fname=self.job_fname), job_dict)
+        hu.save_json(get_job_fname(savedir), job_dict)
 
         return job_dict
 
-    def get_summary(self, failed_only=False, columns=None, max_lines=10, wrap_size=8, add_prefix=False):
+    def get_summary(self, failed_only=False, columns=None, max_lines=10, wrap_size=8, 
+                     add_prefix=False, get_logs=True):
         """[summary]
         
         Returns
@@ -343,7 +340,7 @@ class JobManager:
         for exp_dict in self.exp_list:
             exp_id = hu.hash_dict(exp_dict)
             savedir = os.path.join(self.savedir_base, exp_id)
-            fname = get_job_fname(savedir, job_fname=self.job_fname)
+            fname = get_job_fname(savedir)
 
             if os.path.exists(fname):
                 job_id_list += [hu.load_json(fname)["job_id"]]
@@ -369,7 +366,7 @@ class JobManager:
             savedir = os.path.join(self.savedir_base, exp_id)
             # result_dict["exp_id"] = '\n'.join(wrap(exp_id, wrap_size))
             result_dict["exp_id"] = exp_id
-            fname = get_job_fname(savedir, job_fname=self.job_fname)
+            fname = get_job_fname(savedir)
 
             # Job results
             result_dict["job_id"] = None
@@ -394,22 +391,24 @@ class JobManager:
                     result_dict["command"] = job.command[2]
                 else:
                     result_dict["command"] = None
-                if job.state == "FAILED":
-                    fname = os.path.join(savedir, "err.txt")
-                    if os.path.exists(fname):
-                        result_dict["logs"] = hu.read_text(fname)[-max_lines:]
-                        summary_dict['logs_failed'] += [result_dict]
+                
+                if get_logs:
+                    if job.state == "FAILED":
+                        fname = os.path.join(savedir, "err.txt")
+                        if os.path.exists(fname):
+                            result_dict["logs"] = hu.read_text(fname)[-max_lines:]
+                            summary_dict['logs_failed'] += [result_dict]
+                        else:
+                            if self.verbose:
+                                print('%s: err.txt does not exist' % exp_id)
                     else:
-                        if self.verbose:
-                            print('%s: err.txt does not exist' % exp_id)
-                else:
-                    fname = os.path.join(savedir, "logs.txt")
-                    if os.path.exists(fname):
-                        result_dict["logs"] = hu.read_text(fname)[-max_lines:]
-                        summary_dict['logs'] += [result_dict]
-                    else:
-                        if self.verbose:
-                            print('%s: logs.txt does not exist' % exp_id)
+                        fname = os.path.join(savedir, "logs.txt")
+                        if os.path.exists(fname):
+                            result_dict["logs"] = hu.read_text(fname)[-max_lines:]
+                            summary_dict['logs'] += [result_dict]
+                        else:
+                            if self.verbose:
+                                print('%s: logs.txt does not exist' % exp_id)
             else:
                 result_dict['job_state'] = 'NEVER LAUNCHED'
                 summary_dict['table'] += [copy.deepcopy(result_dict)]
@@ -463,12 +462,12 @@ class JobManager:
 
     
 
-def get_job_fname(savedir, job_fname='job_dict.json'):
+def get_job_fname(savedir):
     if os.path.exists(os.path.join(savedir, "borgy_dict.json")):
         # for backward compatibility
         fname = os.path.join(savedir, "borgy_dict.json")
     else:
-        fname = os.path.join(savedir, job_fname)
+        fname = os.path.join(savedir, 'job_dict.json')
 
     return fname
     

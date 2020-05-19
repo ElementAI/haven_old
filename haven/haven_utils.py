@@ -424,7 +424,7 @@ def flatten_column(result_dict):
     return result_dict
 
 def sort_df_columns(table):
-    first = ['exp_id', 'job_id', 'job_state', 'restarts', 'started_at']
+    first = ['exp_id', 'job_state', 'job_id',  'restarts', 'started_at']
     col_list = []
     for col in first:
         if col in table.columns:
