@@ -424,7 +424,7 @@ def flatten_column(result_dict):
     return result_dict
 
 def sort_df_columns(table):
-    first = ['exp_id', 'job_id', 'job_state', 'restarts', 'started_at']
+    first = ['exp_id', 'job_state', 'job_id',  'restarts', 'started_at']
     col_list = []
     for col in first:
         if col in table.columns:
@@ -1109,3 +1109,11 @@ def collate_fn(batch, mode='list'):
         
     elif mode == 'default':
         return torch.utils.data.dataloader.default_collate(batch)
+
+def timeit(func, n_times=10, **args):
+    for i in range(n_times):
+        if i ==1:
+            s = time.time()
+        func(**args)
+
+    print('time:', (time.time()-s)/(n_times-1))

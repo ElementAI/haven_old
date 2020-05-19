@@ -17,10 +17,10 @@ try:
 except:
     pass
 
-from haven import haven_results as hr
-from haven import haven_jupyter as hj
-from haven import haven_utils as hu 
-from haven import haven_dropbox as hd
+from . import haven_results as hr
+from . import haven_jupyter as hj
+from . import haven_utils as hu 
+from . import haven_dropbox as hd
 
 
 def launch_jupyter():

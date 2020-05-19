@@ -23,7 +23,9 @@ def run_exp_list_jobs(exp_list,
                       force_run=False,
                       wait_seconds=3,
                       username=None,
-                      job_fname=None):
+                      account_id=None,
+                      token=None,
+                      toolkit_mode=False):
     """Run the experiments in the cluster.
 
     Parameters
@@ -45,7 +47,7 @@ def run_exp_list_jobs(exp_list,
 
     >>> elif args.run_jobs:
     >>>    from haven import haven_jobs as hjb
-    >>>    job_config = {'volume': <volume>,
+    >>>    job_config = {'data': <data>,
     >>>                  'image': <image>,
     >>>                  'bid': '1',
     >>>                  'restartable': '1',
@@ -62,74 +64,17 @@ def run_exp_list_jobs(exp_list,
     # let the user choose one of these options
     jm = JobManager(exp_list, 
                 savedir_base, 
+                run_command=run_command,
                 workdir=workdir,
                 job_config=job_config, 
                 username=username, 
                 verbose=1,
-                job_fname=job_fname)
+                account_id=account_id,
+                token=token,
+                force_run=force_run,
+                toolkit_mode=toolkit_mode)
                 
-    print('%d experiments.' % len(exp_list))
-    prompt = ("Type one of the following:\n"
-              "  1)'reset' to reset the experiments; or\n"
-              "  2)'run' to run the remaining experiments and retry the failed ones; or\n"
-              "  3)'status' to view the job status.\n"
-              "  4)'logs' to view the job logs.\n"
-              "  5)'kill' to kill the jobs.\n"
-              "Command: "
-              )
-    if not force_run:
-        command = input(prompt)
-    else:
-        command = 'run'
-
-    command_list = ['reset', 'run', 'status', 'logs', 'kill']
-    if command not in command_list:
-        raise ValueError(
-            'Command has to be one of these choices %s' % command_list)
-
-    
-
-
-    if command == 'status':
-        # view experiments
-        summary_dict = jm.get_summary()
-        if len(summary_dict['table']):
-            print(summary_dict['table'])
-        if len(summary_dict['succeeded']):
-            print(summary_dict['succeeded'])
-        if len(summary_dict['failed']):
-            print(summary_dict['failed'])
-
-        print(summary_dict['status'])
-        return
-
-    elif command == 'logs':
-        # view experiments
-        print(jm.get_summary()['logs'])
-        print(jm.get_summary()['logs_failed'])
-        return
-
-    elif command == 'reset':
-        jm.verbose = False
-        jm.submit_jobs(job_command=run_command, reset=1)
-
-    elif command == 'run':
-        jm.verbose = False
-        jm.submit_jobs(job_command=run_command, reset=0)
-
-    elif command == 'kill':
-        jm.verbose = False
-        jm.kill_jobs()
-
-    # view
-    print("Checking job status in %d seconds" % wait_seconds)
-    time.sleep(wait_seconds)
-    print(jm.get_summary()['table'])
-
-    if not force_run:
-        # create jupyter only when user manually runs a command
-        hj.create_jupyter(os.path.join('results', 'notebook.ipynb'), savedir_base=savedir_base, print_url=True, 
-                          create_notebook=False)
+    jm.run()
 
 
 class JobManager:
@@ -137,11 +82,15 @@ class JobManager:
     def __init__(self, 
                  exp_list, 
                  savedir_base, 
+                 run_command=None,
                  workdir=None,
                  job_config=None, 
                  username=None, 
                  verbose=1,
-                 job_fname=None):
+                 account_id=None,
+                 token=None,
+                 force_run=False,
+                 toolkit_mode=False):
         """[summary]
         
         Parameters
@@ -163,16 +112,97 @@ class JobManager:
 
         self.exp_list = exp_list
         self.username = username or getpass.getuser()
-        self.job_fname = job_fname
         self.job_config = job_config
         self.workdir = workdir
         self.verbose = verbose
         self.savedir_base = savedir_base
+        self.account_id = account_id or os.getenv('EAI_TOOLKIT_ACCOUNT_ID')
+        self.toolkit_mode = toolkit_mode 
+        self.exp_list = exp_list
+        self.force_run = force_run
+        self.run_command = run_command
 
         # create an instance of the API class
-        add_job_utils()
-        import haven_jobs_utils as hju
-        self.api = hju.get_api(self.username)
+        if self.toolkit_mode is False:
+            from . import haven_borgy as hb
+            api_funcs = hb
+        else:
+            from . import haven_orkestrator as ho
+            api_funcs = ho
+
+        self.get_api = lambda token, username: api_funcs.get_api(token=token, username=username)
+        self.kill_job = lambda api, job_id: api_funcs.kill_job(api, job_id) 
+        self.get_jobs = lambda api, username: api_funcs.get_jobs(api, username) 
+        self.get_jobs_dict = lambda api, job_id_list: api_funcs.get_jobs_dict(api, job_id_list) 
+        self.get_job = lambda api, job_id: api_funcs.get_job(api, job_id)
+        self.submit_job  = lambda api, account_id, command, job_config, workdir, savedir_logs: api_funcs.submit_job(api,
+                                        account_id, command, job_config, workdir, savedir_logs)
+        
+        # define funcs
+        self.api = self.get_api(token=token, username=self.username)
+    
+    def run(self, wait_seconds=3):
+        assert self.run_command is not None
+        summary_dict = self.get_summary(get_logs=False)
+        print("\nTotal Experiments:", len(self.exp_list))
+        print("Experiment Status:", summary_dict['status'])
+        prompt = ("\nMenu:\n"
+                "  1)'reset' to reset the experiments; or\n"
+                "  2)'run' to run the remaining experiments and retry the failed ones; or\n"
+                "  3)'status' to view the job status; or\n"
+                "  4)'kill' to kill the jobs.\n"
+                "Command: "
+                )
+        if not self.force_run:
+            command = input(prompt)
+        else:
+            command = 'run'
+
+        command_list = ['reset', 'run', 'status', 'logs', 'kill']
+        if command not in command_list:
+            raise ValueError(
+                'Command has to be one of these choices %s' % command_list)
+
+        if command == 'status':
+            # view experiments
+            for state in ['succeeded', 'running', 'queuing', 'failed']:
+                n_jobs = len(summary_dict[state])
+                if n_jobs:
+                    print('\nExperiments %s: %d' %(state, n_jobs))
+                    print(summary_dict[state].head())
+
+            print(summary_dict['status'])
+            return
+
+        elif command == 'reset':
+            self.verbose = False
+            self.submit_jobs(job_command=self.run_command, reset=1)
+
+        elif command == 'run':
+            self.verbose = False
+            self.submit_jobs(job_command=self.run_command, reset=0)
+
+        elif command == 'kill':
+            self.verbose = False
+            self.kill_jobs()
+
+        # view
+        print("Checking job status in %d seconds" % wait_seconds)
+        time.sleep(wait_seconds)
+        summary_dict = self.get_summary()
+        # view experiments
+        for state in ['succeeded', 'running', 'queuing', 'failed']:
+            n_jobs = len(summary_dict[state])
+            if n_jobs:
+                print('\nExperiments %s: %d' %(state, n_jobs))
+                print(summary_dict[state].head())
+
+        print(summary_dict['status'])
+
+        # if not self.force_run:
+        #     # create jupyter only when user manually runs a command
+        #     hj.create_jupyter(os.path.join('results', 'notebook.ipynb'), savedir_base=savedir_base, print_url=True, 
+        #                     create_notebook=False)
 
     def submit_jobs(self, job_command, reset=0):
 
@@ -193,9 +223,6 @@ class JobManager:
         return submit_dict
 
     def kill_jobs(self):
-        add_job_utils()
-        import haven_jobs_utils as hju
-
         hu.check_duplicates(self.exp_list)
 
         pr = hu.Parallel()
@@ -204,11 +231,11 @@ class JobManager:
         for exp_dict in self.exp_list:
             exp_id = hu.hash_dict(exp_dict)
             savedir = os.path.join(self.savedir_base, exp_id)
-            fname = get_job_fname(savedir, job_fname=self.job_fname)
+            fname = get_job_fname(savedir)
 
             if os.path.exists(fname):
                 job_id = hu.load_json(fname)['job_id']
-                pr.add(hju.kill_job, self.api, job_id)
+                pr.add(self.kill_job, self.api, job_id)
                 submit_dict[exp_id] = 'KILLED'
             else:
                 submit_dict[exp_id] = 'NoN-Existent'
@@ -226,12 +253,9 @@ class JobManager:
         It checks if the experiment exist and manages the special casses, e.g.,
         new experiment, reset, failed, job is already running, completed
         """
-        add_job_utils()
-        import haven_jobs_utils as hju
-
         # Define paths
         savedir = os.path.join(self.savedir_base, hu.hash_dict(exp_dict))
-        fname = get_job_fname(savedir, job_fname=self.job_fname)
+        fname = get_job_fname(savedir)
         
         if not os.path.exists(fname):
             # Check if the job already exists
@@ -242,7 +266,7 @@ class JobManager:
         elif reset:
             # Check if the job already exists
             job_id = hu.load_json(fname).get("job_id")
-            hju.kill_job(self.api, job_id)
+            self.kill_job(self.api, job_id)
             hc.delete_and_backup_experiment(savedir)
 
             job_dict = self.launch_job(exp_dict, savedir, command, job=None)
@@ -251,7 +275,7 @@ class JobManager:
 
         else:
             job_id = hu.load_json(fname).get("job_id")
-            job = hju.get_job(self.api, job_id)
+            job = self.get_job(self.api, job_id)
 
             if job.alive or job.state == 'SUCCEEDED':
                 # If the job is alive, do nothing
@@ -268,11 +292,9 @@ class JobManager:
         submit_dict[job_id] = message
 
 
-    def launch_job(self, exp_dict, savedir, command, job=None):
+    def launch_job(self, exp_dict, savedir, command, job=None,
+                   toolkit_mode=True):
         """Submit a job job and save job dict and exp_dict."""
-        add_job_utils()
-        import haven_jobs_utils as hju
-
         # Check for duplicates
         if job is not None:
             assert self._assert_no_duplicates(job)
@@ -288,8 +310,7 @@ class JobManager:
         hu.copy_code(self.workdir + "/", workdir_job)
 
         # Run  command
-        job_command = hju.get_job_command(self.job_config, command, savedir, workdir=workdir_job)
-        job_id = hu.subprocess_call(job_command).replace("\n", "")
+        job_id = self.submit_job(self.api, self.account_id, command, self.job_config, workdir_job, savedir_logs=savedir)
 
         # Verbose
         if self.verbose:
@@ -298,11 +319,12 @@ class JobManager:
         job_dict = {"job_id": job_id, 
                     "command":command}
 
-        hu.save_json(get_job_fname(savedir, job_fname=self.job_fname), job_dict)
+        hu.save_json(get_job_fname(savedir), job_dict)
 
         return job_dict
 
-    def get_summary(self, failed_only=False, columns=None, max_lines=10, wrap_size=8, add_prefix=False):
+    def get_summary(self, failed_only=False, columns=None, max_lines=10, wrap_size=8, 
+                     add_prefix=False, get_logs=True):
         """[summary]
         
         Returns
@@ -310,19 +332,17 @@ class JobManager:
         [type]
             [description]
         """
-        add_job_utils()
-        import haven_jobs_utils as hju
         # get job ids
         job_id_list = []
         for exp_dict in self.exp_list:
             exp_id = hu.hash_dict(exp_dict)
             savedir = os.path.join(self.savedir_base, exp_id)
-            fname = get_job_fname(savedir, job_fname=self.job_fname)
+            fname = get_job_fname(savedir)
 
             if os.path.exists(fname):
                 job_id_list += [hu.load_json(fname)["job_id"]]
 
-        jobs_dict = hju.get_jobs_dict(self.api, job_id_list)
+        jobs_dict = self.get_jobs_dict(self.api, job_id_list)
 
         # fill summary
         summary_dict = {'table':[], 'status':[], 'logs_failed':[], 'logs':[]}
@@ -343,7 +363,7 @@ class JobManager:
             savedir = os.path.join(self.savedir_base, exp_id)
             # result_dict["exp_id"] = '\n'.join(wrap(exp_id, wrap_size))
             result_dict["exp_id"] = exp_id
-            fname = get_job_fname(savedir, job_fname=self.job_fname)
+            fname = get_job_fname(savedir)
 
             # Job results
             result_dict["job_id"] = None
@@ -364,23 +384,28 @@ class JobManager:
                 
                 summary_dict['table'] += [copy.deepcopy(result_dict)]
                 
-                result_dict["command"] = job.command[2]
-                if job.state == "FAILED":
-                    fname = os.path.join(savedir, "err.txt")
-                    if os.path.exists(fname):
-                        result_dict["logs"] = hu.read_text(fname)[-max_lines:]
-                        summary_dict['logs_failed'] += [result_dict]
-                    else:
-                        if self.verbose:
-                            print('%s: err.txt does not exist' % exp_id)
+                if hasattr(job, 'command'):
+                    result_dict["command"] = job.command[2]
                 else:
-                    fname = os.path.join(savedir, "logs.txt")
-                    if os.path.exists(fname):
-                        result_dict["logs"] = hu.read_text(fname)[-max_lines:]
-                        summary_dict['logs'] += [result_dict]
+                    result_dict["command"] = None
+                
+                if get_logs:
+                    if job.state == "FAILED":
+                        fname = os.path.join(savedir, "err.txt")
+                        if os.path.exists(fname):
+                            result_dict["logs"] = hu.read_text(fname)[-max_lines:]
+                            summary_dict['logs_failed'] += [result_dict]
+                        else:
+                            if self.verbose:
+                                print('%s: err.txt does not exist' % exp_id)
                     else:
-                        if self.verbose:
-                            print('%s: logs.txt does not exist' % exp_id)
+                        fname = os.path.join(savedir, "logs.txt")
+                        if os.path.exists(fname):
+                            result_dict["logs"] = hu.read_text(fname)[-max_lines:]
+                            summary_dict['logs'] += [result_dict]
+                        else:
+                            if self.verbose:
+                                print('%s: logs.txt does not exist' % exp_id)
             else:
                 result_dict['job_state'] = 'NEVER LAUNCHED'
                 summary_dict['table'] += [copy.deepcopy(result_dict)]
@@ -407,22 +432,22 @@ class JobManager:
         return summary_dict
 
     def _assert_no_duplicates(self, job_new=None, max_jobs=500):
-        add_job_utils()
-        import haven_jobs_utils as hju
-
         # Get the job list
-        jobList = hju.get_jobs(self.api, self.username)
+        jobList = self.get_jobs(self.api, self.username)
 
         # Check if duplicates already exist in job
         command_dict = {}
         for job in jobList:
-            job_python_command = job.command[2]
+            if hasattr(job, 'command'):
+                job_python_command = job.command[2]
+            else:
+                job_python_command = None
             if job_python_command not in command_dict:
                 command_dict[job_python_command] = job
             else:
                 print("Job state", job.state, "Job command",
-                      job.command[2])
-                raise ValueError("Job %s is duplicated" % job.id)
+                      job_python_command)
+                raise ValueError("Job %s is duplicated" % job_python_command)
 
         # Check if the new job causes duplicate
         if job_new is not None:
@@ -432,63 +457,14 @@ class JobManager:
 
         return True
 
+    
 
-def submit_job(command, job_config, workdir, savedir_logs=None):
-    """
-    Launches a job in borgy
-
-    Parameters
-    ----------
-    command: str
-        command you wish to submit
-    job_config: dict
-        dictionary that should contain keys that correspond to borgy cli's arguments
-    workdir: str
-        path to where the borgy should run the code
-    savedir_logs: str
-        path to where the logs are exported (if needed)
-
-    Example
-    -------
-        import os
-        import haven_jobs_utils as hju
-        
-        job_config = {'volume': ['/mnt:/mnt'],
-                'image': 'images.borgy.elementai.net/issam/main',
-                'bid': '5',
-                'restartable': '1',
-                'gpu': '1',
-                'mem': '50',
-                'cpu': '2'}
-                
-        command = 'echo $PATH'
-        job_id = hju.submit_job(command=command, 
-                       job_config=job_config, 
-                       workdir=os.path.dirname(os.path.realpath(__file__)))
-    """
-    import haven_jobs_utils as hju
-    borgy_command = hju.get_job_command(job_config, command, savedir_logs, workdir)
-    job_id = hu.subprocess_call(borgy_command).replace("\n", "")
-
-    return job_id
-
-def get_job_fname(savedir, job_fname=None):
-    import haven_jobs_utils as hju
-    if job_fname is None:
-        fname = hju.get_job_fname(savedir) 
+def get_job_fname(savedir):
+    if os.path.exists(os.path.join(savedir, "borgy_dict.json")):
+        # for backward compatibility
+        fname = os.path.join(savedir, "borgy_dict.json")
     else:
-        fname = os.path.join(savedir, job_fname)
+        fname = os.path.join(savedir, 'job_dict.json')
+
     return fname
     
-def add_job_utils():
-    """adds the ElementAI plugin for running jobs
-
-    Parameters
-    ----------
-    savedir_base : str
-        [description]
-    """
-    path = '/mnt/datasets/public/issam/haven_utils'
-    if path in sys.path:
-        return
-    sys.path.append(path)
