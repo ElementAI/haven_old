@@ -5,6 +5,8 @@ __pycache__/
 *$py.class
 .idea
 eai_toolkit_client/
+tests/test_jobs_borgy.py
+tests/test_jobs_orkestrator.py
 # C extensions
 *.so
 eai_toolkit_client/
