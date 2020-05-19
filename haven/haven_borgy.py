@@ -1,7 +1,6 @@
 from . import haven_utils as hu
 from . import haven_chk as hc
 import os
-import eai_toolkit_client
 import time
 import copy
 import pandas as pd

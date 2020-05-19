@@ -150,13 +150,14 @@ class JobManager:
     
     def run(self, wait_seconds=3):
         assert self.run_command is not None
-
-        print('%d experiments.' % len(self.exp_list))
-        prompt = ("Type one of the following:\n"
+        summary_dict = self.get_summary()
+        print("\nTotal Experiments:", len(self.exp_list))
+        print("Experiment Status:", summary_dict['status'])
+        prompt = ("\nMenu:\n"
                 "  1)'reset' to reset the experiments; or\n"
                 "  2)'run' to run the remaining experiments and retry the failed ones; or\n"
-                "  3)'status' to view the job status.\n"
-                "  4)'logs' to view the job logs.\n"
+                "  3)'status' to view the job status; or\n"
+                "  4)'logs' to view the job logs; or\n"
                 "  5)'kill' to kill the jobs.\n"
                 "Command: "
                 )
@@ -172,7 +173,6 @@ class JobManager:
 
         if command == 'status':
             # view experiments
-            summary_dict = self.get_summary()
             if len(summary_dict['table']):
                 print(summary_dict['table'])
             if len(summary_dict['succeeded']):
@@ -185,8 +185,8 @@ class JobManager:
 
         elif command == 'logs':
             # view experiments
-            print(self.get_summary()['logs'])
-            print(self.get_summary()['logs_failed'])
+            print(summary_dict['logs'])
+            print(summary_dict['logs_failed'])
             return
 
         elif command == 'reset':
