@@ -288,6 +288,8 @@ class DashboardManager:
             else:
                 display('No experiments exist...')
             return
+        else:
+            display('Selected %d/%d experiments using "filterby_list"' % (len(self.rm.selected_exp_list), len(self.rm.exp_list)))
 
     def meta_tab(self, output):
         with output:
@@ -415,38 +417,46 @@ class DashboardManager:
             display(output_plot)
 
         def on_refresh_clicked(b):
-            self.update_rm()
-
-            self.vars['columns'] = get_list_from_str(d_columns.value)
-            self.vars['score_columns'] = get_list_from_str(d_score_columns.value)
-            score_table = self.rm.get_score_table(columns=self.vars.get('columns'), 
-                                            score_columns=self.vars.get('score_columns'),
-                                            hparam_diff=self.vars.get('hparam_diff', 0),
-                                            show_meta=self.vars.get('show_meta', 0),
-                                            add_prefix=True)
             output_plot.clear_output()
             with output_plot:
+                self.update_rm()
+
+                self.vars['columns'] = get_list_from_str(d_columns.value)
+                self.vars['score_columns'] = get_list_from_str(d_score_columns.value)
+                score_table = self.rm.get_score_table(columns=self.vars.get('columns'), 
+                                                score_columns=self.vars.get('score_columns'),
+                                                hparam_diff=self.vars.get('hparam_diff', 0),
+                                                show_meta=self.vars.get('show_meta', 0),
+                                                add_prefix=True)
                 display(score_table) 
 
         def on_table_clicked(b):
-            self.update_rm()
-            table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
-                                            username=self.vars.get('username'), add_prefix=True)
-            if "exp_dict" in table_dict['table'].columns:
-                del table_dict['table']['exp_dict']
-            
             output_plot.clear_output()
             with output_plot:
+                self.update_rm()
+                table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
+                                                username=self.vars.get('username'), add_prefix=True)
+                if "exp_dict" in table_dict['table'].columns:
+                    del table_dict['table']['exp_dict']
+            
+            
+           
                 display(table_dict['status'])
-                display(table_dict['table'].head())   
+                for state in ['succeeded', 'running', 'queuing', 'failed'][::-1]:
+                    n_jobs = len(table_dict[state])
+                    if n_jobs:
+                        display('Experiments %s: %d' %(state, n_jobs))
+                        display(table_dict[state].head())
+                # display(table_dict['table'].head())   
 
         def on_logs_clicked(b):
-            self.update_rm()
-            table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
-                                            username=self.vars.get('username'))
             output_plot.clear_output()
-            n_logs = len(table_dict['logs'])
             with output_plot:
+                table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
+                                                username=self.vars.get('username'))
+                
+                n_logs = len(table_dict['logs'])
+           
                 for i, logs in enumerate(table_dict['logs']):
                     print('\nLogs %d/%d' % (i+1, n_logs), '='*50)
                     print('exp_id:', logs['exp_id'])
@@ -462,12 +472,14 @@ class DashboardManager:
                     pprint.pprint(logs['logs'])     
         
         def on_failed_clicked(b):
-            self.update_rm()
-            table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
-                                            username=self.vars.get('username'))
             output_plot.clear_output()
-            n_failed = len(table_dict['logs_failed'])
             with output_plot:
+                self.update_rm()
+                table_dict = self.rm.get_job_summary(verbose=self.rm.verbose,
+                                                username=self.vars.get('username'))
+                
+                n_failed = len(table_dict['logs_failed'])
+           
                 if len(table_dict['failed']) == 0:
                     display('no failed experiments')
                 else:
@@ -521,15 +533,15 @@ class DashboardManager:
         llegend_format = widgets.Text(
             value=str(self.vars.get('legend_format', '')),
             description='legend_format:',
-            layout=self.layout_dropdown,
             disabled=False
                 )
         ltitle_format = widgets.Text(
             value=str(self.vars.get('title_format', '')),
             description='title_format:',
-            layout=self.layout_dropdown,
             disabled=False
                 )
+
+        
 
         lcmap = widgets.Text(
             value=str(self.vars.get('cmap', 'jet')),
@@ -551,12 +563,21 @@ class DashboardManager:
             disabled=False
                 )
 
-        t_x_metric = widgets.Text(
+        # d_x_metric_txt = widgets.Label(value="x_metric:", 
+        #                               layout=widgets.Layout(width='75px'),)
+        # d_x_metric_columns = widgets.Dropdown(
+        #             options=['None'] + self.rm_original.score_keys,
+        #             value=str(self.vars.get('x_metric')),
+        #             layout=self.layout_dropdown,
+        #             disabled=False,
+        #         )
+        d_x_metric_columns = widgets.Text(
             value=str(self.vars.get('x_metric', 'epoch')),
             description='x_metric:',
             disabled=False
                 )
 
+                
         t_groupby_list = widgets.Text(
             value=str(self.vars.get('groupby_list')),
             description='groupby_list:',
@@ -588,7 +609,20 @@ class DashboardManager:
                     layout=self.layout_dropdown,
                     disabled=False,
                 )
+        d_avg_across_txt = widgets.Label(value="avg_across:", 
+                                      layout=widgets.Layout(width='75px'),)
 
+        d_avg_across_columns =  widgets.Text(
+            value=str(self.vars.get('avg_across', 'None')),
+            description='avg_across:',
+            disabled=False
+                )
+        # d_avg_across_columns = widgets.Dropdown(
+        #             options=['None'] + self.rm.exp_params,
+        #             value=self.vars.get('avg_across', 'None'),
+        #             layout=self.layout_dropdown,
+        #             disabled=False,
+        #         )
         bdownload = widgets.Button(description="Download Plots", 
                                     layout=self.layout_button)
         bdownload_out = widgets.Output(layout=self.layout_button)
@@ -613,10 +647,12 @@ class DashboardManager:
         brefresh = widgets.Button(description="Display Plot")
         button = widgets.VBox([widgets.HBox([brefresh, bdownload, bdownload_out]),
                 widgets.HBox([t_title_list, d_style]),
-                widgets.HBox([t_y_metric, t_x_metric, ]),
+                widgets.HBox([t_y_metric,  d_x_metric_columns]),
                 widgets.HBox([t_groupby_list, llegend_list, ]),
                 widgets.HBox([t_mode, t_bar_agg]),
                 widgets.HBox([ltitle_format, llegend_format]),
+                widgets.HBox([ d_avg_across_columns]),
+                
                 ])
 
         output_plot = widgets.Output()
@@ -627,13 +663,14 @@ class DashboardManager:
                 from IPython import get_ipython
                 ipython = get_ipython()
                 ipython.magic("matplotlib widget")
-
-            self.update_rm()
-
             output_plot.clear_output()
             with output_plot:
+                self.update_rm()
+
+            
+            
                 self.vars['y_metrics'] = get_list_from_str(t_y_metric.value)
-                self.vars['x_metric'] = t_x_metric.value
+                self.vars['x_metric'] = d_x_metric_columns.value
                 
                 w, h = 10, 5
                 if len(self.vars['y_metrics']) > 1:
@@ -651,6 +688,11 @@ class DashboardManager:
                 self.vars['bar_agg'] = t_bar_agg.value
                 self.vars['title_format'] = ltitle_format.value
                 self.vars['cmap'] = lcmap.value
+                self.vars['avg_across'] = d_avg_across_columns.value
+
+                avg_across_value = self.vars['avg_across']
+                if avg_across_value== "None":
+                    avg_across_value = None
 
                 self.rm_original.fig_list = self.rm.get_plot_all(y_metric_list=self.vars['y_metrics'], 
                     x_metric=self.vars['x_metric'], 
@@ -663,7 +705,8 @@ class DashboardManager:
                     title_list=self.vars['title_list'],
                     legend_format=self.vars['legend_format'],
                     title_format=self.vars['title_format'],
-                    cmap=self.vars['cmap'])
+                    cmap=self.vars['cmap'],
+                    avg_across=avg_across_value)
         
            
                 
@@ -722,9 +765,11 @@ class DashboardManager:
             display(output_plot)
 
         def on_clicked(b):
-            self.update_rm()
             output_plot.clear_output()
             with output_plot:
+                self.update_rm()
+            
+            
                 w, h = tfigsize.value.strip('(').strip(')').split(',')
                 self.vars['figsize'] = (int(w), int(h))
                 self.vars['legend_list'] = get_list_from_str(llegend_list.value)
