@@ -63,7 +63,7 @@ def get_job_spec(job_config, command, savedir, workdir):
     
     path_log = os.path.join(savedir, "logs.txt")
     path_err = os.path.join(savedir, "err.txt")
-    command_with_logs = '"%s 1>%s 2>%s"' % (command, path_log, path_err)
+    command_with_logs = '%s 1>%s 2>%s' % (command, path_log, path_err)
 
     _job_config['command'] = ['/bin/bash', '-c', command_with_logs]
 
