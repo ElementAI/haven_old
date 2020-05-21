@@ -92,11 +92,11 @@ def get_job(api, job_id):
     """Get a Borgy job."""
     return api.v1_jobs_job_id_get(job_id)
 
-def get_jobs(api, username):
+def get_jobs(api, **kwargs):
     return api.v1_jobs_get(
             q="alive=true AND name='{}' "
             "ORDER BY createdOn "
-            "DESC LIMIT 1000".format(username))
+            "DESC LIMIT 1000".format(kwargs['username']))
            
 
 # Job kill

@@ -99,8 +99,10 @@ def get_job(api, job_id):
     except ApiException as e:
         raise ValueError("job id %s not found." % job_id)
 
-def get_jobs(api, username=None):
-    return api.v1_me_job_get(limit=1000, 
+def get_jobs(api, **kwargs):
+    return api.v1_account_job_get(
+            account_id=kwargs['account_id'],
+            limit=1000, 
             order='-created',
             q="alive_recently=True").items
            

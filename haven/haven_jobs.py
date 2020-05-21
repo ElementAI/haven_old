@@ -132,7 +132,7 @@ class JobManager:
 
         self.get_api = lambda token, username: api_funcs.get_api(token=token, username=username)
         self.kill_job = lambda api, job_id: api_funcs.kill_job(api, job_id) 
-        self.get_jobs = lambda api, username: api_funcs.get_jobs(api, username) 
+        self.get_jobs = lambda api, username, account_id: api_funcs.get_jobs(api, username=username, account_id=account_id) 
         self.get_jobs_dict = lambda api, job_id_list: api_funcs.get_jobs_dict(api, job_id_list) 
         self.get_job = lambda api, job_id: api_funcs.get_job(api, job_id)
         self.submit_job  = lambda api, account_id, command, job_config, workdir, savedir_logs: api_funcs.submit_job(api,
@@ -433,7 +433,8 @@ class JobManager:
 
     def _assert_no_duplicates(self, job_new=None, max_jobs=500):
         # Get the job list
-        jobList = self.get_jobs(self.api, self.username)
+        jobList = self.get_jobs(self.api, username=self.username,
+                                account_id=self.account_id)
 
         # Check if duplicates already exist in job
         command_dict = {}
