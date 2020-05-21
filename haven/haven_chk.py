@@ -73,3 +73,24 @@ def get_savedir(exp_dict, savedir_base):
     exp_id = hu.hash_dict(exp_dict)
     savedir = os.path.join(savedir_base, exp_id)
     return savedir
+
+
+def copy_checkpoints_with_key_change(exp_list, savedir_base, filterby_list):
+    """[summary]
+    
+    Parameters
+    ----------
+    exp_dict : dict
+        Dictionary describing the hyperparameters of an experiment
+    savedir_base : str
+        Directory where the experiments are saved
+    
+    Returns
+    -------
+    str
+        Directory of the experiment
+    """
+    # get experiment savedir
+    exp_id = hu.hash_dict(exp_dict)
+    savedir = os.path.join(savedir_base, exp_id)
+    return savedir
