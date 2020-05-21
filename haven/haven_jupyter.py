@@ -446,6 +446,7 @@ class DashboardManager:
                     n_jobs = len(table_dict[state])
                     if n_jobs:
                         display('Experiments %s: %d' %(state, n_jobs))
+                        del table_dict[state]['exp_dict']
                         display(table_dict[state].head())
                 # display(table_dict['table'].head())   
 
