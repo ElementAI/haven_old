@@ -28,11 +28,10 @@ $ pip install --upgrade git+https://github.com/ElementAI/haven
 The following are example projects built using this library.
 
 - [Minimal](https://github.com/ElementAI/haven/tree/master/examples/minimal) - we recommend this example as a starting point for using Haven.
-- [Classification](https://github.com/ElementAI/haven/tree/master/examples/classification) - train MLP on MNIST.
-- [Active Learning](https://github.com/ElementAI/haven/tree/master/examples/active_learning) - train MLP with active learning on MNIST.
-- [Object Counting](https://github.com/ElementAI/haven/tree/master/examples/object_counting) - train LCFCN on Trancos.
-- [Semantic Segmentation](https://github.com/ElementAI/haven/tree/master/examples/semseg) - train FCN8 on Pascal.
-- [Instance Segmentation](https://github.com/ElementAI/haven/tree/master/examples/semseg) - train Mask-RCNN on Pascal.
+- [Embedding Propagation](https://github.com/ElementAI/embedding-propagation)
+- [Counting with LCFCN](https://github.com/ElementAI/LCFCN)
+- [Sps optimizer](https://github.com/IssamLaradji/sps)
+- [Sls optimizer](https://github.com/IssamLaradji/sls)
 
 
 ## Quick Start
