@@ -26,7 +26,7 @@ def get_api(**kwargs):
 
     api_client = eai_toolkit_client.ApiClient(config)
 
-    if kwargs['token'] is None:
+    if kwargs.get('token') is None:
         try:
             token_url = 'https://internal.console.elementai.com/v1/token'
             r = requests.get(token_url)
@@ -34,7 +34,8 @@ def get_api(**kwargs):
             token = r.text
         except requests.exceptions.HTTPError as errh:
             # Perhaps do something for each error
-            raise SystemExit(errh)
+            token = hu.subprocess_call('eai login token -H').split(' ')[-1].replace('\n', '')
+            
         except requests.exceptions.ConnectionError as errc:
             raise SystemExit(errc)
         except requests.exceptions.Timeout as errt:
@@ -99,11 +100,12 @@ def get_job(api, job_id):
     except ApiException as e:
         raise ValueError("job id %s not found." % job_id)
 
-def get_jobs(api, username=None):
-    return api.v1_me_job_get(limit=1000, 
+def get_jobs(api, **kwargs):
+    return api.v1_account_job_get(
+            account_id=kwargs['account_id'],
+            limit=1000, 
             order='-created',
             q="alive_recently=True").items
-           
 
 # Job kill
 # ===========

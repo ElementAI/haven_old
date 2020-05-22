@@ -117,6 +117,11 @@ class ResultManager:
 
         self.n_exp_all = len(exp_list)
         self.exp_list = exp_list
+
+        self.selected_exp_list = filter_exp_list(exp_list, 
+                                                filterby_list=filterby_list, 
+                                                savedir_base=savedir_base,
+                                                verbose=verbose)
         # self.exp_list = filter_exp_list(exp_list, 
         #                     filterby_list=filterby_list, 
         #                     savedir_base=savedir_base,
@@ -305,6 +310,7 @@ class ResultManager:
         """
         table = get_score_df(exp_list=self.exp_list, 
                     savedir_base=self.savedir_base, 
+                    filterby_list=self.filterby_list,
                     verbose=self.verbose, **kwargs)
         return table 
 
@@ -335,7 +341,8 @@ class ResultManager:
     def get_job_summary(self, columns=None, add_prefix=False, **kwargs):
         """[summary]
         """
-        jm = hjb.JobManager(self.exp_list, self.savedir_base, **kwargs)
+        exp_list = filter_exp_list(self.exp_list, self.filterby_list, savedir_base=self.savedir_base, verbose=self.verbose)
+        jm = hjb.JobManager(exp_list, self.savedir_base, **kwargs)
         summary_list = jm.get_summary(columns=columns, add_prefix=add_prefix)
         return summary_list
             

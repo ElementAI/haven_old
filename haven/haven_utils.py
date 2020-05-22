@@ -325,6 +325,23 @@ def load_txt(fname):
         lines = f.readlines()
     return lines
 
+def save_txt(fname, lines):
+    """Load the content of a txt file.
+
+    Parameters
+    ----------
+    fname : str
+        File name
+
+    Returns
+    -------
+    list
+        Content of the file. List containing the lines of the file
+    """
+    with open(fname, "w", encoding="utf-8") as f:
+        for l in lines:
+            f.writelines(l)
+    
 
 def torch_load(fname, map_location=None):
     """Load the content of a torch file.
