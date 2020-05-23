@@ -277,7 +277,7 @@ def pretty_vis(image, annList, show_class=False, alpha=0.0, dpi=100, **options):
 
 
 
-def text_on_image(text, image):
+def text_on_image(text, image, color=None):
     """Adds test on the image
     
     Parameters
@@ -295,7 +295,10 @@ def text_on_image(text, image):
     font = cv2.FONT_HERSHEY_SIMPLEX
     bottomLeftCornerOfText = (10,40)
     fontScale              = 0.8
-    fontColor              = (1,1,1)
+    if color is None:
+        fontColor              = (1,1,1)
+    else:
+        fontColor              = color
     lineType               = 1
     # img_mask = skimage.transform.rescale(np.array(img_mask), 1.0)
     # img_np = skimage.transform.rescale(np.array(img_points), 1.0)
