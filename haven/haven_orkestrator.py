@@ -32,16 +32,10 @@ def get_api(**kwargs):
             r = requests.get(token_url)
             r.raise_for_status()
             token = r.text
-        except requests.exceptions.HTTPError as errh:
+        except:
             # Perhaps do something for each error
             token = hu.subprocess_call('eai login token -H').split(' ')[-1].replace('\n', '')
             
-        except requests.exceptions.ConnectionError as errc:
-            raise SystemExit(errc)
-        except requests.exceptions.Timeout as errt:
-            raise SystemExit(errt)
-        except requests.exceptions.RequestException as err:
-            raise SystemExit(err)
 
     api_client.set_default_header('Authorization', 'Bearer {}'.format(token))
 
