@@ -1190,7 +1190,9 @@ def get_plot(exp_list, savedir_base,
                     y_agg = np.min(y_list)
                 elif bar_agg == 'mean':
                     y_agg = np.mean(y_list)
-
+                elif bar_agg == 'last':
+                    y_agg = [y for y in y_list if isinstance(y, float)][-1]
+                    
                 width = 0.
                 import math
                 
