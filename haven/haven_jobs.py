@@ -25,7 +25,8 @@ def run_exp_list_jobs(exp_list,
                       username=None,
                       account_id=None,
                       token=None,
-                      toolkit_mode=False):
+                      toolkit_mode=False,
+                      submit_in_parallel=True):
     """Run the experiments in the cluster.
 
     Parameters
@@ -72,7 +73,8 @@ def run_exp_list_jobs(exp_list,
                 account_id=account_id,
                 token=token,
                 force_run=force_run,
-                toolkit_mode=toolkit_mode)
+                toolkit_mode=toolkit_mode,
+                submit_in_parallel=submit_in_parallel)
                 
     jm.run()
 
@@ -90,7 +92,8 @@ class JobManager:
                  account_id=None,
                  token=None,
                  force_run=False,
-                 toolkit_mode=False):
+                 toolkit_mode=False,
+                 submit_in_parallel=True):
         """[summary]
         
         Parameters
@@ -110,6 +113,7 @@ class JobManager:
         """
         hu.check_duplicates(exp_list)
 
+        self.submit_in_parallel = submit_in_parallel
         self.exp_list = exp_list
         self.username = username or getpass.getuser()
         self.job_config = job_config
@@ -205,18 +209,27 @@ class JobManager:
         #                     create_notebook=False)
 
     def submit_jobs(self, job_command, reset=0):
-
-        pr = hu.Parallel()
         submit_dict = {}
+        
+        if self.submit_in_parallel:
+            pr = hu.Parallel()
+    
+            for exp_dict in self.exp_list:
+                exp_id = hu.hash_dict(exp_dict)
+                
+                command = job_command.replace('<exp_id>', exp_id)
+                pr.add(self._submit_job, exp_dict, command, reset, submit_dict)
 
-        for exp_dict in self.exp_list:
-            exp_id = hu.hash_dict(exp_dict)
+            pr.run()
+            pr.close()
+        
+        else:
+            for exp_dict in self.exp_list:
+                exp_id = hu.hash_dict(exp_dict)
+                
+                command = job_command.replace('<exp_id>', exp_id)
+                self._submit_job(exp_dict, command, reset, submit_dict)
             
-            command = job_command.replace('<exp_id>', exp_id)
-            pr.add(self._submit_job, exp_dict, command, reset, submit_dict)
-
-        pr.run()
-        pr.close()
         pprint.pprint(submit_dict)
         print("%d/%d experiments submitted." % (len([ s for s in submit_dict.values() if 'SUBMITTED' in s]),
                                                 len(submit_dict)))
