@@ -25,7 +25,7 @@ def run_exp_list_jobs(exp_list,
                       username=None,
                       account_id=None,
                       token=None,
-                      toolkit_mode=False,
+                      use_toolkit=False,
                       submit_in_parallel=True):
     """Run the experiments in the cluster.
 
@@ -73,7 +73,7 @@ def run_exp_list_jobs(exp_list,
                 account_id=account_id,
                 token=token,
                 force_run=force_run,
-                toolkit_mode=toolkit_mode,
+                use_toolkit=use_toolkit,
                 submit_in_parallel=submit_in_parallel)
                 
     jm.run()
@@ -92,7 +92,7 @@ class JobManager:
                  account_id=None,
                  token=None,
                  force_run=False,
-                 toolkit_mode=False,
+                 use_toolkit=False,
                  submit_in_parallel=True):
         """[summary]
         
@@ -121,18 +121,20 @@ class JobManager:
         self.verbose = verbose
         self.savedir_base = savedir_base
         self.account_id = account_id or os.getenv('EAI_TOOLKIT_ACCOUNT_ID')
-        self.toolkit_mode = toolkit_mode 
+        self.use_toolkit = use_toolkit 
         self.exp_list = exp_list
         self.force_run = force_run
         self.run_command = run_command
 
         # create an instance of the API class
-        if self.toolkit_mode is False:
+        if self.use_toolkit is False:
             from . import haven_borgy as hb
             api_funcs = hb
         else:
             from . import haven_orkestrator as ho
             api_funcs = ho
+            if self.account_id is None:
+                self.account_id = hu.subprocess_call('eai account get').split('\n')[-2].split(' ')[0]
 
         self.get_api = lambda token, username: api_funcs.get_api(token=token, username=username)
         self.kill_job = lambda api, job_id: api_funcs.kill_job(api, job_id) 
@@ -210,7 +212,7 @@ class JobManager:
 
     def submit_jobs(self, job_command, reset=0):
         submit_dict = {}
-        
+
         if self.submit_in_parallel:
             pr = hu.Parallel()
     
@@ -306,7 +308,7 @@ class JobManager:
 
 
     def launch_job(self, exp_dict, savedir, command, job=None,
-                   toolkit_mode=True):
+                   use_toolkit=True):
         """Submit a job job and save job dict and exp_dict."""
         # Check for duplicates
         if job is not None:
@@ -452,11 +454,17 @@ class JobManager:
         # Check if duplicates already exist in job
         command_dict = {}
         for job in jobList:
+            
             if hasattr(job, 'command'):
+                if job.command is None:
+                    continue
                 job_python_command = job.command[2]
             else:
                 job_python_command = None
-            if job_python_command not in command_dict:
+
+            if job_python_command is None:
+                continue
+            elif job_python_command not in command_dict:
                 command_dict[job_python_command] = job
             else:
                 print("Job state", job.state, "Job command",

@@ -96,8 +96,7 @@ def get_job(api, job_id):
 
 def get_jobs(api, **kwargs):
     account_id = kwargs.get('account_id')
-    if account_id is None:
-        account_id = hu.subprocess_call('eai account get').split('\n')[-2].split(' ')[0]
+    
     return api.v1_account_job_get(
             account_id=account_id,
             limit=1000, 
