@@ -280,17 +280,31 @@ class Test(unittest.TestCase):
                      'score_list.pkl'), score_list)
 
         best_exp_list = hr.filter_exp_list([exp_dict_1], savedir_base=savedir_base,
-                            filterby_list=[{'_meta':{'metric':'acc', 'func':'max'}, 'model':{'name':'mlp'}}])
-
+                            filterby_list=[{'_meta':{'avg_across':'run',
+                                    'metric':'acc', 'func':'max'},
+                                     'model':{'name':'mlp'}}])
+        # exp 2
         exp_dict_2 = {'model':{'name':'mlp2', 'n_layers':30}, 
-                    'dataset':'mnist', 'batch_size':1}
-        score_list = [{'epoch': 0, 'acc':0.5}, {'epoch': 1, 'acc':1.2}]
+                    'dataset':'mnist', 'batch_size':1, 'run':0}
+        score_list = [{'epoch': 0, 'acc':1.5}, {'epoch': 1, 'acc':1.8}]
 
         hu.save_pkl(os.path.join(savedir_base, hu.hash_dict(exp_dict_2),
                      'score_list.pkl'), score_list)
+        # exp 3
+        exp_dict_3 = {'model':{'name':'mlp2', 'n_layers':30}, 
+                    'dataset':'mnist', 'batch_size':1, 'run':1}
+        score_list = [{'epoch': 0, 'acc':1.5}, {'epoch': 1, 'acc':1.3}]
 
-        exp_list = [exp_dict_1, exp_dict_2]
-        best_exp_dict = hr.get_best_exp_dict(exp_list, savedir_base=savedir_base, metric='acc', func='max')
+        hu.save_pkl(os.path.join(savedir_base, hu.hash_dict(exp_dict_3),
+                     'score_list.pkl'), score_list)
+
+
+        exp_list = [exp_dict_1, exp_dict_2, exp_dict_3]
+        best_exp_dict = hr.get_best_exp_dict(exp_list, 
+                            savedir_base=savedir_base, metric='acc', 
+                            avg_across='run',
+                            func='max',
+                            )
 
         assert(best_exp_dict['model']['name'] == 'mlp2')
 

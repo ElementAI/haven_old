@@ -26,7 +26,8 @@ class ResultManager:
                  exp_groups=None,
                  mode_key=None,
                  exp_ids=None,
-                 save_history=False):
+                 save_history=False,
+                 score_list_name='score_list.pkl'):
         """[summary]
         
         Parameters
@@ -73,6 +74,7 @@ class ResultManager:
                 raise ValueError('%s does not exist...' % exp_groups)
         
         # rest
+        self.score_list_name = score_list_name
         self.mode_key = mode_key
         self.has_score_list = has_score_list
         self.save_history = save_history
@@ -96,7 +98,7 @@ class ResultManager:
         exp_list_with_scores = [e for e in exp_list if 
                                     os.path.exists(os.path.join(savedir_base, 
                                                                 hu.hash_dict(e),
-                                                                'score_list.pkl'))]
+                                                                score_list_name))]
         if has_score_list:
             exp_list = exp_list_with_scores
 
@@ -106,7 +108,7 @@ class ResultManager:
         self.score_keys  = ['None']
 
         if len(exp_list_with_scores):
-            score_fname = os.path.join(savedir_base, hu.hash_dict(exp_list_with_scores[0]), 'score_list.pkl')
+            score_fname = os.path.join(savedir_base, hu.hash_dict(exp_list_with_scores[0]), score_list_name)
             self.score_keys = ['None'] + list(hu.load_pkl(score_fname)[0].keys())
                     
                                                         
@@ -154,6 +156,7 @@ class ResultManager:
             fig, ax = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, filterby_list=filterby_list, 
                         
                         verbose=self.verbose,
+                        score_list_name=self.score_list_name,
                                **kwargs)
             fig_list += [fig]
 
@@ -167,6 +170,7 @@ class ResultManager:
 
     def get_plot_all(self, y_metric_list, order='groups_by_metrics', 
                      groupby_list=None, ylim_list=None, xlim_list=None,
+                     savedir_plots=None,
                      **kwargs):
         """[summary]
         
@@ -225,6 +229,7 @@ class ResultManager:
                                     fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
                                     show_legend=show_legend,
                                     ylim=ylim, xlim=xlim,
+                                    score_list_name=self.score_list_name,
                                     **kwargs)
                 fig_list += [fig]
 
@@ -234,7 +239,17 @@ class ResultManager:
                 fig, ax_list = plt.subplots(nrows=1, ncols=len(exp_groups) , figsize=figsize)
                 if not hasattr(ax_list, 'size'):
                     ax_list = [ax_list]
-                for i, exp_list in enumerate(exp_groups): 
+                for i, exp_list in enumerate(exp_groups):
+                    if i == 0:
+                        show_ylabel = True
+                    else:
+                        show_ylabel = False
+
+                    if i == (len(exp_groups) - 1):
+                        show_legend = True
+                    else:
+                        show_legend = False
+
                     ylim = None
                     xlim = None
                     if ylim_list is not None:
@@ -249,11 +264,22 @@ class ResultManager:
                     fig, _ = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, y_metric=y_metric, 
                                     fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
                                     ylim=ylim, xlim=xlim,
+                                    show_legend=show_legend,
+                                    show_ylabel=show_ylabel,
+                                    score_list_name=self.score_list_name,
                                     **kwargs)
                 fig_list += [fig]
 
         plt.tight_layout()
-
+        if savedir_plots:
+            for i in range(len(fig_list)):
+                os.makedirs(savedir_plots, exist_ok=True)
+                fname = os.path.join(savedir_plots, '%d.pdf' % i)
+                fig_list[i].savefig(fname,
+                                     dpi=300, 
+                                     bbox_inches='tight')
+                print(fname, 'saved')
+                
         return fig_list
     
     def get_score_df(self, **kwargs):
@@ -266,6 +292,7 @@ class ResultManager:
         """
         df_list = get_score_df(exp_list=self.exp_list, 
                     savedir_base=self.savedir_base, verbose=self.verbose, 
+                    score_list_name=self.score_list_name,
                     **kwargs)
         return df_list 
 
@@ -310,6 +337,7 @@ class ResultManager:
         """
         table = get_score_df(exp_list=self.exp_list, 
                     savedir_base=self.savedir_base, 
+                    score_list_name=self.score_list_name,
                     filterby_list=self.filterby_list,
                     verbose=self.verbose, **kwargs)
         return table 
@@ -324,6 +352,7 @@ class ResultManager:
         """
         score_lists = get_score_lists(exp_list=self.exp_list, 
                                 savedir_base=self.savedir_base, 
+                                score_list_name=self.score_list_name,
                              filterby_list=self.filterby_list,
                               verbose=self.verbose, **kwargs)
         return score_lists
@@ -447,7 +476,11 @@ def get_str(h_dict, k_list):
     
     return get_str(h_dict.get(k), k_list[1:])
 
-def get_best_exp_dict(exp_list, savedir_base, metric, func='min', filterby_list=None, return_scores=False, verbose=True):
+def get_best_exp_dict(exp_list, savedir_base, metric, 
+                      func='min', filterby_list=None, 
+                      avg_across=None,
+                      return_scores=False, verbose=True,
+                        score_list_name='score_list.pkl'):
     """Obtain best the experiment for a specific metric.
 
     Parameters
@@ -475,10 +508,10 @@ def get_best_exp_dict(exp_list, savedir_base, metric, func='min', filterby_list=
         exp_id = hu.hash_dict(exp_dict)
         savedir = os.path.join(savedir_base, exp_id)
 
-        score_list_fname = os.path.join(savedir, 'score_list.pkl')
+        score_list_fname = os.path.join(savedir, score_list_name)
         if not os.path.exists(score_list_fname):
             if verbose:
-                print('%s: missing score_list.pkl' % exp_id)
+                print('%s: missing %s' % (exp_id, score_list_name))
             continue
         
         score_list = hu.load_pkl(score_list_fname)
@@ -605,7 +638,8 @@ def zip_exp_list(savedir_base):
                         print(line)
 
 
-def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True):
+def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True,
+                    score_list_name='score_list.pkl'):
     """[summary]
     
     Parameters
@@ -636,11 +670,16 @@ def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True):
                 filterby_dict_short = copy.deepcopy(filterby_dict)
                 del filterby_dict_short['_meta']
                 exp_list_short = filter_exp_list(exp_list, filterby_list=filterby_dict_short, verbose=verbose)
+                
                 exp_dict = get_best_exp_dict(exp_list_short, savedir_base, 
                                  metric=filterby_dict['_meta']['metric'],
                                  func=filterby_dict['_meta']['func'], 
-                                 filterby_list=None, return_scores=False, 
-                                 verbose=verbose)
+                                 filterby_list=None, 
+                                 avg_across=filterby_dict['_meta'].get('avg_across'),
+                                 return_scores=False, 
+                                 verbose=verbose,
+                                 score_list_name=score_list_name)
+
                 exp_list_new += [exp_dict]
         
         for exp_dict in exp_list:
@@ -684,7 +723,8 @@ def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True):
     # hu.check_duplicates(exp_list_new)
     return hu.ignore_duplicates(exp_list_new)
 
-def get_score_lists(exp_list, savedir_base, filterby_list=None, verbose=True):
+def get_score_lists(exp_list, savedir_base, filterby_list=None, verbose=True,
+                    score_list_name='score_list.pkl'):
     """[summary]
     
     Parameters
@@ -723,10 +763,10 @@ def get_score_lists(exp_list, savedir_base, filterby_list=None, verbose=True):
         exp_id = hu.hash_dict(exp_dict)
         savedir = os.path.join(savedir_base, exp_id)
 
-        score_list_fname = os.path.join(savedir, 'score_list.pkl')
+        score_list_fname = os.path.join(savedir, score_list_name)
         if not os.path.exists(score_list_fname):
             if verbose:
-                print('%s: missing score_list.pkl' % exp_id)
+                print('%s: missing %s' % (exp_id, score_list_name))
             continue
         
         else:
@@ -788,7 +828,8 @@ def get_exp_list_df(exp_list, filterby_list=None, columns=None, verbose=True):
 def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
                  score_columns=None,
                  verbose=True, wrap_size=8, hparam_diff=0, flatten_columns=True,
-                 show_meta=True, show_max_min=True, add_prefix=False):
+                 show_meta=True, show_max_min=True, add_prefix=False,
+                 score_list_name='score_list.pkl'):
     """Get a table showing the scores for the given list of experiments 
 
     Parameters
@@ -830,7 +871,7 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
             # result_dict["exp_id"] = '\n'.join(wrap(exp_id, wrap_size))
             result_dict["exp_id"] = exp_id
         savedir = os.path.join(savedir_base, exp_id)
-        score_list_fname = os.path.join(savedir, "score_list.pkl")
+        score_list_fname = os.path.join(savedir, score_list_name)
         exp_dict_fname = os.path.join(savedir, "exp_dict.json")
 
         for k in exp_dict:
@@ -848,7 +889,7 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
 
         if not os.path.exists(score_list_fname):
             if verbose:
-                print('%s: score_list.pkl is missing' % exp_id)
+                print('%s: %s is missing' % (exp_id, score_list_name))
             
         else:
             score_list = hu.load_pkl(score_list_fname)
@@ -897,6 +938,97 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
     return df
 
 
+def get_result_dict(exp_dict, 
+                    savedir_base, 
+                    x_metric, 
+                    y_metric,
+                    exp_list=None, 
+                    avg_across=False,
+                    verbose=False,
+                    score_list_name='score_list.pkl'):
+    visited_exp_ids = set()
+    exp_id = hu.hash_dict(exp_dict)
+    savedir = os.path.join(savedir_base, exp_id)
+    score_list_fname = os.path.join(savedir, score_list_name)
+
+    # get scores
+    if not avg_across:
+        # get score list
+        score_list = hu.load_pkl(score_list_fname)
+        x_list = []
+        y_list = []
+        for score_dict in score_list:
+            if x_metric in score_dict and y_metric in score_dict:
+                x_list += [score_dict[x_metric]]
+                y_list += [score_dict[y_metric]]
+
+        y_std_list = []
+
+    else:
+        assert exp_list is not None, 'exp_list must be passed'
+        # average score list across an hparam
+        
+        filter_dict = {k:exp_dict[k] for k in exp_dict if k not in avg_across}
+        exp_sublist = filter_exp_list(exp_list, 
+                                        filterby_list=[filter_dict], 
+                                        savedir_base=savedir_base,
+                                        verbose=verbose)
+        def count(d):
+            return sum([count(v) if isinstance(v, dict) 
+                            else 1 for v in d.values()])
+        n_values = count(filter_dict) + 1
+        exp_sublist = [sub_dict for sub_dict in exp_sublist
+                            if n_values == count(sub_dict)]
+        # get score list
+        x_dict = {}
+        
+        uniques= np.unique([sub_dict[avg_across] for sub_dict in exp_sublist])
+        # print(uniques, len(exp_sublist))
+        assert(len(exp_sublist)>0)
+        assert(len(uniques) == len(exp_sublist))
+        for sub_dict in exp_sublist:
+            sub_id = hu.hash_dict(sub_dict)
+            sub_score_list_fname = os.path.join(savedir_base, sub_id, score_list_name)
+
+            if not os.path.exists(sub_score_list_fname):
+                if verbose:
+                    print('%s: %s does not exist...' % (sub_id, score_list_name))
+                continue
+
+            visited_exp_ids.add(sub_id)
+
+            sub_score_list = hu.load_pkl(sub_score_list_fname)
+
+            for score_dict in sub_score_list:
+                if x_metric in score_dict and y_metric in score_dict:
+                    x_val = score_dict[x_metric]
+                    if not x_val in x_dict:
+                        x_dict[x_val] = []
+
+                    x_dict[x_val] += [score_dict[y_metric]]
+        # import ipdb; ipdb.set_trace()
+        if len(x_dict) == 0:
+            x_list = []
+            y_list = []
+        else:
+            x_list = np.array(list(x_dict.keys()))
+            y_list_raw = list(x_dict.values())
+            y_list_raw = [yy for yy in y_list_raw if len(yy) == len(exp_sublist)]
+            y_list_all = np.array(y_list_raw)
+            x_list = x_list[:len(y_list_all)]
+            if y_list_all.dtype == 'object' or len(y_list_all)==0:
+                x_list = []
+                y_list = []
+                y_std_list = []
+            else:
+                y_std_list = np.std(y_list_all, axis=1)
+                y_list = np.mean(y_list_all, axis=1)  
+
+    return {'y_list':y_list, 
+            'x_list':x_list,
+            'y_std_list':y_std_list,
+            'visited_exp_ids':visited_exp_ids}
+
 def get_plot(exp_list, savedir_base, 
              x_metric, y_metric,
              mode='line',
@@ -926,7 +1058,9 @@ def get_plot(exp_list, savedir_base,
              show_legend=True,
              legend_format=None,
              title_format=None,
-             cmap=None):
+             cmap=None,
+             show_ylabel=True,
+             score_list_name='score_list.pkl'):
     """Plots the experiment list in a single figure.
     
     Parameters
@@ -998,6 +1132,7 @@ def get_plot(exp_list, savedir_base,
     else:
         title = ''
 
+    
     ylabel = y_metric
     xlabel = x_metric
 
@@ -1015,7 +1150,7 @@ def get_plot(exp_list, savedir_base,
             ylabel = map_dict[y_metric]
 
     # set properties
-    axis.set_title(title, title_fontsize)
+    axis.set_title(title, fontsize=title_fontsize)
     if ylim is not None:
         axis.set_ylim(ylim)
     if xlim is not None:
@@ -1029,7 +1164,9 @@ def get_plot(exp_list, savedir_base,
         axis.set_xscale('log')
         xlabel = xlabel + ' (log)'
 
-    axis.set_ylabel(ylabel, fontsize=y_fontsize)
+    if show_ylabel:
+        axis.set_ylabel(ylabel, fontsize=y_fontsize)
+
     if mode != 'bar':
         axis.set_xlabel(xlabel, fontsize=x_fontsize)
 
@@ -1047,89 +1184,32 @@ def get_plot(exp_list, savedir_base,
         tools.pretty_plot
     
     bar_count = 0
-    visited = set()
+    visited_exp_ids = set()
     for exp_dict in exp_list:
         exp_id = hu.hash_dict(exp_dict)
+        if exp_id in visited_exp_ids:
+            continue
+
         savedir = os.path.join(savedir_base, exp_id)
-        score_list_fname = os.path.join(savedir, 'score_list.pkl')
+        score_list_fname = os.path.join(savedir, score_list_name)
 
         if not os.path.exists(score_list_fname):
             if verbose:
-                print('%s: score_list.pkl does not exist...' % exp_id)
+                print('%s: %s does not exist...' % (exp_id,score_list_name))
             continue
 
         else:
-            # get scores
-            if not avg_across:
-                # get score list
-                score_list = hu.load_pkl(score_list_fname)
-                x_list = []
-                y_list = []
-                for score_dict in score_list:
-                    if x_metric in score_dict and y_metric in score_dict:
-                        x_list += [score_dict[x_metric]]
-                        y_list += [score_dict[y_metric]]
-            else:
-                # average score list across an hparam
-                if exp_id in visited:
-                    # already used in averaging
-                    continue
-                
-                filter_dict = {k:exp_dict[k] for k in exp_dict if k not in avg_across}
-                exp_sublist = filter_exp_list(exp_list, 
-                                              filterby_list=[filter_dict], 
-                                              savedir_base=savedir_base,
-                                              verbose=verbose)
-                def count(d):
-                    return sum([count(v) if isinstance(v, dict) 
-                                    else 1 for v in d.values()])
-                n_values = count(filter_dict) + 1
-                exp_sublist = [sub_dict for sub_dict in exp_sublist
-                                 if n_values == count(sub_dict)]
-                # get score list
-                x_dict = {}
-                
-                uniques= np.unique([sub_dict[avg_across] for sub_dict in exp_sublist])
-                # print(uniques, len(exp_sublist))
-                assert(len(exp_sublist)>0)
-                assert(len(uniques) == len(exp_sublist))
-                for sub_dict in exp_sublist:
-                    sub_id = hu.hash_dict(sub_dict)
-                    sub_score_list_fname = os.path.join(savedir_base, sub_id, 'score_list.pkl')
-
-                    if not os.path.exists(sub_score_list_fname):
-                        if verbose:
-                            print('%s: score_list.pkl does not exist...' % sub_id)
-                        continue
-
-                    visited.add(sub_id)
-
-                    sub_score_list = hu.load_pkl(sub_score_list_fname)
-
-                    for score_dict in sub_score_list:
-                        if x_metric in score_dict and y_metric in score_dict:
-                            x_val = score_dict[x_metric]
-                            if not x_val in x_dict:
-                                x_dict[x_val] = []
-
-                            x_dict[x_val] += [score_dict[y_metric]]
-                # import ipdb; ipdb.set_trace()
-                if len(x_dict) == 0:
-                    x_list = []
-                    y_list = []
-                else:
-                    x_list = np.array(list(x_dict.keys()))
-                    y_list_raw = list(x_dict.values())
-                    y_list_raw = [yy for yy in y_list_raw if len(yy) == len(exp_sublist)]
-                    y_list_all = np.array(y_list_raw)
-                    x_list = x_list[:len(y_list_all)]
-                    if y_list_all.dtype == 'object' or len(y_list_all)==0:
-                        x_list = []
-                        y_list = []
-                    else:
-                        y_std_list = np.std(y_list_all, axis=1)
-                        y_list = np.mean(y_list_all, axis=1)            
-    
+            result_dict = get_result_dict(exp_dict, 
+                            savedir_base, 
+                            x_metric, 
+                            y_metric,
+                            exp_list=exp_list, 
+                            avg_across=avg_across,
+                            verbose=verbose)
+            y_list = result_dict['y_list']
+            x_list = result_dict['x_list']
+            for eid in list(result_dict['visited_exp_ids']):
+                visited_exp_ids.add(eid)
             if len(x_list) == 0 or np.array(y_list).dtype == 'object':
                 x_list = np.NaN
                 y_list = np.NaN
@@ -1177,8 +1257,8 @@ def get_plot(exp_list, savedir_base,
                 if avg_across and hasattr(y_list, 'size'):
                     # add confidence interval
                     axis.fill_between(x_list, 
-                            y_list - y_std_list,
-                            y_list + y_std_list, 
+                            y_list - result_dict['y_std_list'],
+                            y_list + result_dict['y_std_list'], 
                             color = color,  
                             alpha=0.1)
 
