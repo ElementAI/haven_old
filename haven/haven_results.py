@@ -1205,7 +1205,8 @@ def get_plot(exp_list, savedir_base,
                             y_metric,
                             exp_list=exp_list, 
                             avg_across=avg_across,
-                            verbose=verbose)
+                            verbose=verbose,
+                            score_list_name=score_list_name)
             y_list = result_dict['y_list']
             x_list = result_dict['x_list']
             for eid in list(result_dict['visited_exp_ids']):
