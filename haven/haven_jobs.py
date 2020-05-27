@@ -4,6 +4,7 @@ import sys
 import subprocess
 from . import haven_utils as hu
 from . import haven_chk as hc
+from . import haven_results as hr
 import os
 from textwrap import wrap
 import time
@@ -147,6 +148,7 @@ class JobManager:
         print("\nTotal Experiments:", len(self.exp_list))
         print("Experiment Status:", summary_dict['status'])
         prompt = ("\nMenu:\n"
+                "  0)'results' to view the results using ipdb.\n"
                 "  1)'reset' to reset the experiments; or\n"
                 "  2)'run' to run the remaining experiments and retry the failed ones; or\n"
                 "  3)'status' to view the job status; or\n"
@@ -158,10 +160,18 @@ class JobManager:
         else:
             command = 'run'
 
-        command_list = ['reset', 'run', 'status', 'logs', 'kill']
+        command_list = ['reset', 'run', 'status','results', 'logs', 'kill']
         if command not in command_list:
             raise ValueError(
                 'Command has to be one of these choices %s' % command_list)
+
+        if command == 'results':
+            # view experiments
+            # table = r
+            print('The results are stored in `table` variable')
+            import ipdb; ipdb.set_trace()
+
+            return
 
         if command == 'status':
             # view experiments
