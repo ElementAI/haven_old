@@ -659,9 +659,12 @@ def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True,
         [description]
     """
     if filterby_list is None or filterby_list == '' or len(filterby_list) == 0:
-        return exp_list
+        if return_style_list:
+            return exp_list, [{}]*len(exp_list)
+        else:
+            return exp_list
 
-    
+    style_list = []
     filterby_list_list = hu.as_double_list(filterby_list)
     # filterby_list = filterby_list_list
     
@@ -671,24 +674,28 @@ def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True,
         # those with meta
         filterby_list_no_best = []
         for filterby_dict in filterby_list:
-            if '_meta' in filterby_dict and filterby_dict['_meta'].get('best'):
-                    assert savedir_base is not None
-                    fd = copy.deepcopy(filterby_dict)
-                    del fd['_meta']
-                    el = filter_exp_list(exp_list, filterby_list=fd, verbose=verbose)
-                    
-                    exp_dict = get_best_exp_dict(el, savedir_base, 
-                                    metric=filterby_dict['_meta']['best']['metric'],
-                                    metric_agg=filterby_dict['_meta']['best']['metric_agg'], 
-                                    filterby_list=None, 
-                                    avg_across=filterby_dict['_meta']['best'].get('avg_across'),
-                                    return_scores=False, 
-                                    verbose=verbose,
-                                    score_list_name=score_list_name)
+            meta_dict = {}
+            fd = filterby_dict
+            if isinstance(filterby_dict, tuple):
+                fd, meta_dict = filterby_dict
+            
+            if meta_dict.get('best'):
+                assert savedir_base is not None
+                el = filter_exp_list(exp_list, filterby_list=fd, verbose=verbose)
+                best_dict = meta_dict.get('best')
+                exp_dict = get_best_exp_dict(el, savedir_base, 
+                                metric=best_dict['metric'],
+                                metric_agg=best_dict['metric_agg'], 
+                                filterby_list=None, 
+                                avg_across=best_dict.get('avg_across'),
+                                return_scores=False, 
+                                verbose=verbose,
+                                score_list_name=score_list_name)
 
-                    exp_list_new += [exp_dict]
+                exp_list_new += [exp_dict]
+                style_list += [meta_dict.get('style', {})]
             else:
-                filterby_list_no_best += [filterby_dict] 
+                filterby_list_no_best += [fd] 
 
         
         # ignore metas here meta
@@ -696,11 +703,14 @@ def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True,
             select_flag = False
             
             for fd in filterby_list_no_best:
-                filterby_dict = copy.deepcopy(fd)
-                if '_meta' in filterby_dict:
-                    del filterby_dict['_meta']
+                if isinstance(fd, tuple):
+                    filterby_dict, meta_dict = filterby_dict
+                    style_dict = meta_dict.get('style', {})
+                else:
+                    style_dict = {}
 
-                # if isinstance(filterby_dict, tuple):
+                filterby_dict = copy.deepcopy(fd)
+               
                 keys = filterby_dict.keys()
                 for k in keys:
                     if '.' in k:
@@ -729,6 +739,8 @@ def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True,
 
             if select_flag:
                 exp_list_new += [exp_dict]
+                style_list += [style_dict]
+
         exp_list = exp_list_new
         
 
@@ -738,9 +750,9 @@ def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True,
     exp_list_new = hu.ignore_duplicates(exp_list_new)
     
     if return_style_list:
-        return exp_list, style_list
+        return exp_list_new, style_list
 
-    return exp_list
+    return exp_list_new
 
 def get_score_lists(exp_list, savedir_base, filterby_list=None, verbose=True,
                     score_list_name='score_list.pkl'):
@@ -1144,7 +1156,10 @@ def get_plot(exp_list, savedir_base,
     >>>                            filterby_list=[{'sampler':{'train':'basic'}}])
     >>> hr.get_plot(exp_list, savedir_base=savedir_base, x_metric='epoch', y_metric='train_loss', legend_list=['model'])
     """
-    exp_list = filter_exp_list(exp_list, filterby_list=filterby_list, savedir_base=savedir_base, verbose=verbose)
+    exp_list, style_list = filter_exp_list(exp_list, filterby_list=filterby_list,
+                             savedir_base=savedir_base, 
+                             verbose=verbose,
+                             return_style_list=True)
     # if len(exp_list) == 0:
     if axis is None:
         fig, axis = plt.subplots(nrows=1, ncols=1,
@@ -1208,7 +1223,7 @@ def get_plot(exp_list, savedir_base,
     
     bar_count = 0
     visited_exp_ids = set()
-    for exp_dict in exp_list:
+    for exp_dict, style_dict in zip(exp_list, style_list):
         exp_id = hu.hash_dict(exp_dict)
         if exp_id in visited_exp_ids:
             continue
@@ -1254,25 +1269,13 @@ def get_plot(exp_list, savedir_base,
             markevery = None
             markersize = None
 
-            if filterby_list is not None:
-                for filterby_dict in filterby_list:
-                    fd = copy.deepcopy(filterby_dict)
-                    if '_meta' in fd and fd['_meta'].get('style'):
-                        style_dict = fd['_meta']['style']
-                    else:
-                        style_dict = {}
-
-                    if '_meta' in fd:
-                        del fd['_meta']
-
-                    if hu.is_subset(fd, exp_dict):
-                        marker = style_dict.get('marker', marker)
-                        label = style_dict.get('label', label)
-                        color = style_dict.get('color', color)
-                        linewidth = style_dict.get('linewidth', linewidth)
-                        markevery = style_dict.get('markevery', markevery)
-                        markersize = style_dict.get('markersize', markersize)
-                        break
+            if len(style_dict):
+                marker = style_dict.get('marker', marker)
+                label = style_dict.get('label', label)
+                color = style_dict.get('color', color)
+                linewidth = style_dict.get('linewidth', linewidth)
+                markevery = style_dict.get('markevery', markevery)
+                markersize = style_dict.get('markersize', markersize)
         
             # plot
             if mode == 'pretty_plot':

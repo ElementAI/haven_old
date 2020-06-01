@@ -131,8 +131,8 @@ class Test(unittest.TestCase):
         
         fig, axis = hr.get_plot(exp_list,
              savedir_base=savedir_base,
-             filterby_list=[{'_meta':{'style':{'color':'red'}}, 
-                             'model':{'name':'mlp'}}],
+             filterby_list=[({'model':{'name':'mlp'}},
+                             {'style':{'color':'red'}})],
              x_metric='epoch',
              y_metric='acc')
         # fig, axis = hr.get_plot(exp_list,
@@ -276,16 +276,34 @@ class Test(unittest.TestCase):
                     'dataset':'mnist', 'batch_size':1}
         score_list = [{'epoch': 0, 'acc':0.5}, {'epoch': 1, 'acc':0.9}]
 
+       
         hu.save_pkl(os.path.join(savedir_base, hu.hash_dict(exp_dict_1),
                      'score_list.pkl'), score_list)
 
-        best_exp_list = hr.filter_exp_list([exp_dict_1], savedir_base=savedir_base,
-                            filterby_list=[{'_meta':{
-                                'best':{'avg_across':'run',
-                                    'metric':'acc', 'metric_agg':'max'}
-                                        },
-                                     'model.name':'mlp'}])
-        assert len(best_exp_list[0])
+        exp_dict_2 = {'model':{'name':'mlp', 'n_layers':35}, 
+                    'dataset':'mnist', 'batch_size':1}
+        score_list = [{'epoch': 0, 'acc':0.6}, {'epoch': 1, 'acc':1.9}]
+
+       
+        hu.save_pkl(os.path.join(savedir_base, hu.hash_dict(exp_dict_2),
+                     'score_list.pkl'), score_list)
+
+        best_exp_list = hr.filter_exp_list([exp_dict_1, exp_dict_2], savedir_base=savedir_base,
+                            filterby_list=[({'model.name':'mlp'}, 
+                                    {'best':{'avg_across':'run',
+                                              'metric':'acc', 
+                                              'metric_agg':'max'}}
+                                        )])
+        assert len(best_exp_list) == 1
+        assert best_exp_list[0]['model']['n_layers'] == 35
+
+        best_exp_list = hr.filter_exp_list([exp_dict_1, exp_dict_2], savedir_base=savedir_base,
+                            filterby_list=[({'model.name':'mlp'}, 
+                                    {'best':{'avg_across':'run',
+                                              'metric':'acc', 
+                                              'metric_agg':'min'}}
+                                        )])
+        assert best_exp_list[0]['model']['n_layers'] == 30                                
         # exp 2
         exp_dict_2 = {'model':{'name':'mlp2', 'n_layers':30}, 
                     'dataset':'mnist', 'batch_size':1, 'run':0}
