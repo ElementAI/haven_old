@@ -675,7 +675,6 @@ def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True,
         filterby_list_no_best = []
         for filterby_dict in filterby_list:
             meta_dict = {}
-            fd = filterby_dict
             if isinstance(filterby_dict, tuple):
                 fd, meta_dict = filterby_dict
             
@@ -695,7 +694,7 @@ def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True,
                 exp_list_new += [exp_dict]
                 style_list += [meta_dict.get('style', {})]
             else:
-                filterby_list_no_best += [fd] 
+                filterby_list_no_best += [filterby_dict] 
 
         
         # ignore metas here meta
@@ -704,12 +703,13 @@ def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True,
             
             for fd in filterby_list_no_best:
                 if isinstance(fd, tuple):
-                    filterby_dict, meta_dict = filterby_dict
+                    filterby_dict, meta_dict = fd
                     style_dict = meta_dict.get('style', {})
                 else:
+                    filterby_dict = fd
                     style_dict = {}
 
-                filterby_dict = copy.deepcopy(fd)
+                filterby_dict = copy.deepcopy(filterby_dict)
                
                 keys = filterby_dict.keys()
                 for k in keys:
@@ -1287,7 +1287,7 @@ def get_plot(exp_list, savedir_base,
             elif mode == 'line':
                 # plot the mean in a line
                 axis.plot(x_list, y_list, color=color, linewidth=linewidth, markersize=markersize,
-                    label=str(label), marker=marker, markevery=markevery)
+                    label=label, marker=marker, markevery=markevery)
 
                 if avg_across and hasattr(y_list, 'size'):
                     # add confidence interval
