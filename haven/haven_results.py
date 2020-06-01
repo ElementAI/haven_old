@@ -54,7 +54,6 @@ class ResultManager:
                                     order='groups_by_metrics',
                                     x_metric='epoch', 
                                     figsize=(15,6),
-                                    map_exp_list=[({'opt':{'name':'lenet'}}, {'label':'LeNet'})],
                                     title_list=['dataset'],
                                     legend_list=['model']) 
         """
@@ -118,19 +117,16 @@ class ResultManager:
         self.verbose = verbose
 
         self.n_exp_all = len(exp_list)
-        self.exp_list = exp_list
 
-        self.selected_exp_list = filter_exp_list(exp_list, 
-                                                filterby_list=filterby_list, 
-                                                savedir_base=savedir_base,
-                                                verbose=verbose)
-        # self.exp_list = filter_exp_list(exp_list, 
-        #                     filterby_list=filterby_list, 
-        #                     savedir_base=savedir_base,
-        #                     verbose=verbose)
+        self.exp_list = filter_exp_list(exp_list, 
+                                        filterby_list=filterby_list, 
+                                        savedir_base=savedir_base,
+                                        verbose=verbose)
 
         if len(self.exp_list) != 0:
             self.exp_params = list(self.exp_list[0].keys())
+        else:
+            self.exp_params = []
 
         
         
@@ -477,7 +473,7 @@ def get_str(h_dict, k_list):
     return get_str(h_dict.get(k), k_list[1:])
 
 def get_best_exp_dict(exp_list, savedir_base, metric, 
-                      func='min', filterby_list=None, 
+                      metric_agg='min', filterby_list=None, 
                       avg_across=None,
                       return_scores=False, verbose=True,
                         score_list_name='score_list.pkl'):
@@ -497,9 +493,9 @@ def get_best_exp_dict(exp_list, savedir_base, metric,
         [description], by default False
     """
     scores_dict = []
-    if func == 'min':
+    if metric_agg in ['min', 'min_last']:
         best_score = np.inf
-    elif func == 'max':
+    elif metric_agg in ['max', 'max_last']:
         best_score = 0.
     
     exp_dict_best = None
@@ -516,13 +512,21 @@ def get_best_exp_dict(exp_list, savedir_base, metric,
         
         score_list = hu.load_pkl(score_list_fname)
 
-        if func == 'min':
-            score = np.min([score_dict[metric] for score_dict in score_list])
+        if metric_agg in ['min', 'min_last']:
+            if metric_agg == 'min_last':
+                score = [score_dict[metric] for score_dict in score_list][-1]
+            elif metric_agg == 'min':
+                score = np.min([score_dict[metric] for score_dict in score_list])
             if best_score >= score:
                 best_score = score
                 exp_dict_best = exp_dict
-        elif func == 'max':
-            score = np.max([score_dict[metric] for score_dict in score_list])
+
+        elif metric_agg in ['max', 'max_last']:
+            if metric_agg == 'max_last':
+                score = [score_dict[metric] for score_dict in score_list][-1]
+            elif metric_agg == 'max':
+                score = np.max([score_dict[metric] for score_dict in score_list])
+                
             if best_score <= score:
                 best_score = score
                 exp_dict_best = exp_dict
@@ -639,7 +643,7 @@ def zip_exp_list(savedir_base):
 
 
 def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True,
-                    score_list_name='score_list.pkl'):
+                    score_list_name='score_list.pkl', return_style_list=False):
     """[summary]
     
     Parameters
@@ -664,50 +668,60 @@ def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True,
     for filterby_list in filterby_list_list:
         exp_list_new = []
 
+        # those with meta
+        filterby_list_no_best = []
         for filterby_dict in filterby_list:
-            if '_meta' in filterby_dict:
-                assert savedir_base is not None
-                filterby_dict_short = copy.deepcopy(filterby_dict)
-                del filterby_dict_short['_meta']
-                exp_list_short = filter_exp_list(exp_list, filterby_list=filterby_dict_short, verbose=verbose)
-                
-                exp_dict = get_best_exp_dict(exp_list_short, savedir_base, 
-                                 metric=filterby_dict['_meta']['metric'],
-                                 func=filterby_dict['_meta']['func'], 
-                                 filterby_list=None, 
-                                 avg_across=filterby_dict['_meta'].get('avg_across'),
-                                 return_scores=False, 
-                                 verbose=verbose,
-                                 score_list_name=score_list_name)
+            if '_meta' in filterby_dict and filterby_dict['_meta'].get('best'):
+                    assert savedir_base is not None
+                    fd = copy.deepcopy(filterby_dict)
+                    del fd['_meta']
+                    el = filter_exp_list(exp_list, filterby_list=fd, verbose=verbose)
+                    
+                    exp_dict = get_best_exp_dict(el, savedir_base, 
+                                    metric=filterby_dict['_meta']['best']['metric'],
+                                    metric_agg=filterby_dict['_meta']['best']['metric_agg'], 
+                                    filterby_list=None, 
+                                    avg_across=filterby_dict['_meta']['best'].get('avg_across'),
+                                    return_scores=False, 
+                                    verbose=verbose,
+                                    score_list_name=score_list_name)
 
-                exp_list_new += [exp_dict]
+                    exp_list_new += [exp_dict]
+            else:
+                filterby_list_no_best += [filterby_dict] 
+
         
+        # ignore metas here meta
         for exp_dict in exp_list:
             select_flag = False
             
-            for filterby_dict in filterby_list:
-                if isinstance(filterby_dict, tuple):
-                    k, v = filterby_dict
-                    
-                    k_list = k.split('.')
-                    nk = len(k_list)
+            for fd in filterby_list_no_best:
+                filterby_dict = copy.deepcopy(fd)
+                if '_meta' in filterby_dict:
+                    del filterby_dict['_meta']
 
-                    dict_tree = dict()
-                    t = dict_tree
+                # if isinstance(filterby_dict, tuple):
+                keys = filterby_dict.keys()
+                for k in keys:
+                    if '.' in k:
+                        v = filterby_dict[k]
+                        k_list = k.split('.')
+                        nk = len(k_list)
 
-                    for i in range(nk):
-                        ki = k_list[i]
-                        if i == (nk - 1):
-                            t = t.setdefault(ki, v)
-                        else:
-                            t = t.setdefault(ki, {})
+                        dict_tree = dict()
+                        t = dict_tree
 
-                    filterby_dict = dict_tree
+                        for i in range(nk):
+                            ki = k_list[i]
+                            if i == (nk - 1):
+                                t = t.setdefault(ki, v)
+                            else:
+                                t = t.setdefault(ki, {})
 
-                if 'meta' in filterby_dict:
-                    continue
+                        filterby_dict = dict_tree
 
-                assert isinstance(filterby_dict, dict), ('filterby_dict: %s is not a dict' % str(filterby_dict))
+                assert (isinstance(filterby_dict, dict), 
+                                 ('filterby_dict: %s is not a dict' % str(filterby_dict)))
 
                 if hu.is_subset(filterby_dict, exp_dict):
                     select_flag = True
@@ -721,7 +735,12 @@ def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True,
     if verbose:
         print('Filtered: %d/%d experiments gathered...' % (len(exp_list_new), len(exp_list)))
     # hu.check_duplicates(exp_list_new)
-    return hu.ignore_duplicates(exp_list_new)
+    exp_list_new = hu.ignore_duplicates(exp_list_new)
+    
+    if return_style_list:
+        return exp_list, style_list
+
+    return exp_list
 
 def get_score_lists(exp_list, savedir_base, filterby_list=None, verbose=True,
                     score_list_name='score_list.pkl'):
@@ -945,6 +964,7 @@ def get_result_dict(exp_dict,
                     exp_list=None, 
                     avg_across=False,
                     verbose=False,
+                    plot_confidence=True,
                     score_list_name='score_list.pkl'):
     visited_exp_ids = set()
     exp_id = hu.hash_dict(exp_dict)
@@ -961,7 +981,6 @@ def get_result_dict(exp_dict,
             if x_metric in score_dict and y_metric in score_dict:
                 x_list += [score_dict[x_metric]]
                 y_list += [score_dict[y_metric]]
-
         y_std_list = []
 
     else:
@@ -1021,8 +1040,12 @@ def get_result_dict(exp_dict,
                 y_list = []
                 y_std_list = []
             else:
-                y_std_list = np.std(y_list_all, axis=1)
+                if plot_confidence:
+                    y_std_list = np.std(y_list_all, axis=1)
+                else:
+                    y_std_list = 0
                 y_list = np.mean(y_list_all, axis=1)  
+                
 
     return {'y_list':y_list, 
             'x_list':x_list,
@@ -1049,7 +1072,6 @@ def get_plot(exp_list, savedir_base,
              xtick_fontsize=None,
              title_fontsize=None,
              legend_kwargs=None,
-             map_exp_list=tuple(),
              map_title_list=tuple(),
              map_xlabel_list=tuple(),
              map_ylabel_list=dict(),
@@ -1060,6 +1082,7 @@ def get_plot(exp_list, savedir_base,
              title_format=None,
              cmap=None,
              show_ylabel=True,
+             plot_confidence=True,
              score_list_name='score_list.pkl'):
     """Plots the experiment list in a single figure.
     
@@ -1122,7 +1145,7 @@ def get_plot(exp_list, savedir_base,
     >>> hr.get_plot(exp_list, savedir_base=savedir_base, x_metric='epoch', y_metric='train_loss', legend_list=['model'])
     """
     exp_list = filter_exp_list(exp_list, filterby_list=filterby_list, savedir_base=savedir_base, verbose=verbose)
-    
+    # if len(exp_list) == 0:
     if axis is None:
         fig, axis = plt.subplots(nrows=1, ncols=1,
                                     figsize=figsize)
@@ -1203,10 +1226,12 @@ def get_plot(exp_list, savedir_base,
                             savedir_base, 
                             x_metric, 
                             y_metric,
+                            plot_confidence=plot_confidence,
                             exp_list=exp_list, 
                             avg_across=avg_across,
                             verbose=verbose,
                             score_list_name=score_list_name)
+            
             y_list = result_dict['y_list']
             x_list = result_dict['x_list']
             for eid in list(result_dict['visited_exp_ids']):
@@ -1229,18 +1254,24 @@ def get_plot(exp_list, savedir_base,
             markevery = None
             markersize = None
 
-            if map_exp_list:
-                for map_exp in map_exp_list:
-                    filterby_dict = map_exp['filterby']
-                    map_dict = map_exp['map']
+            if filterby_list is not None:
+                for filterby_dict in filterby_list:
+                    fd = copy.deepcopy(filterby_dict)
+                    if '_meta' in fd and fd['_meta'].get('style'):
+                        style_dict = fd['_meta']['style']
+                    else:
+                        style_dict = {}
 
-                    if hu.is_subset(filterby_dict, exp_dict):
-                        marker = map_dict.get('marker', marker)
-                        label = map_dict.get('label', label)
-                        color = map_dict.get('color', color)
-                        linewidth = map_dict.get('linewidth', linewidth)
-                        markevery = map_dict.get('markevery', markevery)
-                        markersize = map_dict.get('markersize', markersize)
+                    if '_meta' in fd:
+                        del fd['_meta']
+
+                    if hu.is_subset(fd, exp_dict):
+                        marker = style_dict.get('marker', marker)
+                        label = style_dict.get('label', label)
+                        color = style_dict.get('color', color)
+                        linewidth = style_dict.get('linewidth', linewidth)
+                        markevery = style_dict.get('markevery', markevery)
+                        markersize = style_dict.get('markersize', markersize)
                         break
         
             # plot
@@ -1258,8 +1289,8 @@ def get_plot(exp_list, savedir_base,
                 if avg_across and hasattr(y_list, 'size'):
                     # add confidence interval
                     axis.fill_between(x_list, 
-                            y_list - result_dict['y_std_list'],
-                            y_list + result_dict['y_std_list'], 
+                            y_list - result_dict.get('y_std_list', 0),
+                            y_list + result_dict.get('y_std_list', 0), 
                             color = color,  
                             alpha=0.1)
 
@@ -1300,9 +1331,10 @@ def get_plot(exp_list, savedir_base,
                 # y_height = .05 * (maximum - minimum)
 
                 # axis.text(bar_count, y_agg + .01, "%.3f"%y_agg, color=bar_color, fontweight='bold')
-                axis.text(x=bar_count, y = y_agg*0.95, 
+                axis.text(x=bar_count, y = y_agg*1.01, 
                             s=s, 
-                            fontdict=dict(fontsize=(y_fontsize or 12)), color='white', fontweight='bold')
+                            fontdict=dict(fontsize=(y_fontsize or 12)), color='black', 
+                            fontweight='bold')
                 axis.set_xticks([])
                 bar_count += 1
             else:

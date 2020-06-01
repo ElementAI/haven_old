@@ -72,7 +72,9 @@ def hash_dict(exp_dict):
         raise ValueError('exp_dict is not a dict')
 
     for k in sorted(exp_dict.keys()):
-        if isinstance(exp_dict[k], dict):
+        if '.' in k:
+            raise ValueError(". has special purpose")
+        elif isinstance(exp_dict[k], dict):
             v = hash_dict(exp_dict[k])
         elif isinstance(exp_dict[k], tuple):
             raise ValueError("tuples can't be hashed yet, consider converting tuples to lists")

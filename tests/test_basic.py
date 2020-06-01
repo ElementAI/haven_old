@@ -131,6 +131,8 @@ class Test(unittest.TestCase):
         
         fig, axis = hr.get_plot(exp_list,
              savedir_base=savedir_base,
+             filterby_list=[{'_meta':{'style':{'color':'red'}}, 
+                             'model':{'name':'mlp'}}],
              x_metric='epoch',
              y_metric='acc')
         # fig, axis = hr.get_plot(exp_list,
@@ -204,15 +206,13 @@ class Test(unittest.TestCase):
         fig_list = rm.get_plot(x_metric='epoch', y_metric='acc', title_list=['dataset'], legend_list=['model'])
         for i, fig in enumerate(fig_list):
             fig.savefig(os.path.join(savedir_base, '%d.png' % i))
-        map_exp_list=[{'filterby':{'batch_size':5,'model':{'name':'lenet'}},
-                       'map':{'color':'yellow', 'marker':'+', 'label':'LeNet'}}]
+        
 
         order = 'groups_by_metrics'
         fig_list = rm.get_plot_all(order=order, x_metric='epoch', y_metric_list=['acc', 'epoch'], title_list=['dataset'], 
                               legend_list=['model'], 
                               groupby_list=['dataset'],
                               log_metric_list=['acc'],
-                              map_exp_list=map_exp_list,
                               map_title_list=[{'mnist':'MNIST'}, {'cifar10':'CIFAR-10'}],
                               map_xlabel_list=[{'epoch':'EPOCHS'}],
                               map_ylabel_list=[{'acc':'Score'}],
@@ -236,11 +236,11 @@ class Test(unittest.TestCase):
                         'model':'mlp', 'batch_size':[1, 5]})
         
         exp_list1 = hr.filter_exp_list(exp_list, 
-                            filterby_list=[('dataset', 'mnist')])
+                            filterby_list=[{'dataset': 'mnist'}])
 
         exp_list2 = hr.filter_exp_list(exp_list, 
                             filterby_list=[
-                                            [('dataset', 'mnist')]
+                                            [{'dataset':'mnist'}]
                                            ])
 
         exp_list = hr.filter_exp_list(exp_list, 
@@ -280,9 +280,12 @@ class Test(unittest.TestCase):
                      'score_list.pkl'), score_list)
 
         best_exp_list = hr.filter_exp_list([exp_dict_1], savedir_base=savedir_base,
-                            filterby_list=[{'_meta':{'avg_across':'run',
-                                    'metric':'acc', 'func':'max'},
-                                     'model':{'name':'mlp'}}])
+                            filterby_list=[{'_meta':{
+                                'best':{'avg_across':'run',
+                                    'metric':'acc', 'metric_agg':'max'}
+                                        },
+                                     'model.name':'mlp'}])
+        assert len(best_exp_list[0])
         # exp 2
         exp_dict_2 = {'model':{'name':'mlp2', 'n_layers':30}, 
                     'dataset':'mnist', 'batch_size':1, 'run':0}
@@ -303,7 +306,7 @@ class Test(unittest.TestCase):
         best_exp_dict = hr.get_best_exp_dict(exp_list, 
                             savedir_base=savedir_base, metric='acc', 
                             avg_across='run',
-                            func='max',
+                            metric_agg='max',
                             )
 
         assert(best_exp_dict['model']['name'] == 'mlp2')

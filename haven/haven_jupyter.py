@@ -290,7 +290,7 @@ class DashboardManager:
                 display('No experiments exist...')
             return
         else:
-            display('Selected %d/%d experiments using "filterby_list"' % (len(self.rm.selected_exp_list), len(self.rm.exp_list)))
+            display('Selected %d/%d experiments using "filterby_list"' % (len(self.rm.exp_list), len(self.rm.exp_list_all)))
 
     def meta_tab(self, output):
         with output:
