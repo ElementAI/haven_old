@@ -234,7 +234,7 @@ class DashboardManager:
         tab.set_title(0, 'Tables')
         tab.set_title(1, 'Plots')
         tab.set_title(2, 'Images')
-        tab.set_title(3, 'Meta')
+        tab.set_title(3, 'Share Results')
             
         with main_out:
             display(tab)

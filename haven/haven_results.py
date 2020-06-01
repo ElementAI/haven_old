@@ -166,7 +166,7 @@ class ResultManager:
 
     def get_plot_all(self, y_metric_list, order='groups_by_metrics', 
                      groupby_list=None, ylim_list=None, xlim_list=None,
-                     savedir_plots=None,
+                     savedir_plots=None, legend_last_row_only=False,
                      **kwargs):
         """[summary]
         
@@ -244,6 +244,9 @@ class ResultManager:
                     if i == (len(exp_groups) - 1):
                         show_legend = True
                     else:
+                        show_legend = False
+
+                    if legend_last_row_only and j < (len(y_metric_list) - 1):
                         show_legend = False
 
                     ylim = None
@@ -977,6 +980,7 @@ def get_result_dict(exp_dict,
                     avg_across=False,
                     verbose=False,
                     plot_confidence=True,
+                    x_cumsum=False,
                     score_list_name='score_list.pkl'):
     visited_exp_ids = set()
     exp_id = hu.hash_dict(exp_dict)
@@ -1058,7 +1062,9 @@ def get_result_dict(exp_dict,
                     y_std_list = 0
                 y_list = np.mean(y_list_all, axis=1)  
                 
-
+    if x_cumsum:
+        x_list = np.cumsum(x_list)
+        
     return {'y_list':y_list, 
             'x_list':x_list,
             'y_std_list':y_std_list,
@@ -1095,6 +1101,7 @@ def get_plot(exp_list, savedir_base,
              cmap=None,
              show_ylabel=True,
              plot_confidence=True,
+             x_cumsum=False,
              score_list_name='score_list.pkl'):
     """Plots the experiment list in a single figure.
     
@@ -1245,6 +1252,7 @@ def get_plot(exp_list, savedir_base,
                             exp_list=exp_list, 
                             avg_across=avg_across,
                             verbose=verbose,
+                            x_cumsum=x_cumsum,
                             score_list_name=score_list_name)
             
             y_list = result_dict['y_list']
