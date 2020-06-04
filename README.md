@@ -22,6 +22,38 @@ $ pip install --upgrade git+https://github.com/ElementAI/haven
 <!-- /home/issam/Research_Ground/haven/ -->
 
 ## Motivation
+Haven is a library for managing and visualizing heavy-scale experiments. It is designed to be simple while still being flexible enough for more complex experimentation workflow. In few steps, Haven helps researchers and developers find the best configuration for their model at large scale.
+
+Haven's workflow is based on the following principles:
+
+- Easy to adopt:
+
+    - Users can make it work in a few minutes
+
+- Simple to use:
+
+    - Users can find the best configuration of hyperparameters for their model using a few lines of code
+
+    - Users can quickly debug their code for failed experiments
+
+- Easy to visualize:
+
+    - Users can use Jupyter or Terminal to dynamically interact with the pandas DataFrame and matplotlib plots to compare between results
+
+    - Users can use our Jupyter dashboard to have a flexible view of their experiments
+
+    - Users can view the status of their launched experiments and their logs.
+
+- Backend agnostic:
+    - Haven can be used in conjunction with any job scheduler to launch experiments such as slurm and the orkestrator
+
+- Shareable results:
+    - The results can easily be shared between developers and researchers
+
+- Production ready:
+    - Users can integrate Haven in their production pipeline
+
+
 
 ## Projects built on Haven
 
