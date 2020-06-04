@@ -12,6 +12,8 @@
 <h1 align="center">Haven</h1>
 <h5 align="center">A workflow for organizing large-scale python experiments. If you have access to the [orkestrator](https://www.elementai.com/products/ork) or slurm, you can run and manage thousands of experiments in parallel.</h5>
 
+Haven is a library for managing and visualizing heavy-scale experiments. It is designed to be simple while still being flexible enough for more complex experimentation workflow. In few steps, Haven helps researchers and developers find the best configuration for their model at large scale.
+
 ### Install
 ```
 $ pip install --upgrade git+https://github.com/ElementAI/haven
@@ -20,9 +22,9 @@ $ pip install --upgrade git+https://github.com/ElementAI/haven
 
 ## Table of Contents 
 
-|Index| Description|
+|Section| Description|
 |:-------------|:-------------|
-|1. [Motivation](#motivation)|See the principles behind Haven.|
+|1. [Features](#features)|See the features that Haven can offer.|
 |2. [Getting Started](https://github.com/ElementAI/haven/tree/master/getting_started.ipynb)|Start using Haven by following the [Jupyter notebook](https://github.com/ElementAI/haven/tree/master/getting_started.ipynb).|
 |3. [Minimal Example](https://github.com/ElementAI/haven/tree/master/examples/minimal)|Check out a minimal example project based on Haven's workflow.|
 |4. [Havenized Projects](#havenized-projects)|Check out some projects that are built on Haven.|
@@ -32,42 +34,46 @@ $ pip install --upgrade git+https://github.com/ElementAI/haven
 
 <!-- /home/issam/Research_Ground/haven/ -->
 
-## Motivation
-Haven is a library for managing and visualizing heavy-scale experiments. It is designed to be simple while still being flexible enough for more complex experimentation workflow. In few steps, Haven helps researchers and developers find the best configuration for their model at large scale.
+## Features
 
-Haven's workflow is based on the following principles:
 
-- Easy to adopt:
+Haven's workflow provides the following features:
 
-    - Users can make it work in a few minutes
+#### Easy to adopt:
 
-- Simple to use:
+- Users can make it work in a few minutes
 
-    - Users can find the best configuration of hyperparameters for their model using a few lines of code
+#### Simple to use:
 
-    - Users can quickly debug their code for failed experiments
+- Users can find the best configuration of hyperparameters for their model using a few lines of code
 
-- Easy to visualize:
+- Users can quickly debug their code for failed experiments
 
-    - Users can use Jupyter or Terminal to dynamically interact with the pandas DataFrame and matplotlib plots to compare between results
+#### Easy to visualize:
 
-    - Users can use our Jupyter dashboard to have a flexible view of their experiments
+- Users can use Jupyter or Terminal to dynamically interact with the pandas DataFrame and matplotlib plots to compare between results
 
-    - Users can view the status of their launched experiments and their logs.
+- Users can use our Jupyter dashboard to have a flexible view of their experiments
 
-- Easy to reproduce results:
-    - Haven keeps a copy of the code for each running experiment
+- Users can view the status of their launched experiments and their logs.
 
-    - Haven keeps a copy of the logs and the control flow for each experiment
+#### Easy to reproduce results:
 
-- Backend agnostic:
-    - Haven can be used in conjunction with any job scheduler to launch experiments such as slurm and the orkestrator
+- Haven keeps a copy of the code for each running experiment
 
-- Shareable results:
-    - The results can easily be shared between developers and researchers
+- Haven keeps a copy of the logs and the control flow for each experiment
 
-- Production ready:
-    - Users can integrate Haven in their production pipeline
+#### Backend agnostic:
+
+- Haven can be used in conjunction with any job scheduler to launch experiments such as slurm and the orkestrator
+
+#### Shareable results:
+
+- The results can easily be shared between developers and researchers
+
+#### Production ready:
+
+- Users can integrate Haven in their production pipeline
 
 
 
