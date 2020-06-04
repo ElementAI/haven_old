@@ -44,6 +44,11 @@ Haven's workflow is based on the following principles:
 
     - Users can view the status of their launched experiments and their logs.
 
+- Easy to reproduce results:
+    - Haven keeps a copy of the code for each running experiment
+
+    - Haven keeps a copy of the logs and the control flow for each experiment
+
 - Backend agnostic:
     - Haven can be used in conjunction with any job scheduler to launch experiments such as slurm and the orkestrator
 
