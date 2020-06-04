@@ -12,17 +12,20 @@
 <h1 align="center">Haven</h1>
 <h5 align="center">A workflow for organizing large-scale python experiments. If you have access to the [orkestrator](https://www.elementai.com/products/ork) or slurm, you can run and manage thousands of experiments in parallel.</h5>
 
-## Table of Contents
-
-- [Install](#install)
-- [Motivation](#motivation)
-- [Havenized Projects](#havenized-projects)
-- [Getting Started](#getting-started)
-
 ## Install
 ```
 $ pip install --upgrade git+https://github.com/ElementAI/haven
 ```
+
+## Table of Contents
+
+| |
+|:-------------|
+|1. [Motivation](#motivation)|
+|2. [Minimal Example](https://github.com/ElementAI/haven/tree/master/examples/minimal)|
+|3. [Havenized Projects](#havenized-projects)|
+|4. [Getting Started](#getting-started)|
+
 
 
 <!-- /home/issam/Research_Ground/haven/ -->
