@@ -12,12 +12,18 @@
 <h1 align="center">Haven</h1>
 <h5 align="center">A workflow for organizing large-scale python experiments. If you have access to the [orkestrator](https://www.elementai.com/products/ork) or slurm, you can run and manage thousands of experiments in parallel.</h5>
 
+## Table of Contents
 
+- [Install](#install)
+- [Motivation](#motivation)
+- [Havenized Projects](#havenized-projects)
+- [Getting Started](#getting-started)
 
 ## Install
 ```
 $ pip install --upgrade git+https://github.com/ElementAI/haven
 ```
+
 
 <!-- /home/issam/Research_Ground/haven/ -->
 
@@ -60,7 +66,7 @@ Haven's workflow is based on the following principles:
 
 
 
-## Projects built on Haven
+## Havenized Projects
 
 The following are example projects built using this library.
 
@@ -71,7 +77,7 @@ The following are example projects built using this library.
 - [Sls optimizer](https://github.com/IssamLaradji/sls)
 
 
-## Quick Start
+## Getting Started
 
 #### 1. Write the codebase
 
