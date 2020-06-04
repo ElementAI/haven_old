@@ -20,12 +20,13 @@ $ pip install --upgrade git+https://github.com/ElementAI/haven
 
 ## Table of Contents 
 
-|||
-|:-------------|:-------------|
+
+
 |1. [Motivation](#motivation)|See the principles behind Haven.|
-|2. [Minimal Example](https://github.com/ElementAI/haven/tree/master/examples/minimal)|Check out a minimal example project based on Haven's workflow.|
-|3. [Havenized Projects](#havenized-projects)|Check out some projects that are built on Haven.|
-|4. [Getting Started](#getting-started)|Start using Haven.|
+|2. [Getting Started](#getting-started)|Start using Haven.|
+|3. [Minimal Example](https://github.com/ElementAI/haven/tree/master/examples/minimal)|Check out a minimal example project based on Haven's workflow.|
+|4. [Havenized Projects](#havenized-projects)|Check out some projects that are built on Haven.|
+
 
 
 
