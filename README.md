@@ -18,12 +18,14 @@ $ pip install --upgrade git+https://github.com/ElementAI/haven
 ```
 
 
-| <font size="4">Table of Contents</font>|
-|:-------------|
-|<font size="3"> 1. [Motivation](#motivation)</font>|
-|<font size="3"> 2. [Minimal Example](https://github.com/ElementAI/haven/tree/master/examples/minimal)</font>|
-|<font size="3"> 3. [Havenized Projects](#havenized-projects)</font>|
-|<font size="3"> 4. [Getting Started](#getting-started)</font>|
+## Table of Contents 
+
+|||
+|:-------------|:-------------|
+|1. [Motivation](#motivation)|See the principles behind Haven.|
+|2. [Minimal Example](https://github.com/ElementAI/haven/tree/master/examples/minimal)|Check out a minimal example project based on Haven's workflow.|
+|3. [Havenized Projects](#havenized-projects)|Check out some projects that are built on Haven.|
+|4. [Getting Started](#getting-started)|Start using Haven.|
 
 
 
