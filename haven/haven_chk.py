@@ -1,5 +1,5 @@
 import shutil
-import os 
+import os, torch
 
 from . import haven_utils as hu
 
@@ -42,6 +42,9 @@ def delete_experiment(savedir, backup_flag=False):
     # make sure the experiment doesn't exist anymore
     assert(not os.path.exists(savedir))
 
+def load_checkpoint(exp_dict, savedir_base, fname='model_best.pth'):
+    path = os.path.join(savedir_base, hu.hash_dict(exp_dict), fname)
+    return torch.load(path)
 
 def delete_and_backup_experiment(savedir):
     """Delete an experiment and make a backup (Movo to the trash)

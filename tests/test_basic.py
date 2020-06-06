@@ -59,6 +59,7 @@ class Test(unittest.TestCase):
         hu.save_json(os.path.join(savedir, "exp_dict.json"), exp_dict)
         hu.torch_save(os.path.join(savedir, "model.pth"), torch.zeros(10))
         hu.torch_load(os.path.join(savedir, "model.pth"))
+        hc.load_checkpoint(exp_dict, savedir_base, fname='model.pth')
         assert(os.path.exists(savedir))
 
         # delete exp folder

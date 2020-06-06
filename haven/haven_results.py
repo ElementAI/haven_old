@@ -326,6 +326,7 @@ class ResultManager:
         table = get_exp_list_df(exp_list=self.exp_list, verbose=self.verbose, **kwargs)
         return table 
 
+     
     def get_score_table(self, **kwargs):
         """[summary]
         
@@ -863,7 +864,7 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
                  score_columns=None,
                  verbose=True, wrap_size=8, hparam_diff=0, flatten_columns=True,
                  show_meta=True, show_max_min=True, add_prefix=False,
-                 score_list_name='score_list.pkl'):
+                 score_list_name='score_list.pkl', in_latex_format=False):
     """Get a table showing the scores for the given list of experiments 
 
     Parameters
@@ -969,8 +970,9 @@ def get_score_df(exp_list, savedir_base, filterby_list=None, columns=None,
         df = df[cols]
 
     df =  hu.sort_df_columns(df)
+    if in_latex_format:
+        return df.to_latex(index=False)
     return df
-
 
 def get_result_dict(exp_dict, 
                     savedir_base, 
@@ -1069,6 +1071,7 @@ def get_result_dict(exp_dict,
             'x_list':x_list,
             'y_std_list':y_std_list,
             'visited_exp_ids':visited_exp_ids}
+
 
 def get_plot(exp_list, savedir_base, 
              x_metric, y_metric,
