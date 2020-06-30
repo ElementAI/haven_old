@@ -464,6 +464,7 @@ class DashboardManager:
                     print('exp_id:', logs['exp_id'])
                     print('job_id:', logs['job_id'])
                     print('job_state:', logs['job_state'])
+                    print('savedir:', os.path.join(self.rm_original.savedir_base, logs['exp_id']))
 
                     print('\nexp_dict')
                     print('-'*50)
@@ -491,6 +492,7 @@ class DashboardManager:
                         print('exp_id:', failed['exp_id'])
                         print('job_id:', failed['job_id'])
                         print('job_state:', failed['job_state'])
+                        print('savedir:', os.path.join(self.rm_original.savedir_base, failed['exp_id']))
 
                         print('\nexp_dict')
                         print('-'*50)
@@ -565,14 +567,6 @@ class DashboardManager:
             disabled=False
                 )
 
-        # d_x_metric_txt = widgets.Label(value="x_metric:", 
-        #                               layout=widgets.Layout(width='75px'),)
-        # d_x_metric_columns = widgets.Dropdown(
-        #             options=['None'] + self.rm_original.score_keys,
-        #             value=str(self.vars.get('x_metric')),
-        #             layout=self.layout_dropdown,
-        #             disabled=False,
-        #         )
         d_x_metric_columns = widgets.Text(
             value=str(self.vars.get('x_metric', 'epoch')),
             description='x_metric:',
@@ -820,15 +814,6 @@ def get_dict_from_str(string):
         
     return ast.literal_eval(string)
 
-# def multipage(filename, figs=None, dpi=200):
-#     from matplotlib.backends.backend_pdf import PdfPages
-#     import matplotlib.pyplot as plt
-
-#     pp = PdfPages(filename)
-#     for fig in figs:
-#         fig.savefig(pp, format='pdf')
-#     pp.close()
-
 def get_list_from_str(string):
     if string is None:
         return string
@@ -842,14 +827,3 @@ def get_list_from_str(string):
         return None
 
     return string.split(',')
-    
-    # import ast
-    # return ast.literal_eval(string)
-    # if string is None:
-    #     return "none"
-    
-    # if isinstance(string, str) and "[" not in string:
-    #     return string
-
-    # res = string.strip(" ").strip("[").strip("]").split(',')
-    # return [s.strip('"').strip("'").replace(" ", "") for s in res]

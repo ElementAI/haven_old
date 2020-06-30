@@ -9,7 +9,7 @@ import torch
 import shutil
 
 
-
+from haven import haven_img as hi
 from haven import haven_utils as hu
 from haven import haven_results as hr
 from haven import haven_chk as hc
@@ -115,6 +115,12 @@ class Test(unittest.TestCase):
         assert(np.array(score_df['dataset'])[0].strip("'") == 'mnist')
 
         shutil.rmtree('.tmp')
+
+    def test_get_images(self):
+        # save a score_list
+        hi.points_on_image([3,2], [3,2], np.ones((100,100, 3)), 
+                        radius=3, c_list=[0, 1])
+
 
     def test_get_plot(self):
         # save a score_list
@@ -330,8 +336,6 @@ class Test(unittest.TestCase):
 
         assert(best_exp_dict['model']['name'] == 'mlp2')
 
-    def test_get_images(self):
-        pass
 
         
 if __name__ == '__main__':

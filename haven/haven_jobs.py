@@ -168,7 +168,10 @@ class JobManager:
         if command == 'results':
             # view experiments
             # table = r
-            print('The results are stored in `table` variable')
+            print('Get status with the following')
+            print('table = self.get_summary(get_logs=True)')
+            print('table["status"]')
+
             import ipdb; ipdb.set_trace()
 
             return

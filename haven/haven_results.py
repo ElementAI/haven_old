@@ -166,7 +166,7 @@ class ResultManager:
 
     def get_plot_all(self, y_metric_list, order='groups_by_metrics', 
                      groupby_list=None, ylim_list=None, xlim_list=None,
-                     savedir_plots=None, legend_last_row_only=False,
+                     savedir_plots=None, legend_last_row_only=False, show_legend_all=None,
                      **kwargs):
         """[summary]
         
@@ -220,7 +220,8 @@ class ResultManager:
                         assert len(xlim_list) == len(exp_groups), "xlim_list has to have %d rows" % len(exp_groups)
                         assert len(xlim_list[0]) == len(y_metric_list), "xlim_list has to have %d cols" % len(y_metric_list)
                         xlim = xlim_list[j][i]
-                    
+                    if show_legend_all is not None:
+                        show_legend = show_legend_all
                     fig, _ = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, y_metric=y_metric, 
                                     fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
                                     show_legend=show_legend,
@@ -260,6 +261,9 @@ class ResultManager:
                         assert len(xlim_list[0]) == len(exp_groups), "xlim_list has to have %d cols" % len(y_metric_list)
                         xlim = xlim_list[j][i]
 
+                    if show_legend_all is not None:
+                        show_legend = show_legend_all
+                        
                     fig, _ = get_plot(exp_list=exp_list, savedir_base=self.savedir_base, y_metric=y_metric, 
                                     fig=fig, axis=ax_list[i], verbose=self.verbose, filterby_list=self.filterby_list,
                                     ylim=ylim, xlim=xlim,
@@ -273,7 +277,7 @@ class ResultManager:
         if savedir_plots:
             for i in range(len(fig_list)):
                 os.makedirs(savedir_plots, exist_ok=True)
-                fname = os.path.join(savedir_plots, '%d.pdf' % i)
+                fname = os.path.join(savedir_plots + '_%d.pdf' % i)
                 fig_list[i].savefig(fname,
                                      dpi=300, 
                                      bbox_inches='tight')
@@ -983,7 +987,8 @@ def get_result_dict(exp_dict,
                     verbose=False,
                     plot_confidence=True,
                     x_cumsum=False,
-                    score_list_name='score_list.pkl'):
+                    score_list_name='score_list.pkl',
+                    result_step=0):
     visited_exp_ids = set()
     exp_id = hu.hash_dict(exp_dict)
     savedir = os.path.join(savedir_base, exp_id)
@@ -1066,11 +1071,17 @@ def get_result_dict(exp_dict,
                 
     if x_cumsum:
         x_list = np.cumsum(x_list)
-        
-    return {'y_list':y_list, 
-            'x_list':x_list,
-            'y_std_list':y_std_list,
-            'visited_exp_ids':visited_exp_ids}
+    
+    if result_step == 0:
+        return {'y_list':y_list, 
+                'x_list':x_list,
+                'y_std_list':y_std_list,
+                'visited_exp_ids':visited_exp_ids}
+    else:
+        return {'y_list':y_list[::result_step], 
+                'x_list':x_list[::result_step],
+                'y_std_list':y_std_list,
+                'visited_exp_ids':visited_exp_ids}
 
 
 def get_plot(exp_list, savedir_base, 
@@ -1105,7 +1116,9 @@ def get_plot(exp_list, savedir_base,
              show_ylabel=True,
              plot_confidence=True,
              x_cumsum=False,
-             score_list_name='score_list.pkl'):
+             score_list_name='score_list.pkl',
+             result_step=0,
+             map_legend_list=dict()):
     """Plots the experiment list in a single figure.
     
     Parameters
@@ -1215,8 +1228,7 @@ def get_plot(exp_list, savedir_base,
     if show_ylabel:
         axis.set_ylabel(ylabel, fontsize=y_fontsize)
 
-    if mode != 'bar':
-        axis.set_xlabel(xlabel, fontsize=x_fontsize)
+    axis.set_xlabel(xlabel, fontsize=x_fontsize)
 
     axis.tick_params(axis='x', labelsize=xtick_fontsize)
     axis.tick_params(axis='y', labelsize=ytick_fontsize)
@@ -1256,7 +1268,8 @@ def get_plot(exp_list, savedir_base,
                             avg_across=avg_across,
                             verbose=verbose,
                             x_cumsum=x_cumsum,
-                            score_list_name=score_list_name)
+                            score_list_name=score_list_name,
+                            result_step=result_step)
             
             y_list = result_dict['y_list']
             x_list = result_dict['x_list']
@@ -1287,7 +1300,9 @@ def get_plot(exp_list, savedir_base,
                 linewidth = style_dict.get('linewidth', linewidth)
                 markevery = style_dict.get('markevery', markevery)
                 markersize = style_dict.get('markersize', markersize)
-        
+
+            if label in map_legend_list:
+                label = map_legend_list[label]
             # plot
             if mode == 'pretty_plot':
                 # plot the mean in a line

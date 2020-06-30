@@ -354,7 +354,7 @@ def bbox_on_image(bbox_xyxy, image, mode='yxyx', color=(255, 0, 0)):
 
     return image_uint8 / 255.
 
-def points_on_image(y_list, x_list, image, radius=3):
+def points_on_image(y_list, x_list, image, radius=3, c_list=None):
     """[summary]
     
     Parameters
@@ -376,14 +376,18 @@ def points_on_image(y_list, x_list, image, radius=3):
     image_uint8 = image_as_uint8(image)
 
     H, W, _ = image_uint8.shape
-    for y, x in zip(y_list, x_list):
+    color_list = [(255, 0, 0) , (0, 255, 0) , (0, 0, 255) ]
+    for i, (y, x) in enumerate(zip(y_list, x_list)):
         if y < 1:
             x, y = int(x*W), int(y*H) 
         else:
             x, y = int(x), int(y) 
             
         # Blue color in BGR 
-        color = (255, 0, 0) 
+        if c_list is not None:
+            color = color_list[c_list[i]] 
+        else:
+            color = color_list[1] 
         
         # Line thickness of 2 px 
         thickness = 5
@@ -394,7 +398,7 @@ def points_on_image(y_list, x_list, image, radius=3):
         start_point = (x-radius*2, y-radius*2) 
         end_point = (x+radius*2, y+radius*2) 
         thickness = 2
-        color = (0, 255, 0) 
+        color = (255, 0, 0)
         
         image_uint8 = cv2.rectangle(image_uint8, start_point, end_point, color, thickness) 
 

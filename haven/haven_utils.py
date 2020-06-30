@@ -265,7 +265,8 @@ def mask_on_image(mask, image):
                                     colors=colors, bg_label=0, bg_color=None, kind='overlay')
     return mark_boundaries(image_label_overlay, mask)
 
-def save_image(fname, img, size=None, points=None, radius=10, mask=None, makedirs=True, return_image=False):
+def save_image(fname, img, size=None, points=None, radius=10,
+               mask=None, heatmap=None, makedirs=True, return_image=False):
     """Save an image into a file.
 
     Parameters
@@ -285,7 +286,11 @@ def save_image(fname, img, size=None, points=None, radius=10, mask=None, makedir
         if img.ndim == 2:
             img = img[None].repeat(3,1,1)
         y_list, x_list = np.where(points.squeeze())
-        img = hi.points_on_image(y_list, x_list, img, radius=radius)
+        c_list = []
+        for y, x in zip(y_list, x_list):
+            c_list += [points.squeeze()[y, x]]
+        img = hi.points_on_image(y_list, x_list, img, 
+                 radius=radius, c_list=c_list)
 
     if mask is not None:
         img = mask_on_image(mask, img)
