@@ -25,7 +25,7 @@ from haven import haven_jupyter as hj
 
 if __name__ == '__main__':
     # return
-    exp_list = [{'model':{'name':'mlp', 'n_layers':30}, 
+    exp_list = [{'model':{'name':'mlp', 'n_layers':20}, 
                 'dataset':'mnist', 'batch_size':1}]
     savedir_base = '/mnt/home/results/test'
     # get this with 'echo $ORG_NAME'
@@ -56,17 +56,17 @@ if __name__ == '__main__':
     job_list_old = jm.get_jobs()
 
     # run single command
-    savedir = '%s/%s' % (savedir_base, np.random.randint(1000))
-    os.makedirs(savedir, exist_ok=True)
-    command = 'echo 2 1>%s/logs.txt 2>%s/err.txt' % (savedir,savedir)
-    job_id = jm.submit_job(command, savedir=None)
+    savedir_logs = '%s/%s' % (savedir_base, np.random.randint(1000))
+    os.makedirs(savedir_logs, exist_ok=True)
+    command = 'echo 2'
+    job_id = jm.submit_job(command,  workdir=jm.workdir, savedir_logs=savedir_logs)
 
     # get jobs
     job_list = jm.get_jobs()
     job = jm.get_job(job_id)
     assert job_list[0].id == job_id
     
-    jm.kill_job(job_list[0].id)
+    # jm.kill_job(job_list[0].id)
     # run
     print('jobs:', len(job_list_old), len(job_list))
     assert (len(job_list_old) + 1) ==  len(job_list)
@@ -77,14 +77,18 @@ if __name__ == '__main__':
 
     # hjb.run_command_list(command_list)
 
-    jm.launch_exp_list(command='echo 2 -e <exp_id>')
+    jm.launch_exp_list(command='echo 2 -e <exp_id>', in_parallel=False)
     
     assert(os.path.exists(os.path.join(savedir_base, hu.hash_dict(exp_list[0]), 'job_dict.json')))
-    jm_summary_list = jm.get_summary()
-    rm = hr.ResultManager(exp_list=exp_list, savedir_base=savedir_base)
-    rm_summary_list = rm.get_job_summary(account_id='75ce4cee-6829-4274-80e1-77e89559ddfb',
-                                         role_id='0b3991cb-4c6c-4765-8305-eb54e44b2020')
-    assert(rm_summary_list['table'].equals(jm_summary_list['table']))
+    summary_list = jm.get_summary_list()
+    print(hr.filter_list(summary_list, {'job_state':'SUCCEEDED'}))
+    print(hr.group_list(summary_list, key='job_state', return_count=True))
 
-    jm.kill_jobs()
-    assert('CANCELLED' in jm.get_summary()['status'][0])
+    rm = hr.ResultManager(exp_list=exp_list, savedir_base=savedir_base,
+                          account_id='75ce4cee-6829-4274-80e1-77e89559ddfb',
+                          role_id='0b3991cb-4c6c-4765-8305-eb54e44b2020')
+    rm_summary_list = rm.get_job_summary()
+    # assert(rm_summary_list['table'].equals(jm_summary_list['table']))
+
+    # jm.kill_jobs()
+    # assert('CANCELLED' in jm.get_summary()['status'][0])

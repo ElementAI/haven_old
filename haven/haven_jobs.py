@@ -65,6 +65,8 @@ class JobManager:
                 break
             count += 1
 
+    # Base functions
+    # --------------
     def get_jobs(self):
         return ho.get_jobs(self.api, role_id=self.role_id)
 
@@ -77,14 +79,16 @@ class JobManager:
     def kill_job(self, job_id):
         return ho.kill_job(self.api, job_id)
 
-    def submit_job(self, command, savedir):
-        return ho.submit_job(self.api, 
-                             self.account_id, 
-                             command, 
-                             self.job_config, 
-                             self.workdir, 
-                             savedir)
+    def submit_job(self, command, workdir, savedir_logs=None):
+        return ho.submit_job(api=self.api, 
+                             account_id=self.account_id, 
+                             command=command, 
+                             job_config=self.job_config, 
+                             workdir=workdir,
+                             savedir_logs=savedir_logs)
 
+    # Main functions
+    # --------------
     def launch_menu(self, command=None, exp_list=None, get_logs=False, wait_seconds=3):
         exp_list = exp_list or self.exp_list
         summary_dict = self.get_summary(get_logs=False, exp_list=exp_list)
@@ -147,7 +151,7 @@ class JobManager:
 
         print(summary_dict['status'])
 
-    def launch_exp_list(self, command,  exp_list=None, reset=0, in_parallel=True):
+    def launch_exp_list(self, command,  exp_list=None, savedir_base=None, reset=0, in_parallel=True):
         exp_list = exp_list or self.exp_list
 
         submit_dict = {}
@@ -158,8 +162,11 @@ class JobManager:
             for exp_dict in exp_list:
                 exp_id = hu.hash_dict(exp_dict)
 
+                savedir_base = savedir_base or self.savedir_base
+                savedir = os.path.join(savedir_base, hu.hash_dict(exp_dict))
+
                 com = command.replace('<exp_id>', exp_id)
-                pr.add(self.launch_or_ignore_exp_dict, exp_dict, com, reset, submit_dict)
+                pr.add(self.launch_or_ignore_exp_dict, exp_dict, com, reset, savedir=savedir, submit_dict=submit_dict)
 
             pr.run()
             pr.close()
@@ -168,12 +175,16 @@ class JobManager:
             for exp_dict in exp_list:
                 exp_id = hu.hash_dict(exp_dict)
 
+                savedir_base = savedir_base or self.savedir_base
+                savedir = os.path.join(savedir_base, hu.hash_dict(exp_dict))
+
                 com = command.replace('<exp_id>', exp_id)
-                self.launch_or_ignore_exp_dict(exp_dict, com, reset, submit_dict)
+                self.launch_or_ignore_exp_dict(exp_dict, com, reset, savedir=savedir, submit_dict=submit_dict)
 
         pprint.pprint(submit_dict)
         print("%d/%d experiments submitted." % (len([s for s in submit_dict.values() if 'SUBMITTED' in s]),
                                                 len(submit_dict)))
+        assert len(submit_dict) == len(exp_list), 'considered exps does not match expected exps'
         return submit_dict
 
     def kill_jobs(self, exp_list=None):
@@ -202,14 +213,13 @@ class JobManager:
                                              len(submit_dict)))
         return submit_dict
 
-    def launch_or_ignore_exp_dict(self, exp_dict, command, reset, savedir_base=None, submit_dict={}):
+    def launch_or_ignore_exp_dict(self, exp_dict, command, reset, savedir, submit_dict={}):
         """launch or ignore job.
 
         It checks if the experiment exist and manages the special casses, e.g.,
         new experiment, reset, failed, job is already running, completed
         """
         # Define paths
-        savedir = os.path.join(self.savedir_base, hu.hash_dict(exp_dict))
         fname = get_job_fname(savedir)
 
         if not os.path.exists(fname):
@@ -278,19 +288,13 @@ class JobManager:
 
         return job_dict
 
-    def get_summary(self, failed_only=False, columns=None, max_lines=10, wrap_size=8,
-                    add_prefix=False, get_logs=True, exp_list=None, savedir_base=None):
-        """[summary]
 
-        Returns
-        -------
-        [type]
-            [description]
-        """
-        # get job ids
+    def get_summary_list(self, failed_only=False, columns=None, max_lines=10, wrap_size=8,
+                               add_prefix=False, get_logs=True, exp_list=None, savedir_base=None):
         savedir_base = savedir_base or self.savedir_base
         exp_list = exp_list or self.exp_list
 
+        # get job key
         job_id_list = []
         for exp_dict in exp_list:
             exp_id = hu.hash_dict(exp_dict)
@@ -302,74 +306,74 @@ class JobManager:
 
         jobs_dict = self.get_jobs_dict(job_id_list)
 
-        # fill summary
-        summary_dict = {'table': [], 'status': [],
-                        'logs_failed': [], 'logs': []}
+        # get summaries
+        summary_list = []
+        
         for exp_dict in exp_list:
             result_dict = {}
-            for k in exp_dict:
-                if isinstance(columns, list) and k not in columns:
-                    continue
-                if add_prefix:
-                    k_new = "(hparam) " + k
-                else:
-                    k_new = k
-                result_dict[k_new] = exp_dict[k]
 
-            result_dict = hu.flatten_column(result_dict)
-            result_dict['exp_dict'] = exp_dict
             exp_id = hu.hash_dict(exp_dict)
             savedir = os.path.join(savedir_base, exp_id)
-            # result_dict["exp_id"] = '\n'.join(wrap(exp_id, wrap_size))
-            result_dict["exp_id"] = exp_id
-            fname = get_job_fname(savedir)
+            job_fname = get_job_fname(savedir)
 
-            # Job results
+            # General info
+            result_dict = {}
+            result_dict['exp_dict'] = exp_dict
+            result_dict["exp_id"] = exp_id
             result_dict["job_id"] = None
             result_dict["job_state"] = 'NEVER LAUNCHED'
 
-            if os.path.exists(fname):
-                job_dict = hu.load_json(fname)
+            if os.path.exists(job_fname):
+                job_dict = hu.load_json(job_fname)
                 job_id = job_dict["job_id"]
                 if job_id not in jobs_dict:
                     continue
 
                 fname_exp_dict = os.path.join(savedir, "exp_dict.json")
                 job = jobs_dict[job_id]
+
+                if hasattr(job, 'command'):
+                    command = job.command[2]
+                else:
+                    command = None
+
+                # Job info
                 result_dict['started_at'] = hu.time_to_montreal(fname_exp_dict)
                 result_dict["job_id"] = job_id
                 result_dict["job_state"] = job.state
                 result_dict["restarts"] = len(job.runs)
-
-                summary_dict['table'] += [copy.deepcopy(result_dict)]
-
-                if hasattr(job, 'command'):
-                    result_dict["command"] = job.command[2]
-                else:
-                    result_dict["command"] = None
-
+                result_dict["command"] = command
+                
                 if get_logs:
+                    # Logs info
                     if job.state == "FAILED":
-                        fname = os.path.join(savedir, "err.txt")
-                        if os.path.exists(fname):
-                            result_dict["logs"] = hu.read_text(
-                                fname)[-max_lines:]
-                            summary_dict['logs_failed'] += [result_dict]
-                        else:
-                            if self.verbose:
-                                print('%s: err.txt does not exist' % exp_id)
+                        logs_fname = os.path.join(savedir, "err.txt")
                     else:
-                        fname = os.path.join(savedir, "logs.txt")
-                        if os.path.exists(fname):
-                            result_dict["logs"] = hu.read_text(
-                                fname)[-max_lines:]
-                            summary_dict['logs'] += [result_dict]
-                        else:
-                            if self.verbose:
-                                print('%s: logs.txt does not exist' % exp_id)
-            else:
-                result_dict['job_state'] = 'NEVER LAUNCHED'
-                summary_dict['table'] += [copy.deepcopy(result_dict)]
+                        logs_fname = os.path.join(savedir, "logs.txt")
+
+                    if os.path.exists(fname):
+                        result_dict["logs"] = hu.read_text(logs_fname)[-max_lines:]
+
+            summary_list += [result_dict]
+
+        return summary_list
+
+    def get_summary(self, **kwargs):
+        """[summary]
+
+        Returns
+        -------
+        [type]
+            [description]
+        """
+        # get job ids
+
+        # fill summary
+        summary_dict = {'table': [], 
+                        'status': [],
+                        'logs_failed': [], 
+                        'logs': []}
+
         # get info
         df = pd.DataFrame(summary_dict['table'])
 
