@@ -3,6 +3,7 @@ import time
 import sys
 import subprocess
 from . import haven_utils as hu
+from . import haven_results as hr
 from . import haven_chk as hc
 import os
 from textwrap import wrap
@@ -89,12 +90,14 @@ class JobManager:
 
     # Main functions
     # --------------
-    def launch_menu(self, command=None, exp_list=None, get_logs=False, wait_seconds=3):
+    def launch_menu(self, command=None, exp_list=None, get_logs=False, wait_seconds=3,
+                    in_parallel=True):
         exp_list = exp_list or self.exp_list
-        summary_dict = self.get_summary(get_logs=False, exp_list=exp_list)
+        summary_list = self.get_summary_list(get_logs=False, exp_list=exp_list)
+        summary_dict = hr.group_list(summary_list, key='job_state', return_count=True)
 
         print("\nTotal Experiments:", len(exp_list))
-        print("Experiment Status:", summary_dict['status'])
+        print("Experiment Status:", summary_dict)
         prompt = ("\nMenu:\n"
                   "  0)'ipdb' run ipdb for an interactive session; or\n"
                   "  1)'reset' to reset the experiments; or\n"
@@ -117,39 +120,38 @@ class JobManager:
 
         elif option == 'status':
             # view experiments
-            for state in ['succeeded', 'running', 'queuing', 'failed']:
-                n_jobs = len(summary_dict[state])
-                if n_jobs:
-                    print('\nExperiments %s: %d' % (state, n_jobs))
-                    print(summary_dict[state].head())
-
-            print(summary_dict['status'])
+            self.print_job_status(exp_list=exp_list)
             return
 
         elif option == 'reset':
             self.verbose = False
-            self.launch_exp_list(command=command, exp_list=exp_list, reset=1)
+            self.launch_exp_list(command=command, exp_list=exp_list, reset=1, in_parallel=in_parallel)
 
         elif option == 'run':
             self.verbose = False
-            self.launch_exp_list(command=command, exp_list=exp_list, reset=0)
+            self.launch_exp_list(command=command, exp_list=exp_list, reset=0, in_parallel=in_parallel)
 
         elif option == 'kill':
             self.verbose = False
             self.kill_jobs()
 
-        # view
+        # view experiments
         print("Checking job status in %d seconds" % wait_seconds)
         time.sleep(wait_seconds)
-        summary_dict = self.get_summary(exp_list=exp_list)
-        # view experiments
-        for state in ['succeeded', 'running', 'queuing', 'failed']:
-            n_jobs = len(summary_dict[state])
-            if n_jobs:
-                print('\nExperiments %s: %d' % (state, n_jobs))
-                print(summary_dict[state].head())
+        self.print_job_status(exp_list=exp_list)
 
-        print(summary_dict['status'])
+    def print_job_status(self, exp_list):
+        summary_list = self.get_summary_list(get_logs=False, exp_list=exp_list)
+        summary_dict = hr.group_list(summary_list, key='job_state', return_count=False)
+        
+        for k in summary_dict.keys():
+            n_jobs = len(summary_dict[k])
+            if n_jobs:
+                print('\nExperiments %s: %d' % (k, n_jobs))
+                print(pd.DataFrame(summary_dict[k]).head())
+
+        summary_dict = hr.group_list(summary_list, key='job_state', return_count=True)
+        print(summary_dict)
 
     def launch_exp_list(self, command,  exp_list=None, savedir_base=None, reset=0, in_parallel=True):
         exp_list = exp_list or self.exp_list
@@ -166,7 +168,7 @@ class JobManager:
                 savedir = os.path.join(savedir_base, hu.hash_dict(exp_dict))
 
                 com = command.replace('<exp_id>', exp_id)
-                pr.add(self.launch_or_ignore_exp_dict, exp_dict, com, reset, savedir=savedir, submit_dict=submit_dict)
+                pr.add(self.launch_or_ignore_exp_dict, exp_dict, com, reset, savedir, submit_dict)
 
             pr.run()
             pr.close()
@@ -179,7 +181,7 @@ class JobManager:
                 savedir = os.path.join(savedir_base, hu.hash_dict(exp_dict))
 
                 com = command.replace('<exp_id>', exp_id)
-                self.launch_or_ignore_exp_dict(exp_dict, com, reset, savedir=savedir, submit_dict=submit_dict)
+                self.launch_or_ignore_exp_dict(exp_dict, com, reset, savedir, submit_dict)
 
         pprint.pprint(submit_dict)
         print("%d/%d experiments submitted." % (len([s for s in submit_dict.values() if 'SUBMITTED' in s]),
@@ -201,7 +203,7 @@ class JobManager:
 
             if os.path.exists(fname):
                 job_id = hu.load_json(fname)['job_id']
-                pr.add(self.kill_job, self.api, job_id)
+                pr.add(self.kill_job, job_id)
                 submit_dict[exp_id] = 'KILLED'
             else:
                 submit_dict[exp_id] = 'NoN-Existent'
@@ -231,7 +233,7 @@ class JobManager:
         elif reset:
             # Check if the job already exists
             job_id = hu.load_json(fname).get("job_id")
-            self.kill_job(self.api, job_id)
+            self.kill_job(job_id)
             hc.delete_and_backup_experiment(savedir)
 
             job_dict = self.launch_exp_dict(exp_dict, savedir, command, job=None)
@@ -256,8 +258,7 @@ class JobManager:
 
         submit_dict[job_id] = message
 
-    def launch_exp_dict(self, exp_dict, savedir, command, job=None,
-                   use_toolkit=True):
+    def launch_exp_dict(self, exp_dict, savedir, command, job=None):
         """Submit a job job and save job dict and exp_dict."""
         # Check for duplicates
         # if job is not None:
@@ -351,7 +352,7 @@ class JobManager:
                     else:
                         logs_fname = os.path.join(savedir, "logs.txt")
 
-                    if os.path.exists(fname):
+                    if os.path.exists(logs_fname):
                         result_dict["logs"] = hu.read_text(logs_fname)[-max_lines:]
 
             summary_list += [result_dict]
@@ -448,9 +449,7 @@ def run_exp_list_jobs(exp_list,
                       job_config=None,
                       force_run=False,
                       wait_seconds=3,
-                      account_id=None,
-                      use_toolkit=False,
-                      submit_in_parallel=True):
+                      account_id=None):
     """Run the experiments in the cluster.
 
     Parameters
@@ -494,9 +493,6 @@ def run_exp_list_jobs(exp_list,
                     job_config=job_config,
                     verbose=1,
                     account_id=account_id,
-                    token=token,
-                    force_run=force_run,
-                    use_toolkit=use_toolkit,
-                    submit_in_parallel=submit_in_parallel)
+                    token=token)
 
     jm.run()

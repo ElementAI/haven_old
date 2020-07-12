@@ -25,13 +25,7 @@ from haven import haven_jupyter as hj
 
 if __name__ == '__main__':
     # return
-    exp_list = [{'model':{'name':'mlp', 'n_layers':20}, 
-                'dataset':'mnist', 'batch_size':1}]
-    savedir_base = '/mnt/home/results/test'
-    # get this with 'echo $ORG_NAME'
-    org_name = 'eai'
-    # get this with 'echo $ACCOUNT_NAME'
-
+   
     job_config = {
         'image': 'registry.console.elementai.com/eai.issam/ssh',
         'data': ['c76999a2-05e7-4dcb-aef3-5da30b6c502c:/mnt/home'],
@@ -41,10 +35,14 @@ if __name__ == '__main__':
             'mem': 8,
             'gpu': 1
         },
-        # 'role':'eai.issam.role',
         'interactive': False,
     }
 
+    exp_list = [{'model':{'name':'mlp', 'n_layers':20}, 
+                'dataset':'mnist', 'batch_size':1}]
+    savedir_base = '/mnt/home/results/test'
+
+    
     jm = hjb.JobManager(exp_list=exp_list, 
                     savedir_base=savedir_base, 
                     workdir=os.path.dirname(os.path.realpath(__file__)),
@@ -76,8 +74,8 @@ if __name__ == '__main__':
     #     command_list += []
 
     # hjb.run_command_list(command_list)
-
-    jm.launch_exp_list(command='echo 2 -e <exp_id>', in_parallel=False)
+    jm.launch_menu(command=command)
+    jm.launch_exp_list(command='echo 2 -e <exp_id>', reset=1, in_parallel=False)
     
     assert(os.path.exists(os.path.join(savedir_base, hu.hash_dict(exp_list[0]), 'job_dict.json')))
     summary_list = jm.get_summary_list()
@@ -89,6 +87,6 @@ if __name__ == '__main__':
                           role_id='0b3991cb-4c6c-4765-8305-eb54e44b2020')
     rm_summary_list = rm.get_job_summary()
     # assert(rm_summary_list['table'].equals(jm_summary_list['table']))
-
+    
     # jm.kill_jobs()
     # assert('CANCELLED' in jm.get_summary()['status'][0])
