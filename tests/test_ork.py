@@ -41,18 +41,32 @@ if __name__ == '__main__':
             'mem': 8,
             'gpu': 1
         },
+        # 'role':'eai.issam.role',
         'interactive': False,
     }
 
-    api = ho.get_api()
-    account_id = '75ce4cee-6829-4274-80e1-77e89559ddfb'
-    command = ('echo 3')
-    workdir = os.path.dirname(os.path.realpath(__file__))
+    jm = hjb.JobManager(exp_list=exp_list, 
+                    savedir_base=savedir_base, 
+                    workdir=os.path.dirname(os.path.realpath(__file__)),
+                    job_config=job_config,
+                    account_id='75ce4cee-6829-4274-80e1-77e89559ddfb',
+                    role_id='0b3991cb-4c6c-4765-8305-eb54e44b2020'
+                    )
+    # get jobs              
+    job_list_old = jm.get_jobs()
 
-    job_list_old = ho.get_jobs(api, role_id='0b3991cb-4c6c-4765-8305-eb54e44b2020')
-    ho.submit_job(api, account_id, command, job_config, workdir, savedir_logs=None)
-    job_list = ho.get_jobs(api, role_id='0b3991cb-4c6c-4765-8305-eb54e44b2020')
-    ho.get_job(api, 'b4e29ba5-30d6-4f0d-8313-1c1895b8e334')
+    # run single command
+    savedir = '%s/%s' % (savedir_base, np.random.randint(1000))
+    os.makedirs(savedir, exist_ok=True)
+    command = 'echo 2 1>%s/logs.txt 2>%s/err.txt' % (savedir,savedir)
+    job_id = jm.submit_job(command, savedir=None)
+
+    # get jobs
+    job_list = jm.get_jobs()
+    job = jm.get_job(job_id)
+    assert job_list[0].id == job_id
+    
+    jm.kill_job(job_list[0].id)
     # run
     print('jobs:', len(job_list_old), len(job_list))
     assert (len(job_list_old) + 1) ==  len(job_list)
@@ -63,25 +77,13 @@ if __name__ == '__main__':
 
     # hjb.run_command_list(command_list)
 
-    jm = hjb.JobManager(exp_list, 
-                    savedir_base=savedir_base, 
-                    workdir=os.path.dirname(os.path.realpath(__file__)),
-                    run_command=command,
-                    job_config=job_config,
-                    force_run=True,
-                    account_id=None,
-                    role_id='0b3991cb-4c6c-4765-8305-eb54e44b2020',
-                    token=None,
-                    submit_in_parallel=False,
-                    use_toolkit=True
-                    )
-    jm.run()
+    jm.launch_exp_list(command='echo 2 -e <exp_id>')
     
     assert(os.path.exists(os.path.join(savedir_base, hu.hash_dict(exp_list[0]), 'job_dict.json')))
-    jm = hjb.JobManager(exp_list=exp_list, savedir_base=savedir_base)
     jm_summary_list = jm.get_summary()
     rm = hr.ResultManager(exp_list=exp_list, savedir_base=savedir_base)
-    rm_summary_list = rm.get_job_summary()
+    rm_summary_list = rm.get_job_summary(account_id='75ce4cee-6829-4274-80e1-77e89559ddfb',
+                                         role_id='0b3991cb-4c6c-4765-8305-eb54e44b2020')
     assert(rm_summary_list['table'].equals(jm_summary_list['table']))
 
     jm.kill_jobs()

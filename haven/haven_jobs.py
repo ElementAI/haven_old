@@ -13,6 +13,7 @@ import numpy as np
 import getpass
 import pprint
 from . import haven_jupyter as hj
+from . import haven_ork as ho
 
 
 
@@ -20,19 +21,13 @@ class JobManager:
     """Job manager."""
 
     def __init__(self,
-                 exp_list,
-                 savedir_base,
-                 run_command=None,
+                 exp_list=None,
+                 savedir_base=None,
                  workdir=None,
                  job_config=None,
-                 username=None,
                  verbose=1,
                  role_id=None,
-                 account_id=None,
-                 token=None,
-                 force_run=False,
-                 use_toolkit=False,
-                 submit_in_parallel=True):
+                 account_id=None):
         """[summary]
 
         Parameters
@@ -45,72 +40,78 @@ class JobManager:
             [description], by default None
         job_config : [type], optional
             [description], by default None
-        username : [type], optional
-            [description], by default None
         verbose : int, optional
             [description], by default 1
         """
-        hu.check_duplicates(exp_list)
-
-        self.submit_in_parallel = submit_in_parallel
         self.exp_list = exp_list
-        self.username = username or getpass.getuser()
         self.job_config = job_config
         self.workdir = workdir
         self.verbose = verbose
         self.role_id = role_id
         self.savedir_base = savedir_base
-        self.account_id = account_id or os.getenv('EAI_TOOLKIT_ACCOUNT_ID')
-        self.use_toolkit = use_toolkit
-        self.exp_list = exp_list
-        self.force_run = force_run
-        self.run_command = run_command
-
-        # create an instance of the API class
-        if self.use_toolkit is False:
-            from . import haven_borgy as hb
-            api_funcs = hb
-        else:
-            from . import haven_ork as ho
-            api_funcs = ho
+        self.account_id = account_id
 
         # define funcs
-        self.api = api_funcs.get_api(token=token, username=self.username)
+        self.api = ho.get_api(token=None)
+    
+    def get_command_history(self, topk=10):
+        job_list = self.get_jobs()
 
-        self.kill_job = lambda job_id: api_funcs.kill_job(self.api, job_id)
-        self.get_jobs = lambda: api_funcs.get_jobs(
-            self.api, role_id=self.role_id)
-        self.get_jobs_dict = lambda job_id_list: api_funcs.get_jobs_dict(
-            self.api, job_id_list)
-        self.get_job = lambda job_id: api_funcs.get_job(self.api, job_id)
-        self.submit_job = lambda command, workdir, savedir_logs: api_funcs.submit_job(self.api,
-                                                                                      self.account_id, command, 
-                                                                                      self.job_config, self.workdir, 
-                                                                                      savedir_logs)
+        count = 0
+        for j in job_list:
+            if hasattr(j, 'command'):
+                print(count,':',j.command[2])
+            if count > topk:
+                break
+            count += 1
 
-    def run(self, wait_seconds=3):
-        assert self.run_command is not None
-        summary_dict = self.get_summary(get_logs=False)
-        print("\nTotal Experiments:", len(self.exp_list))
+    def get_jobs(self):
+        return ho.get_jobs(self.api, role_id=self.role_id)
+
+    def get_jobs_dict(self, job_id_list):
+        return ho.get_jobs_dict(self.api, job_id_list)
+
+    def get_job(self, job_id):
+        return ho.get_job(self.api, job_id)
+
+    def kill_job(self, job_id):
+        return ho.kill_job(self.api, job_id)
+
+    def submit_job(self, command, savedir):
+        return ho.submit_job(self.api, 
+                             self.account_id, 
+                             command, 
+                             self.job_config, 
+                             self.workdir, 
+                             savedir)
+
+    def launch_menu(self, command=None, exp_list=None, get_logs=False, wait_seconds=3):
+        exp_list = exp_list or self.exp_list
+        summary_dict = self.get_summary(get_logs=False, exp_list=exp_list)
+
+        print("\nTotal Experiments:", len(exp_list))
         print("Experiment Status:", summary_dict['status'])
         prompt = ("\nMenu:\n"
+                  "  0)'ipdb' run ipdb for an interactive session; or\n"
                   "  1)'reset' to reset the experiments; or\n"
                   "  2)'run' to run the remaining experiments and retry the failed ones; or\n"
                   "  3)'status' to view the job status; or\n"
                   "  4)'kill' to kill the jobs.\n"
-                  "Command: "
+                  "Type option: "
                   )
-        if not self.force_run:
-            command = input(prompt)
-        else:
-            command = 'run'
+        
+        option = input(prompt)
 
-        command_list = ['reset', 'run', 'status', 'logs', 'kill']
-        if command not in command_list:
+        option_list = ['reset', 'run', 'status', 'logs', 'kill']
+        if option not in option_list:
             raise ValueError(
-                'Command has to be one of these choices %s' % command_list)
+                'Prompt input has to be one of these choices %s' % option_list)
 
-        if command == 'status':
+        if option == 'ipdb':
+            import ipdb; ipdb.set_trace()
+            print('Example:\nsummary_dict = self.get_summary(get_logs=True, exp_list=exp_list)')
+
+        elif option == 'status':
             # view experiments
             for state in ['succeeded', 'running', 'queuing', 'failed']:
                 n_jobs = len(summary_dict[state])
@@ -121,22 +122,22 @@ class JobManager:
             print(summary_dict['status'])
             return
 
-        elif command == 'reset':
+        elif option == 'reset':
             self.verbose = False
-            self.submit_jobs(job_command=self.run_command, reset=1)
+            self.launch_exp_list(command=command, exp_list=exp_list, reset=1)
 
-        elif command == 'run':
+        elif option == 'run':
             self.verbose = False
-            self.submit_jobs(job_command=self.run_command, reset=0)
+            self.launch_exp_list(command=command, exp_list=exp_list, reset=0)
 
-        elif command == 'kill':
+        elif option == 'kill':
             self.verbose = False
             self.kill_jobs()
 
         # view
         print("Checking job status in %d seconds" % wait_seconds)
         time.sleep(wait_seconds)
-        summary_dict = self.get_summary()
+        summary_dict = self.get_summary(exp_list=exp_list)
         # view experiments
         for state in ['succeeded', 'running', 'queuing', 'failed']:
             n_jobs = len(summary_dict[state])
@@ -146,45 +147,43 @@ class JobManager:
 
         print(summary_dict['status'])
 
-        # if not self.force_run:
-        #     # create jupyter only when user manually runs a command
-        #     hj.create_jupyter(os.path.join('results', 'notebook.ipynb'), savedir_base=savedir_base, print_url=True,
-        #                     create_notebook=False)
+    def launch_exp_list(self, command,  exp_list=None, reset=0, in_parallel=True):
+        exp_list = exp_list or self.exp_list
 
-    def submit_jobs(self, job_command, reset=0):
         submit_dict = {}
 
-        if self.submit_in_parallel:
+        if in_parallel:
             pr = hu.Parallel()
 
-            for exp_dict in self.exp_list:
+            for exp_dict in exp_list:
                 exp_id = hu.hash_dict(exp_dict)
 
-                command = job_command.replace('<exp_id>', exp_id)
-                pr.add(self._submit_job, exp_dict, command, reset, submit_dict)
+                com = command.replace('<exp_id>', exp_id)
+                pr.add(self.launch_or_ignore_exp_dict, exp_dict, com, reset, submit_dict)
 
             pr.run()
             pr.close()
 
         else:
-            for exp_dict in self.exp_list:
+            for exp_dict in exp_list:
                 exp_id = hu.hash_dict(exp_dict)
 
-                command = job_command.replace('<exp_id>', exp_id)
-                self._submit_job(exp_dict, command, reset, submit_dict)
+                com = command.replace('<exp_id>', exp_id)
+                self.launch_or_ignore_exp_dict(exp_dict, com, reset, submit_dict)
 
         pprint.pprint(submit_dict)
         print("%d/%d experiments submitted." % (len([s for s in submit_dict.values() if 'SUBMITTED' in s]),
                                                 len(submit_dict)))
         return submit_dict
 
-    def kill_jobs(self):
-        hu.check_duplicates(self.exp_list)
+    def kill_jobs(self, exp_list=None):
+        exp_list = exp_list or self.exp_list
+        hu.check_duplicates(exp_list)
 
         pr = hu.Parallel()
         submit_dict = {}
 
-        for exp_dict in self.exp_list:
+        for exp_dict in exp_list:
             exp_id = hu.hash_dict(exp_dict)
             savedir = os.path.join(self.savedir_base, exp_id)
             fname = get_job_fname(savedir)
@@ -203,8 +202,8 @@ class JobManager:
                                              len(submit_dict)))
         return submit_dict
 
-    def _submit_job(self, exp_dict, command, reset, submit_dict={}):
-        """Submit one job.
+    def launch_or_ignore_exp_dict(self, exp_dict, command, reset, savedir_base=None, submit_dict={}):
+        """launch or ignore job.
 
         It checks if the experiment exist and manages the special casses, e.g.,
         new experiment, reset, failed, job is already running, completed
@@ -215,7 +214,7 @@ class JobManager:
 
         if not os.path.exists(fname):
             # Check if the job already exists
-            job_dict = self.launch_job(exp_dict, savedir, command, job=None)
+            job_dict = self.launch_exp_dict(exp_dict, savedir, command, job=None)
             job_id = job_dict['job_id']
             message = "SUBMITTED: Launching"
 
@@ -225,13 +224,13 @@ class JobManager:
             self.kill_job(self.api, job_id)
             hc.delete_and_backup_experiment(savedir)
 
-            job_dict = self.launch_job(exp_dict, savedir, command, job=None)
+            job_dict = self.launch_exp_dict(exp_dict, savedir, command, job=None)
             job_id = job_dict['job_id']
             message = "SUBMITTED: Resetting"
 
         else:
             job_id = hu.load_json(fname).get("job_id")
-            job = self.get_job(self.api, job_id)
+            job = self.get_job( job_id)
 
             if job.alive or job.state == 'SUCCEEDED':
                 # If the job is alive, do nothing
@@ -239,7 +238,7 @@ class JobManager:
 
             elif job.state in ["FAILED", "CANCELLED"]:
                 message = "SUBMITTED: Retrying %s Job" % job.state
-                job_dict = self.launch_job(exp_dict, savedir, command, job=job)
+                job_dict = self.launch_exp_dict(exp_dict, savedir, command, job=job)
                 job_id = job_dict['job_id']
             # This shouldn't happen
             else:
@@ -247,12 +246,12 @@ class JobManager:
 
         submit_dict[job_id] = message
 
-    def launch_job(self, exp_dict, savedir, command, job=None,
+    def launch_exp_dict(self, exp_dict, savedir, command, job=None,
                    use_toolkit=True):
         """Submit a job job and save job dict and exp_dict."""
         # Check for duplicates
-        if job is not None:
-            assert self._assert_no_duplicates(job)
+        # if job is not None:
+            # assert self._assert_no_duplicates(job)
 
         fname_exp_dict = os.path.join(savedir, "exp_dict.json")
         hu.save_json(fname_exp_dict, exp_dict)
@@ -266,8 +265,7 @@ class JobManager:
         hu.copy_code(self.workdir + "/", workdir_job)
 
         # Run  command
-        job_id = self.submit_job(self.api, self.account_id, command,
-                                 self.job_config, workdir_job, savedir_logs=savedir)
+        job_id = self.submit_job(command, workdir_job, savedir_logs=savedir)
 
         # Verbose
         if self.verbose:
@@ -281,7 +279,7 @@ class JobManager:
         return job_dict
 
     def get_summary(self, failed_only=False, columns=None, max_lines=10, wrap_size=8,
-                    add_prefix=False, get_logs=True):
+                    add_prefix=False, get_logs=True, exp_list=None, savedir_base=None):
         """[summary]
 
         Returns
@@ -290,10 +288,13 @@ class JobManager:
             [description]
         """
         # get job ids
+        savedir_base = savedir_base or self.savedir_base
+        exp_list = exp_list or self.exp_list
+
         job_id_list = []
-        for exp_dict in self.exp_list:
+        for exp_dict in exp_list:
             exp_id = hu.hash_dict(exp_dict)
-            savedir = os.path.join(self.savedir_base, exp_id)
+            savedir = os.path.join(savedir_base, exp_id)
             fname = get_job_fname(savedir)
 
             if os.path.exists(fname):
@@ -304,7 +305,7 @@ class JobManager:
         # fill summary
         summary_dict = {'table': [], 'status': [],
                         'logs_failed': [], 'logs': []}
-        for exp_dict in self.exp_list:
+        for exp_dict in exp_list:
             result_dict = {}
             for k in exp_dict:
                 if isinstance(columns, list) and k not in columns:
@@ -318,7 +319,7 @@ class JobManager:
             result_dict = hu.flatten_column(result_dict)
             result_dict['exp_dict'] = exp_dict
             exp_id = hu.hash_dict(exp_dict)
-            savedir = os.path.join(self.savedir_base, exp_id)
+            savedir = os.path.join(savedir_base, exp_id)
             # result_dict["exp_id"] = '\n'.join(wrap(exp_id, wrap_size))
             result_dict["exp_id"] = exp_id
             fname = get_job_fname(savedir)
@@ -394,8 +395,7 @@ class JobManager:
 
     def _assert_no_duplicates(self, job_new=None, max_jobs=500):
         # Get the job list
-        jobList = self.get_jobs(username=self.username,
-                                account_id=self.account_id)
+        jobList = self.get_jobs()
 
         # Check if duplicates already exist in job
         command_dict = {}
@@ -444,9 +444,7 @@ def run_exp_list_jobs(exp_list,
                       job_config=None,
                       force_run=False,
                       wait_seconds=3,
-                      username=None,
                       account_id=None,
-                      token=None,
                       use_toolkit=False,
                       submit_in_parallel=True):
     """Run the experiments in the cluster.
@@ -490,7 +488,6 @@ def run_exp_list_jobs(exp_list,
                     run_command=run_command,
                     workdir=workdir,
                     job_config=job_config,
-                    username=username,
                     verbose=1,
                     account_id=account_id,
                     token=token,
