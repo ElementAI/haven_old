@@ -28,8 +28,7 @@ class ResultManager:
                  exp_ids=None,
                  save_history=False,
                  score_list_name='score_list.pkl',
-                 account_id=None,
-                 role_id=None):
+                 account_id=None):
         """[summary]
         
         Parameters
@@ -80,7 +79,6 @@ class ResultManager:
         self.has_score_list = has_score_list
         self.save_history = save_history
         self.account_id = account_id
-        self.role_id = role_id
         # get exp _list
         
         if exp_ids is not None:
@@ -379,8 +377,7 @@ class ResultManager:
         """[summary]
         """
         exp_list = filter_exp_list(self.exp_list, self.filterby_list, savedir_base=self.savedir_base, verbose=self.verbose)
-        jm = hjb.JobManager(exp_list=exp_list, savedir_base=self.savedir_base, account_id=self.account_id,
-                            role_id=self.role_id, **kwargs)
+        jm = hjb.JobManager(exp_list=exp_list, savedir_base=self.savedir_base, account_id=self.account_id, **kwargs)
         summary_list = jm.get_summary_list(columns=columns, add_prefix=add_prefix)
 
         return summary_list

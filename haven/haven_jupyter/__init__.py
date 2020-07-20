@@ -1,5 +1,9 @@
 import pandas as pd 
-from . import haven_utils
+from .. import haven_utils
+from .. import haven_results as hr
+from .. import haven_utils as hu 
+from .. import haven_dropbox as hd
+
 import os
 import pprint, json
 import copy
@@ -15,12 +19,9 @@ try:
     from IPython.display import FileLink, FileLinks
     from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
 except:
-    pass
+    print('widgets not available...')
 
-from . import haven_results as hr
-from . import haven_jupyter as hj
-from . import haven_utils as hu 
-from . import haven_dropbox as hd
+
 
 
 def launch_jupyter():

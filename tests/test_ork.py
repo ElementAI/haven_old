@@ -28,7 +28,11 @@ if __name__ == '__main__':
    
     job_config = {
         'image': 'registry.console.elementai.com/eai.issam/ssh',
-        'data': ['c76999a2-05e7-4dcb-aef3-5da30b6c502c:/mnt/home'],
+        
+        'data': ['c76999a2-05e7-4dcb-aef3-5da30b6c502c:/mnt/home',
+                 '20552761-b5f3-4027-9811-d0f2f50a3e60:/mnt/results',
+                 '9b4589c8-1b4d-4761-835b-474469b77153:/mnt/datasets'],
+
         'preemptable':True,
         'resources': {
             'cpu': 4,
@@ -40,7 +44,7 @@ if __name__ == '__main__':
 
     exp_list = [{'model':{'name':'mlp', 'n_layers':20}, 
                 'dataset':'mnist', 'batch_size':1}]
-    savedir_base = '/mnt/home/results/test'
+    savedir_base = '/mnt/results/test'
 
     
     jm = hjb.JobManager(exp_list=exp_list, 
@@ -48,7 +52,6 @@ if __name__ == '__main__':
                     workdir=os.path.dirname(os.path.realpath(__file__)),
                     job_config=job_config,
                     account_id='75ce4cee-6829-4274-80e1-77e89559ddfb',
-                    role_id='0b3991cb-4c6c-4765-8305-eb54e44b2020'
                     )
     # get jobs              
     job_list_old = jm.get_jobs()
@@ -83,8 +86,7 @@ if __name__ == '__main__':
     print(hr.group_list(summary_list, key='job_state', return_count=True))
 
     rm = hr.ResultManager(exp_list=exp_list, savedir_base=savedir_base,
-                          account_id='75ce4cee-6829-4274-80e1-77e89559ddfb',
-                          role_id='0b3991cb-4c6c-4765-8305-eb54e44b2020')
+                          account_id='75ce4cee-6829-4274-80e1-77e89559ddfb')
     rm_summary_list = rm.get_job_summary()
     # assert(rm_summary_list['table'].equals(jm_summary_list['table']))
     
