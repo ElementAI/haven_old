@@ -1,5 +1,5 @@
-from . import haven_utils as hu
-from . import haven_chk as hc
+from .. import haven_utils as hu
+from .. import haven_chk as hc
 import os
 
 import time

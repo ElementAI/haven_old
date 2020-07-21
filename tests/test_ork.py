@@ -12,7 +12,6 @@ from haven import haven_utils as hu
 from haven import haven_results as hr
 from haven import haven_chk as hc
 from haven import haven_jobs as hjb
-from haven import haven_ork as ho
 from haven import haven_jupyter as hj
 
     # # return
@@ -77,17 +76,20 @@ if __name__ == '__main__':
     #     command_list += []
 
     # hjb.run_command_list(command_list)
-    jm.launch_menu(command=command)
+    # jm.launch_menu(command=command)
     jm.launch_exp_list(command='echo 2 -e <exp_id>', reset=1, in_parallel=False)
     
     assert(os.path.exists(os.path.join(savedir_base, hu.hash_dict(exp_list[0]), 'job_dict.json')))
     summary_list = jm.get_summary_list()
     print(hr.filter_list(summary_list, {'job_state':'SUCCEEDED'}))
     print(hr.group_list(summary_list, key='job_state', return_count=True))
-
+    
     rm = hr.ResultManager(exp_list=exp_list, savedir_base=savedir_base,
                           account_id='75ce4cee-6829-4274-80e1-77e89559ddfb')
     rm_summary_list = rm.get_job_summary()
+
+    db = hj.get_dashboard(rm,  wide_display=True)
+    db.display()
     # assert(rm_summary_list['table'].equals(jm_summary_list['table']))
     
     # jm.kill_jobs()

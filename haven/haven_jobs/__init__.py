@@ -2,9 +2,9 @@ import os
 import time
 import sys
 import subprocess
-from . import haven_utils as hu
-from . import haven_results as hr
-from . import haven_chk as hc
+from .. import haven_utils as hu
+from .. import haven_results as hr
+from .. import haven_chk as hc
 import os
 from textwrap import wrap
 import time
@@ -13,8 +13,8 @@ import pandas as pd
 import numpy as np
 import getpass
 import pprint
-from . import haven_jupyter as hj
-from . import haven_ork as ho
+from .. import haven_jupyter as hj
+from . import utils_toolkit as ho
 
 
 

@@ -1,5 +1,29 @@
+
+from .. import haven_utils
+from .. import haven_results as hr
+from .. import haven_utils as hu 
+from .. import haven_share as hd
+
+import os
+import pprint, json
+import copy
 import pprint
-import pandas as pd
+import pandas as pd 
+
+try:
+    import ast
+    from ipywidgets import Button, HBox, VBox
+    from ipywidgets import widgets
+
+    from IPython.display import display
+    from IPython.core.display import Javascript, display, HTML
+    from IPython.display import FileLink, FileLinks
+    from ipywidgets.widgets.interaction import show_inline_matplotlib_plots
+except:
+    print('widgets not available...')
+
+def latex_tab():
+    pass
 
 def create_latex_table(table, filter_dict, map_row_dict_dict, map_col_dict, **kwargs):
     '''

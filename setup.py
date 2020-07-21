@@ -1,4 +1,5 @@
 from setuptools import setup
+import setuptools
 
 setup(name='havenai-dev',
       version='0.6.0',
@@ -7,7 +8,7 @@ setup(name='havenai-dev',
       maintainer='Issam Laradji',
       maintainer_email='issam.laradji@elementai.com',
       license='MIT',
-      packages=['haven'],
+      packages=setuptools.find_packages(),
       zip_safe=False,
       install_requires=[
         'tqdm>=0.0'

@@ -10,9 +10,9 @@ import pandas as pd
 import pylab as plt
 import tqdm
 
-from . import haven_jobs as hjb
-from . import haven_utils as hu
-from . import haven_dropbox as hd
+from .. import haven_jobs as hjb
+from .. import haven_utils as hu
+from .. import haven_share as hd
 # from . import tools
 
 
