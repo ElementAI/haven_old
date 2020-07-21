@@ -3,6 +3,8 @@ import copy
 import hashlib
 import itertools
 import json
+
+from .. import haven_img as hi
 import pprint
 import os
 import pickle
@@ -165,7 +167,6 @@ def create_command(base_command, args):
     return run_command 
 
 def mask_on_image(mask, image):
-    from . import haven_img as hi
     from skimage.color import label2rgb
     from skimage.color import color_dict, colorlabel
     from skimage.segmentation import mark_boundaries
@@ -196,7 +197,6 @@ def save_image(fname, img, size=None, points=None, radius=10,
         If enabled creates the folder for saving the file, by default True
     """
     if points is not None:
-        from . import haven_img as hi
         if isinstance(img, np.ndarray):
             img = torch.FloatTensor(img)
         img = img.squeeze()
