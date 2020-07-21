@@ -1,5 +1,5 @@
-from . import haven_utils as hu
-from . import haven_chk as hc
+from .. import haven_utils as hu
+from .. import haven_chk as hc
 import os
 
 import time
@@ -58,16 +58,18 @@ def submit_job(api, account_id, command, job_config, workdir, savedir_logs=None)
     job_id = job.id
     return job_id
 
-def get_job_spec(job_config, command, savedir, workdir):
+def get_job_spec(job_config, command, savedir_logs, workdir):
     _job_config = copy.deepcopy(job_config)
     _job_config['workdir'] = workdir
     
-    path_log = os.path.join(savedir, "logs.txt")
-    path_err = os.path.join(savedir, "err.txt")
-    command_with_logs = '%s 1>%s 2>%s' % (command, path_log, path_err)
+    if savedir_logs is not None:
+        path_log = os.path.join(savedir_logs, "logs.txt")
+        path_err = os.path.join(savedir_logs, "err.txt")
+        command_with_logs = '%s 1>%s 2>%s' % (command, path_log, path_err)
+    else:
+        command_with_logs = command
 
     _job_config['command'] = ['/bin/bash', '-c', command_with_logs]
-
     _job_config['resources'] = eai_toolkit_client.JobSpecResources(**_job_config['resources'])
     job_spec = eai_toolkit_client.JobSpec(**_job_config)
 
@@ -100,12 +102,13 @@ def get_job(api, job_id):
     except ApiException as e:
         raise ValueError("job id %s not found." % job_id)
 
-def get_jobs(api, username=None):
-    account_id = hu.subprocess_call('eai account get').split('\n')[-2].split(' ')[0]
+def get_jobs(api, account_id):
+    # account_id = hu.subprocess_call('eai account get').split('\n')[-2].split(' ')[0]
     return api.v1_account_job_get(account_id=account_id,
             limit=1000, 
             order='-created',
             q="alive_recently=True").items
+            
 
     # return api.v1_me_job_get(limit=1000, 
     #         order='-created',

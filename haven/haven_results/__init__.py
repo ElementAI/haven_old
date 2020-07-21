@@ -10,9 +10,9 @@ import pandas as pd
 import pylab as plt
 import tqdm
 
-from . import haven_jobs as hjb
-from . import haven_utils as hu
-from . import haven_dropbox as hd
+from .. import haven_jobs as hjb
+from .. import haven_utils as hu
+from .. import haven_share as hd
 # from . import tools
 
 
@@ -27,7 +27,8 @@ class ResultManager:
                  mode_key=None,
                  exp_ids=None,
                  save_history=False,
-                 score_list_name='score_list.pkl'):
+                 score_list_name='score_list.pkl',
+                 account_id=None):
         """[summary]
         
         Parameters
@@ -77,6 +78,7 @@ class ResultManager:
         self.mode_key = mode_key
         self.has_score_list = has_score_list
         self.save_history = save_history
+        self.account_id = account_id
         # get exp _list
         
         if exp_ids is not None:
@@ -355,10 +357,10 @@ class ResultManager:
             [description]
         """
         score_lists = get_score_lists(exp_list=self.exp_list, 
-                                savedir_base=self.savedir_base, 
-                                score_list_name=self.score_list_name,
-                             filterby_list=self.filterby_list,
-                              verbose=self.verbose, **kwargs)
+                                      savedir_base=self.savedir_base, 
+                                      score_list_name=self.score_list_name,
+                                      filterby_list=self.filterby_list,
+                                      verbose=self.verbose, **kwargs)
         return score_lists
 
     def get_images(self, **kwargs):
@@ -375,8 +377,9 @@ class ResultManager:
         """[summary]
         """
         exp_list = filter_exp_list(self.exp_list, self.filterby_list, savedir_base=self.savedir_base, verbose=self.verbose)
-        jm = hjb.JobManager(exp_list, self.savedir_base, **kwargs)
-        summary_list = jm.get_summary(columns=columns, add_prefix=add_prefix)
+        jm = hjb.JobManager(exp_list=exp_list, savedir_base=self.savedir_base, account_id=self.account_id, **kwargs)
+        summary_list = jm.get_summary_list(columns=columns, add_prefix=add_prefix)
+
         return summary_list
             
     def to_zip(self, savedir_base='', fname='tmp.zip', **kwargs):
@@ -464,6 +467,25 @@ def group_exp_list(exp_list, groupby_list):
     #     exp_group_dict['_'.join(list(map(str, k)))] = v_list
 
     return list_of_exp_list
+
+def group_list(python_list, key, return_count=False):
+    group_dict = {}
+    for p in python_list:
+        p_tmp = copy.deepcopy(p)
+        del p_tmp[key]
+        k = p[key]
+        
+        if k not in group_dict:
+            group_dict[k] = []
+
+        group_dict[k] += [p_tmp]
+    
+    if return_count:
+        count_dict = {}
+        for k in group_dict:
+            count_dict[k] = len(group_dict[k])
+        return count_dict
+    return group_dict
 
 def get_exp_list_from_config(exp_groups, exp_config_fname):
     exp_list = []
@@ -649,6 +671,8 @@ def zip_exp_list(savedir_base):
                     for line in f:
                         print(line)
 
+def filter_list(python_list, filterby_list, verbose=True):
+    return filter_exp_list(python_list, filterby_list, verbose=verbose)
 
 def filter_exp_list(exp_list, filterby_list, savedir_base=None, verbose=True,
                     score_list_name='score_list.pkl', return_style_list=False):
