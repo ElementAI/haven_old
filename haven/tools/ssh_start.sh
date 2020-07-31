@@ -8,7 +8,7 @@ data:
     - {ACCOUNT}.home:/mnt/home
     - {ACCOUNT}.results:/mnt/results
     - {ACCOUNT}.datasets:/mnt/datasets
-    - eai.colab.public:/mnt/public
+    - {ACCOUNT}.public:/mnt/public
     - {ACCOUNT}.private:/mnt/private
 resources:
     cpu: 8
