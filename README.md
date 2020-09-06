@@ -16,7 +16,7 @@ Haven is a library for managing and visualizing heavy-scale experiments. It is d
 
 ### Install
 ```
-$ pip install --upgrade git+https://github.com/ElementAI/haven
+$ pip install --upgrade git+https://github.com/IssamLaradji/haven
 ```
 
 
