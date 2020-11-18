@@ -4,7 +4,7 @@ import setuptools
 setup(name='havenai-dev',
       version='0.6.0',
       description='Manage large-scale experiments',
-      url='https://github.com/ElementAI/haven',
+      url='https://github.com/ElementAI/haven_old',
       maintainer='Issam Laradji',
       maintainer_email='issam.laradji@elementai.com',
       license='MIT',
